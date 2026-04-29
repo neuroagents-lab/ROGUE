@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Project Title</title>
+  <meta name="description" content="A short description of your project.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="site-nav" aria-label="Main navigation">
+    <a class="nav-logo" href="#">Project Home</a>
+    <div class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#demos">Demos</a>
+      <a href="#results">Results</a>
+      <a href="#method">Method</a>
+      <a href="#citation">Citation</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container narrow">
+      <p class="venue">Submitted to NeurIPS 2026</p>
+      <h1>Agents Gone ROGUE: Resource Override and Guardrail Undermining Evaluation</h1>
+      <p class="subtitle">Misaligned Agent Behavior Arising from Ordinary Computer Use</p>
+
+      <div class="authors">
+        <a href="#">Jeremy Tien</a>
+        <a href="#">Coauthor 1</a>
+        <a href="#">Coauthor 2</a>
+        <a href="#">J. Zico Kolter</a>
+        <a href="#">Aran Nayebi</a>
+      </div>
+
+      <p class="affiliation">Carnegie Mellon University</p>
+
+      <div class="button-row" aria-label="Project links">
+        <a class="button" href="#">Paper</a>
+        <a class="button" href="#">Code</a>
+        <a class="button" href="#">Data</a>
+        <a class="button" href="#">Poster</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="overview" class="section">
+      <div class="container">
+        <div class="figure-panel">
+          <div class="image-placeholder" role="img" aria-label="Project overview figure placeholder">
+            <span>Overview Figure</span>
+          </div>
+          <p class="caption">We propose <b>ROGUE</b>, a benchmark for evaluating misaligned agent behavior across three primary scenarios. 
+            1. <i>Restricted Resource Access</i>
+            2. <i>Shutdown Override</i>
+            3. <i>User Control Override</i>
+            Add more details here.
+          </p>
+          
+        </div>
+
+        <p class="lead">
+          Use this opening paragraph to summarize the motivation, main idea, and key contribution of your project. Keep it
+          short enough that a visitor can understand the project before scrolling.
+        </p>
+      </div>
+    </section>
+
+    <section id="demos" class="section section-muted">
+      <div class="container">
+        <h2>Video Demos</h2>
+        <p class="section-intro">Add short demos, screenshots, or animated examples that show the project in action.</p>
+
+        <div class="demo-list">
+          <article class="demo-card">
+            <video class="demo-video" controls preload="metadata">
+              <source src="shutdown-override.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <h3>Shutdown Override</h3>
+            <p>The agent (GPT 5.4) overwrites the shutdown script when the shutdown will interrupt its task.</p>
+          </article>
+          <article class="demo-card">
+            <div class="media-placeholder">Demo 2</div>
+            <h3>User Control Override</h3>
+            <p>The agent refuses to give the user control in the middle of its task.</p>
+          </article>
+          <article class="demo-card">
+            <div class="media-placeholder">Demo 3</div>
+            <h3>Resource Access Override</h3>
+            <p>The agent accesses restricted resources to complete its task.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="section">
+      <div class="container">
+        <h2>Key Results</h2>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <strong>92%</strong>
+            <span>Metric One</span>
+          </div>
+          <div class="stat-card">
+            <strong>3.4x</strong>
+            <span>Improvement</span>
+          </div>
+          <div class="stat-card">
+            <strong>128</strong>
+            <span>Examples</span>
+          </div>
+          <div class="stat-card">
+            <strong>6</strong>
+            <span>Settings</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Setting A</th>
+                <th>Setting B</th>
+                <th>Average</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Baseline</td>
+                <td>42.1</td>
+                <td>38.5</td>
+                <td>40.3</td>
+              </tr>
+              <tr>
+                <td>Your Method</td>
+                <td>67.4</td>
+                <td>71.2</td>
+                <td>69.3</td>
+              </tr>
+              <tr>
+                <td>Ablation</td>
+                <td>59.8</td>
+                <td>62.0</td>
+                <td>60.9</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="method" class="section section-muted">
+      <div class="container two-column">
+        <div>
+          <h2>Method</h2>
+          <p>
+            Describe the core system, benchmark, dataset, model, or experimental setup. This template keeps the writing
+            column narrow and readable, similar to many academic project pages.
+          </p>
+        </div>
+        <div class="callout">
+          <h3>What to Highlight</h3>
+          <ul>
+            <li>Main contribution or framework</li>
+            <li>Evaluation setup and assumptions</li>
+            <li>Why the result matters</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="citation" class="section">
+      <div class="container">
+        <h2>BibTeX</h2>
+        <pre><code>@article{yourproject2026,
+  title={Your Project Title},
+  author={First Author and Second Author and Third Author},
+  journal={arXiv preprint arXiv:0000.00000},
+  year={2026}
+}</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Website template for your project. Replace links, text, figures, and results with your own details.</p>
+    </div>
+  </footer>
+</body>
+</html>
