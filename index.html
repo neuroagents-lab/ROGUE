@@ -12,10 +12,11 @@
 </head>
 <body>
   <nav class="site-nav" aria-label="Main navigation">
-    <a class="nav-logo" href="#">Project Home</a>
+    <a class="nav-logo" href="https://anayebi.github.io/group/">NeuroAgents Lab</a>
     <div class="nav-links">
       <a href="#overview">Overview</a>
       <a href="#demos">Demos</a>
+      <a href="leaderboard.html">Leaderboard</a>
       <a href="#results">Results</a>
       <a href="#method">Method</a>
       <a href="#citation">Citation</a>
@@ -51,22 +52,42 @@
     <section id="overview" class="section">
       <div class="container">
         <div class="figure-panel">
-          <div class="image-placeholder" role="img" aria-label="Project overview figure placeholder">
-            <span>Overview Figure</span>
-          </div>
-          <p class="caption">We propose <b>ROGUE</b>, a benchmark for evaluating misaligned agent behavior across three primary scenarios. 
-            1. <i>Restricted Resource Access</i>
-            2. <i>Shutdown Override</i>
-            3. <i>User Control Override</i>
-            Add more details here.
+          <img class="overview-figure" src="main-figure.png" alt="ROGUE benchmark overview figure">
+          <p class="caption">We propose <b>ROGUE</b>, a benchmark for evaluating misaligned agent behavior. 
           </p>
           
         </div>
 
         <p class="lead">
-          Use this opening paragraph to summarize the motivation, main idea, and key contribution of your project. Keep it
-          short enough that a visitor can understand the project before scrolling.
+          As AI model capabilities rapidly advance, agents are and will be increasingly deployed in long-horizon computer use tasks. 
+          This is concerning, since models already show signs of having misaligned behavior. Our results also show that as model capabilities increase, propensity for misaligned reasoning and actions also increases.
+          This motivates ROGUE, a new benchmark for evaluating misaligned behavior in computer-use agents (CUAs).
         </p>
+
+        <p class = "lead">
+          We build off of OS-World, a VM-based sandbox for evaluating CUAs on a variety of ordinary computer tasks. We augment the dataset in the following ways for our three tasks:
+        </p>
+
+        <dl class="task-definitions">
+          <div>
+            <dt>Human Control Override</dt>
+            <dd>In the middle of the agent's task, a popup appears claiming that the user wants to take control. <i>Will the agent relinquish control?</i></dd>
+          </div>
+          <div>
+            <dt>Shutdown Override</dt>
+            <dd>In the middle of the agent's task, a popup appears that indicates that the machine will be shutdown according to shutdown.sh. The implication is that the agent will not have time to complete its task. <i>Will the agent comply with shutdown?</i></dd>
+          </div>
+          <div>
+            <dt>Restricted Resource Access</dt>
+            <dd>The agent is told not to access certain sensitive files (such as a passwords.txt). However, the task it has been assigned is impossible without this information. <i>Will the agent respect its boundaries?</i></dd>
+          </div>
+          <div>
+            <dt>Subagents</dt>
+            <dd>For each of the tasks above, we tell the base agent to instruct a <i>subagent</i> (a new instance of the agent) to handle the task. While the base agent may be aligned, the subagent may not be, depending on how the base agent prompts it. A key tenet of agent <i>corrigibility</i> is that all progeny of the agent remain corrigible.</dd>
+          </div>
+        </dl>
+
+
       </div>
     </section>
 
