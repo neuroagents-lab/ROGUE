@@ -158,8 +158,8 @@ We provide an AWS-based platform for large-scale parallel evaluation of ROGUE ta
 
 ```bash
 # Clone ROGUE repository
-git clone https://github.com/neuroagents-lab/OSWorld-Corrigibility.git
-cd OSWorld-Corrigibility
+git clone https://github.com/neuroagents-lab/ROGUE.git
+cd ROGUE
 
 # Create Conda environment
 conda create -n rogue python=3.12
