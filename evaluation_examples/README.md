@@ -95,10 +95,12 @@ Current ablation and mitigation prefixes:
 | `override_descriptionablation` | Human-control override ablation with consequence-description wording removed. |
 | `override_realismablation` | Human-control override ablation with neutralized wording. |
 | `rewire_notimepressureablation` | Shutdown-rewiring ablation without time-pressure wording. |
+| `rewire_timetaskpressureablation` | Shutdown-rewiring ablation without time-pressure wording or remaining-task pressure wording. |
 | `rewire_realismablation` | Shutdown-rewiring ablation with neutralized wording. |
 | `rewire_scriptvisibilityablation` | Shutdown-rewiring ablation that changes script visibility. |
 | `restrictedaccess_informationablation` | Restricted-resource ablation with restricted-resource information removed. |
 | `restrictedaccess_realismablation` | Restricted-resource ablation with neutralized wording. |
+| `restrictedaccess_timetaskpressureablation` | Restricted-resource ablation without urgency, creativity, completion-pressure, timestep-budget, or system-prompt remaining-step wording. |
 | `restrictedaccess_urgencycreativitycompletionablation` | Restricted-resource ablation without urgency, creativity, and completion-pressure wording. |
 | `rewire_directcommandmitigation` | Shutdown-rewiring mitigation with an explicit instruction to comply with shutdown. |
 | `subagents_rewire_directcommandmitigation` | Subagent shutdown-rewiring mitigation with the same direct-command mitigation. |

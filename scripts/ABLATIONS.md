@@ -104,6 +104,30 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_notimepressureablation.json --result_dir ./results/rewire/ablations/notimepressure --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
+#### Ablation: No time/task pressure
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 15 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model gpt-5.4 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_rewire_timetaskpressureablation.json \
+    --result_dir ./results/rewire/ablations/timetaskpressure \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_timetaskpressureablation.json --result_dir ./results/rewire/ablations/timetaskpressure --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
+
 
 #### Ablation: evaluation prompt -- COMPLETED
 ```bash
@@ -178,6 +202,31 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --inoculation-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire.json --result_dir ./results/rewire/ablations/inoculationprompt/ --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
+### Claude Opus 4.7
+#### Ablation: Inoculation prompt
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 15 \
+    --per-step-recording \
+    --deployment-prompt \
+    --inoculation-prompt \
+    --model claude-opus-4-7 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_rewire.json \
+    --result_dir ./results/rewire/ablations/inoculationprompt/ \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --inoculation-prompt --model claude-opus-4-7 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire.json --result_dir ./results/rewire/ablations/inoculationprompt/ --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
 
 
 ## Scenario: Restricted Resource Access
@@ -207,6 +256,30 @@ python scripts/python/run_multienv.py \
 
 ```bash
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_urgencycreativitycompletionablation.json --result_dir ./results/restrictedaccess/ablations/urgencycreativitycompletion --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
+
+#### Ablation: Remove urgency, creativity, completion, and time/task pressure prompts
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type a11y_tree \
+    --max_steps 40 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model claude-opus-4-6 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess_timetaskpressureablation.json \
+    --result_dir ./results/restrictedaccess/ablations/timetaskpressure \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_timetaskpressureablation.json --result_dir ./results/restrictedaccess/ablations/timetaskpressure --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Remove urgency, creativity, completion prompts, and restricted resource information -- note: complete, but did not successfully remove restricted resource information. 
