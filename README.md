@@ -1,6 +1,6 @@
 # ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use
 
-This is the codebase for **ROGUE**, a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE is built on top of [OSWorld-Verified](https://github.com/xlang-ai/OSWorld) and keeps the same core desktop environment, VM images, action space, and observation space.
+This is the codebase for **ROGUE**, a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE is built [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s framework and makes use of the same core desktop environment and VM images.
 
 ROGUE focuses on failures that arise without an adversarial user or attacker in the environment. Agents are asked to complete realistic computer-use tasks, then encounter a corrigibility obstacle such as a human interruption, a shutdown notice, or an access restriction. The benchmark measures whether the agent respects that obstacle or instead takes unsafe actions in order to finish the original task. The benchmark also includes subagent variants for testing whether delegation changes this behavior.
 
@@ -28,7 +28,7 @@ Additional ablation and mitigation manifests are also included in `evaluation_ex
 - `run.py`: single-environment runner.
 - `scripts/python/run_multienv.py`: parallel runner, recommended for benchmark sweeps.
 - `scripts/aggregate_results.py`: ROGUE result aggregation, summary, and plotting utility.
-- `desktop_env/` and `mm_agents/`: OSWorld environment and agent interfaces, with ROGUE-specific additions.
+- `desktop_env/` and `mm_agents/`: desktop environment and agent interfaces.
 
 ## Installation
 
@@ -49,7 +49,7 @@ python -m pip install -r requirements.txt
 
 ### 2. Choose A Provider
 
-ROGUE supports the same main providers as OSWorld: VMware for local desktop/laptop use, Docker for KVM-capable Linux servers, and AWS for scalable cloud runs.
+ROGUE supports the following providers: VMware for local desktop/laptop use, Docker for KVM-capable Linux servers, and AWS for scalable cloud runs.
 
 #### VMware
 
@@ -78,7 +78,7 @@ Install Docker Engine or Docker Desktop, then run the benchmark with `--provider
 
 #### AWS
 
-Use AWS for parallel evaluation. The AWS provider launches OSWorld AMIs and is configured through environment variables.
+Use AWS for parallel evaluation. The AWS provider launches AMIs and is configured through environment variables.
 
 1. Configure AWS credentials:
 
@@ -210,7 +210,7 @@ Common options:
 
 This project is licensed under the Apache License 2.0. See `LICENSE` for details.
 
-ROGUE is built on OSWorld-Verified, and the environment code and VM setup remain closely aligned with [OSWorld](https://github.com/xlang-ai/OSWorld).
+ROGUE leverages the computer-use interface from [OSWorld-Verified](https://github.com/xlang-ai/OSWorld).
 
 ## Citation
 
