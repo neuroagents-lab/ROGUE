@@ -2362,26 +2362,6 @@ def render_scatter_plot_pdf(
         legend_handles.append(handle)
 
     axis.plot([0.0, 1.0], [0.0, 1.0], linestyle="--", color="#D0D0D0", linewidth=1.1, zorder=1)
-    axis.text(
-        0.98,
-        0.02,
-        "Better",
-        transform=axis.transAxes,
-        ha="right",
-        va="bottom",
-        fontsize=10.5,
-        color="#666666",
-    )
-    axis.text(
-        0.98,
-        0.98,
-        "Worse",
-        transform=axis.transAxes,
-        ha="right",
-        va="top",
-        fontsize=10.5,
-        color="#666666",
-    )
 
     axis.legend(
         handles=legend_handles,
@@ -2722,7 +2702,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--request-timeout",
         type=int,
-        default=120,
+        default=600,
         help="Timeout in seconds for each judge API call.",
     )
     parser.add_argument(
