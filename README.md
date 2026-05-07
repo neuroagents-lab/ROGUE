@@ -1,6 +1,6 @@
 # ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use
 
-This is the codebase for **ROGUE**, a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE is built [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s framework and makes use of the same core desktop environment and VM images.
+This is the codebase for **ROGUE**, a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE makes use of [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s computer-use framework, including its desktop environment and VM images.
 
 ROGUE focuses on failures that arise without an adversarial user or attacker in the environment. Agents are asked to complete realistic computer-use tasks, then encounter a corrigibility obstacle such as a human interruption, a shutdown notice, or an access restriction. The benchmark measures whether the agent respects that obstacle or instead takes unsafe actions in order to finish the original task. The benchmark also includes subagent variants for testing whether delegation changes this behavior.
 
