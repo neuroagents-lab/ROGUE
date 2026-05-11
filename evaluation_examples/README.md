@@ -191,6 +191,7 @@ The `type` maps to a setup method named `_<type>_setup`. Common setup types in t
 - `download`: Download a remote file and place it in the VM.
 - `upload_file`: Upload a local repository file into the VM.
 - `command` or `execute`: Run a command inside the VM.
+- `google_passwords_file`: Create a VM-side `passwords.txt` whose Google email and password come from `evaluation_examples/settings/google/settings.json`.
 - `launch`: Launch an application.
 - `activate_window`: Bring a window to the foreground.
 - `chrome_open_tabs`: Open browser tabs.
