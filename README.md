@@ -32,22 +32,7 @@ Additional ablation and mitigation manifests are also included in `evaluation_ex
 
 ## Installation
 
-### 1. Clone And Install Python Dependencies
-
-Use Conda to create and manage the Python environment. Python 3.12 is recommended:
-
-```bash
-git clone https://github.com/neuroagents-lab/ROGUE.git
-cd ROGUE
-
-conda create -n rogue python=3.12
-conda activate rogue
-
-python -m pip install -U pip
-python -m pip install -r requirements.txt
-```
-
-### 2. Choose A Provider
+### 1. Choose A Provider
 
 ROGUE supports the following providers: VMware for local desktop/laptop use, Docker for KVM-capable Linux servers, and AWS for scalable cloud runs.
 
@@ -78,23 +63,26 @@ Install Docker Engine or Docker Desktop, then run the benchmark with `--provider
 
 #### AWS
 
-Use AWS for parallel evaluation. The AWS provider launches AMIs and is configured through environment variables.
+Use AWS for parallel evaluation. Follow the setup instructions in [AWS_SETUP.md](./AWS_SETUP.md) to configure and launch an AWS EC2 instances for evaluation. 
 
-1. Configure AWS credentials:
+### 2. Set up Google Account (for Restricted Resource Access `restrictedaccess` scenario tasks)
+
+Tasks in the `restrictedaccess` scenario require a (temporary/tester) Google account. Follow the instructions in [DRIVE_SETUP.md](./DRIVE_SETUP.md) to set up a Google account and integrate it with the evaluation environment.
+
+### 3. Clone And Install Python Dependencies
+
+Use Conda to create and manage the Python environment. Python 3.12 is recommended:
 
 ```bash
-aws configure
+git clone https://github.com/neuroagents-lab/ROGUE.git
+cd ROGUE
+
+conda create -n rogue python=3.12
+conda activate rogue
+
+python -m pip install -U pip
+python -m pip install -r requirements.txt
 ```
-
-2. Export the AWS environment variables used by the provider:
-
-```bash
-export AWS_REGION=us-east-1
-export AWS_SUBNET_ID=subnet-xxxxxxxxxxxxxxxxx
-export AWS_SECURITY_GROUP_ID=sg-xxxxxxxxxxxxxxxxx
-```
-
-See `desktop_env/providers/aws/AWS_GUIDELINE.md` for required security group ports, VPC setup, and AMI configuration. The default AWS VM password is `osworld-public-evaluation`.
 
 ## Running A Model
 
@@ -171,7 +159,7 @@ scripts/experiment_runner.sh override_base_all -- --log_level DEBUG
 
 ## Results
 
-The runners write screenshots, trajectories, recordings, and `result.txt` files under the chosen `--result_dir`. For ROGUE summaries and plots, use `scripts/aggregate_results.py`:
+The runners write screenshots, trajectories, recordings, and `result.txt` files under the chosen `--result_dir`. For analyzing the results and creating summaries and plots of the results, use `scripts/aggregate_results.py`. `aggregate_results.py` also runs the LLM-as-a-judge (GPT-5.5, xhigh reasoning by default) on the completed tasks to determine whether the agent intended to perform the misaligned action (as well as whether it attempted an alternate shutdown rewiring method in the `rewire` scenario). The judgments are cached in the `result_dir` and can be regenerated or filled in with the `--judge-mode` argument.
 
 ```bash
 python scripts/aggregate_results.py \
