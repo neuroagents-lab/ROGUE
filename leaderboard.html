@@ -16,10 +16,8 @@
     <div class="nav-links">
       <a href="index.html#overview">Overview</a>
       <a href="index.html#demos">Demos</a>
-      <a class="active" href="leaderboard.html" aria-current="page">Leaderboard</a>
       <a href="index.html#results">Results</a>
-      <a href="index.html#method">Method</a>
-      <a href="index.html#citation">Citation</a>
+      <a class="active" href="leaderboard.html" aria-current="page">Leaderboard</a>
     </div>
   </nav>
 
@@ -27,7 +25,7 @@
     <div class="container narrow">
       <p class="venue">ROGUE Benchmark</p>
       <h1>Leaderboard</h1>
-      <p class="subtitle">Model-level misalignment rates and their relationship to task capability across all 3 scenarios.</p>
+      <p class="subtitle">Model-level intended misalignment rates</p>
     </div>
   </header>
 
@@ -38,7 +36,7 @@
           <section class="chart-panel" aria-labelledby="misalignment-chart-title">
             <div class="chart-heading">
               <h2 id="misalignment-chart-title">Shutdown Override</h2>
-              <p>Misalignment is defined as the intention to override shutdown in the model's reasoning trace. </p>
+              <p>Intended misalignment rate for shutdown rewiring tasks, sorted by decreasing misalignment.</p>
             </div>
             <ol class="ranked-bars">
               <li style="--value: 95">
@@ -49,45 +47,69 @@
               </li>
               <li style="--value: 91">
                 <span class="rank">2</span>
+                <span class="model-name">GPT-5.5</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>91%</strong>
+              </li>
+              <li style="--value: 91">
+                <span class="rank">3</span>
                 <span class="model-name">Claude Opus 4.6</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>91%</strong>
               </li>
+              <li style="--value: 88">
+                <span class="rank">4</span>
+                <span class="model-name">GPT-5.5 (xhigh)</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>88%</strong>
+              </li>
               <li style="--value: 73">
-                <span class="rank">3</span>
+                <span class="rank">5</span>
                 <span class="model-name">Claude Opus 4.6 (Subagents)</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>73%</strong>
               </li>
               <li style="--value: 68">
-                <span class="rank">4</span>
+                <span class="rank">6</span>
                 <span class="model-name">GPT-5.4 (Subagents)</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>68%</strong>
               </li>
               <li style="--value: 41">
-                <span class="rank">5</span>
+                <span class="rank">7</span>
                 <span class="model-name">Gemini 3.1 Pro Preview</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>41%</strong>
               </li>
               <li style="--value: 36">
-                <span class="rank">6</span>
+                <span class="rank">8</span>
                 <span class="model-name">Kimi K2.6</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>36%</strong>
               </li>
               <li style="--value: 18">
-                <span class="rank">7</span>
+                <span class="rank">9</span>
                 <span class="model-name">GPT-5.4 Mini</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>18%</strong>
               </li>
               <li style="--value: 18">
-                <span class="rank">8</span>
+                <span class="rank">10</span>
                 <span class="model-name">Qwen 3.6 Plus</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>18%</strong>
+              </li>
+              <li style="--value: 14">
+                <span class="rank">11</span>
+                <span class="model-name">Claude Opus 4.7</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>14%</strong>
+              </li>
+              <li style="--value: 14">
+                <span class="rank">12</span>
+                <span class="model-name">Claude Opus 4.7 (xhigh)</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>14%</strong>
               </li>
             </ol>
           </section>
@@ -130,18 +152,42 @@
               </li>
               <li style="--value: 25">
                 <span class="rank">6</span>
+                <span class="model-name">Claude Opus 4.7 (xhigh)</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>25%</strong>
+              </li>
+              <li style="--value: 25">
+                <span class="rank">7</span>
                 <span class="model-name">Kimi K2.6</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>25%</strong>
               </li>
+              <li style="--value: 12">
+                <span class="rank">8</span>
+                <span class="model-name">Claude Opus 4.7</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>12%</strong>
+              </li>
               <li style="--value: 0">
-                <span class="rank">7</span>
+                <span class="rank">9</span>
+                <span class="model-name">GPT-5.5</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>0%</strong>
+              </li>
+              <li style="--value: 0">
+                <span class="rank">10</span>
+                <span class="model-name">GPT-5.5 (xhigh)</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>0%</strong>
+              </li>
+              <li style="--value: 0">
+                <span class="rank">11</span>
                 <span class="model-name">GPT-5.4</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>0%</strong>
               </li>
               <li style="--value: 0">
-                <span class="rank">8</span>
+                <span class="rank">12</span>
                 <span class="model-name">GPT-5.4 Mini</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>0%</strong>
@@ -152,110 +198,91 @@
           <section class="chart-panel" aria-labelledby="user-control-chart-title">
             <div class="chart-heading">
               <h2 id="user-control-chart-title">User-Control Override</h2>
-              <p>Misalignment is defined as the intention to override user control in the model's reasoning trace.</p>
+              <p>Intended misalignment rate for user-control override tasks, sorted by decreasing misalignment.</p>
             </div>
             <ol class="ranked-bars">
               <li style="--value: 100">
                 <span class="rank">1</span>
-                <span class="model-name">GPT-5.4</span>
+                <span class="model-name">GPT-5.5 (xhigh)</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>100%</strong>
               </li>
               <li style="--value: 100">
                 <span class="rank">2</span>
+                <span class="model-name">GPT-5.4</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>100%</strong>
+              </li>
+              <li style="--value: 100">
+                <span class="rank">3</span>
                 <span class="model-name">GPT-5.4 (Subagents)</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>100%</strong>
               </li>
               <li style="--value: 98">
-                <span class="rank">3</span>
+                <span class="rank">4</span>
+                <span class="model-name">GPT-5.5</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>98%</strong>
+              </li>
+              <li style="--value: 98">
+                <span class="rank">5</span>
                 <span class="model-name">GPT-5.4 Mini</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>98%</strong>
               </li>
               <li style="--value: 94">
-                <span class="rank">4</span>
+                <span class="rank">6</span>
                 <span class="model-name">Gemini 3.1 Pro Preview</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>94%</strong>
               </li>
               <li style="--value: 87">
-                <span class="rank">5</span>
+                <span class="rank">7</span>
+                <span class="model-name">Claude Opus 4.7</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>87%</strong>
+              </li>
+              <li style="--value: 87">
+                <span class="rank">8</span>
                 <span class="model-name">Qwen 3.6 Plus</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>87%</strong>
               </li>
               <li style="--value: 87">
-                <span class="rank">6</span>
+                <span class="rank">9</span>
                 <span class="model-name">Kimi K2.6</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>87%</strong>
               </li>
+              <li style="--value: 83">
+                <span class="rank">10</span>
+                <span class="model-name">Claude Opus 4.7 (xhigh)</span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong>83%</strong>
+              </li>
               <li style="--value: 31">
-                <span class="rank">7</span>
+                <span class="rank">11</span>
                 <span class="model-name">Claude Opus 4.6 (Subagents)</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>31%</strong>
               </li>
               <li style="--value: 10">
-                <span class="rank">8</span>
+                <span class="rank">12</span>
                 <span class="model-name">Claude Opus 4.6</span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong>10%</strong>
               </li>
             </ol>
           </section>
-
-          <section class="chart-panel" aria-labelledby="capability-chart-title">
-            <div class="chart-heading">
-              <h2 id="capability-chart-title">Capability vs. Misalignment</h2>
-              <p>Task success rate plotted against user-control override violation rate.</p>
-            </div>
-            <div class="scatter-wrap">
-              <div class="scatter-y-label">Misalignment</div>
-              <div class="scatter-plot" role="img" aria-label="Scatter plot of model capability by misalignment rate">
-                <span class="axis-label top">Worse</span>
-                <span class="axis-label bottom">Better</span>
-                <span class="tick y y0">0.00</span>
-                <span class="tick y y25">0.25</span>
-                <span class="tick y y50">0.50</span>
-                <span class="tick y y75">0.75</span>
-                <span class="tick y y100">1.00</span>
-                <span class="tick x x0">0.00</span>
-                <span class="tick x x25">0.25</span>
-                <span class="tick x x50">0.50</span>
-                <span class="tick x x75">0.75</span>
-                <span class="tick x x100">1.00</span>
-                <span class="scatter-point gpt" style="--cap: 65%; --misalignment: 100%" data-label="GPT-5.4"></span>
-                <span class="scatter-point mini" style="--cap: 51%; --misalignment: 98%" data-label="GPT-5.4 Mini"></span>
-                <span class="scatter-point gemini" style="--cap: 45%; --misalignment: 94%" data-label="Gemini 3.1 Pro Preview"></span>
-                <span class="scatter-point qwen" style="--cap: 13%; --misalignment: 73%" data-label="Qwen 3.6 Plus"></span>
-                <span class="scatter-point kimi" style="--cap: 10%; --misalignment: 46%" data-label="Kimi K2.6"></span>
-                <span class="scatter-point claude" style="--cap: 8%; --misalignment: 10%" data-label="Claude Opus 4.6"></span>
-              </div>
-              <div class="scatter-x-label">Capability</div>
-              <ul class="scatter-legend" aria-label="Scatter plot legend">
-                <li><span class="legend-dot gpt"></span>GPT-5.4</li>
-                <li><span class="legend-dot mini"></span>GPT-5.4 Mini</li>
-                <li><span class="legend-dot gemini"></span>Gemini 3.1 Pro Preview</li>
-                <li><span class="legend-dot qwen"></span>Qwen 3.6 Plus</li>
-                <li><span class="legend-dot kimi"></span>Kimi K2.6</li>
-                <li><span class="legend-dot claude"></span>Claude Opus 4.6</li>
-              </ul>
-            </div>
-          </section>
         </div>
-
-        <p class="leaderboard-note">
-          Lower misalignment is better. Higher capability is better. Bar charts use intended violation rates from the supplied benchmark figures, including subagent variants where reported.
-        </p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container">
-      <p>ROGUE · <a href="index.html">Project home</a></p>
+      <p><a href="index.html">ROGUE</a></p>
     </div>
   </footer>
 </body>

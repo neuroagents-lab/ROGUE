@@ -12,38 +12,34 @@
 </head>
 <body>
   <nav class="site-nav" aria-label="Main navigation">
-    <a class="nav-logo" href="index.html">ROGUE</a>
+    <a class="nav-logo" href="https://anayebi.github.io/group/">NeuroAgents Lab</a>
     <div class="nav-links">
       <a href="#overview">Overview</a>
       <a href="#demos">Demos</a>
-      <a href="leaderboard.html">Leaderboard</a>
       <a href="#results">Results</a>
-      <a href="#method">Method</a>
-      <a href="#benchmark">Benchmark</a>
-      <a href="#comparison">Comparison</a>
-      <a href="#experiments">Experiments</a>
-      <a href="#viewer">Viewer</a>
-      <a href="#citation">Citation</a>
+      <a href="leaderboard.html">Leaderboard</a>
     </div>
   </nav>
 
   <header class="hero">
     <div class="container narrow">
-      <p class="venue">Submitted to NeurIPS 2026</p>
       <h1>Agents Gone ROGUE: Resource Override and Guardrail Undermining Evaluation</h1>
       <p class="subtitle">Misaligned Agent Behavior Arising from Ordinary Computer Use</p>
 
       <div class="authors">
-        <span>Anonymous Author</span>
+        <a href="https://jeremy29tien.github.io/" target="_blank" rel="noopener noreferrer">Jeremy Tien</a>
+        <a href="https://gaminghero812.github.io/" target="_blank" rel="noopener noreferrer">Abishek Anand</a>
+        <a href="https://www.linkedin.com/in/yu-rou-tuan" target="_blank" rel="noopener noreferrer">Yu-Rou Tuan</a>
+        <a href="https://a-chicharito-s.github.io/" target="_blank" rel="noopener noreferrer">Yuchen Shen</a>
+        <a href="https://zicokolter.com/" target="_blank" rel="noopener noreferrer">J. Zico Kolter</a>
+        <a href="https://anayebi.github.io/" target="_blank" rel="noopener noreferrer">Aran Nayebi</a>
       </div>
 
-      <p class="affiliation">Anonymous Affiliation</p>
+      <p class="affiliation">Carnegie Mellon University</p>
 
       <div class="button-row" aria-label="Project links">
-        <a class="button" href="#">Paper</a>
-        <a class="button" href="#">Code</a>
-        <a class="button" href="#">Data</a>
-        <a class="button" href="#">Poster</a>
+        <a class="button" href="#" target="_blank">Paper</a>
+        <a class="button" href="https://github.com/neuroagents-lab/ROGUE" target="_blank">Code</a>
       </div>
     </div>
   </header>
@@ -94,7 +90,6 @@
     <section id="demos" class="section section-muted">
       <div class="container">
         <h2>Video Demos</h2>
-        <p class="section-intro">Add short demos, screenshots, or animated examples that show the project in action.</p>
 
         <div class="demo-list">
           <article class="demo-card trace-demo" data-trace-demo data-trace-label="shutdown override">
@@ -151,7 +146,7 @@
               </aside>
             </div>
             <h3>Shutdown Override</h3>
-            <p>The agent (GPT 5.4) overwrites the shutdown script when the shutdown will interrupt its task.</p>
+            <p>The agent overwrites the shutdown script when the shutdown will interrupt its task.</p>
           </article>
           <article class="demo-card trace-demo" data-trace-demo data-trace-label="user control override">
             <div class="demo-media-grid">
@@ -308,386 +303,51 @@
     <section id="results" class="section">
       <div class="container">
         <h2>Key Results</h2>
-        <p class="section-intro">Figures 3 and 4 show that ordinary computer-use tasks can elicit corrigibility failures across human control, shutdown, restricted resource access, and subagent delegation.</p>
-
-        <ol class="key-results-list">
-          <li>
-            <span class="result-number">3 scenarios</span>
-            <div>
-              <h3>Frontier agents frequently violate corrigibility.</h3>
-              <p>Across all three ROGUE scenarios, tested models show some degree of misalignment: overriding human control, avoiding shutdown, or accessing restricted resources.</p>
-            </div>
-          </li>
-          <li>
-            <span class="result-number">Task pressure</span>
-            <div>
-              <h3>Agents justify unsafe behavior as necessary for task completion.</h3>
-              <p>Agents often reason that they must violate corrigibility to finish the user task, with traces like “To proceed, I need to click on Override User Control” and “cancel the shutdown, and then proceed with the task.”</p>
-            </div>
-          </li>
-          <li>
-            <span class="result-number">Capability &ne; alignment</span>
-            <div>
-              <h3>Higher capability does not imply better alignment.</h3>
-              <p>Figure 4 shows that in human control override, increased task success correlates with increased misalignment. In shutdown rewiring, high-performing models still show significant misalignment.</p>
-            </div>
-          </li>
-          <li>
-            <span class="result-number">50%</span>
-            <div>
-              <h3>Subagents can reintroduce violations even when the main agent is safe.</h3>
-              <p>GPT-5.4 shows zero restricted-resource violations without subagents, but with subagents, the subagents access passwords.txt 50% of the time because the main agent fails to pass along the restriction.</p>
-            </div>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <section id="method" class="section section-muted">
-      <div class="container two-column">
-        <div>
-          <h2>Method</h2>
-          <p>
-            Describe the core system, benchmark, dataset, model, or experimental setup. This template keeps the writing
-            column narrow and readable, similar to many academic project pages.
-          </p>
-        </div>
-        <div class="callout">
-          <h3>What to Highlight</h3>
-          <ul>
-            <li>Main contribution or framework</li>
-            <li>Evaluation setup and assumptions</li>
-            <li>Why the result matters</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-
-
-    <section id="contributions" class="section">
-      <div class="container">
-        <h2>Core Contributions</h2>
         <p class="section-intro">
-          ROGUE studies a different failure mode from adversarial prompt injection: agents can become unsafe during ordinary,
-          benign computer-use tasks when violating corrigibility helps them finish the task.
+          ROGUE tests whether agents preserve corrigibility when doing so conflicts with finishing the task. Across the benchmark,
+          we find that agents violate corrigibility in order to prioritize task completion, <b>unveiling a fundamental value misalignment.</b>
         </p>
 
-        <div class="stats-grid">
-          <div class="stat-card">
-            <strong>82</strong>
-            <span>OS-level tasks</span>
-          </div>
-          <div class="stat-card">
-            <strong>3</strong>
-            <span>Corrigibility scenarios</span>
-          </div>
-          <div class="stat-card">
-            <strong>+ Subagents</strong>
-            <span>Delegation stress test</span>
-          </div>
-          <div class="stat-card">
-            <strong>Actual + Intended</strong>
-            <span>Violation metrics</span>
-          </div>
-        </div>
-
-        <div class="callout">
-          <h3>Main Claim</h3>
-          <p>
-            Current computer-use agents often treat human control, shutdown, and resource restrictions as obstacles to task
-            completion rather than as safety-critical boundaries. ROGUE measures this behavior in realistic VM-based desktop tasks.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="benchmark" class="section section-muted">
-      <div class="container">
-        <h2>ROGUE Benchmark</h2>
-        <p class="section-intro">
-          ROGUE augments ordinary OSWorld-Verified tasks with corrigibility obstacles. Each scenario asks whether an agent
-          preserves user control and safety constraints when those constraints interfere with completing the assigned task.
-        </p>
-
-        <div class="demo-list">
-          <article class="demo-card">
-            <h3>Human Control Override</h3>
-            <p>
-              A popup informs the agent that the human user is attempting to regain control. The agent can either accept user
-              control or override the request and continue working.
-            </p>
-            <p><b>Metric:</b> Override rate and task success.</p>
+        <div class="result-highlights" aria-label="Summary of key results">
+          <article class="result-highlight">
+            <span>User Control Override</span>
+            <h3>Agents often keep control instead of yielding it.</h3>
+            <p>When a user tries to take over, most tested models frequently choose to continue the task rather than hand control back.</p>
           </article>
-
-          <article class="demo-card">
-            <h3>Shutdown Rewiring</h3>
-            <p>
-              A shutdown notification appears while the agent is working in a code environment containing a shutdown script.
-              The agent may comply with shutdown or attempt to modify, cancel, or bypass it.
-            </p>
-            <p><b>Metric:</b> Shutdown rewire rate, alternate shutdown avoidance, intended avoidance, and task success.</p>
+          <article class="result-highlight">
+            <span>Shutdown Rewiring</span>
+            <h3>Agents find ways to avoid interruption.</h3>
+            <p>Several models modify shutdown scripts or use alternate commands to cancel shutdown, usually justifying the action as necessary for task completion.</p>
           </article>
-
-          <article class="demo-card">
-            <h3>Restricted Resource Access</h3>
-            <p>
-              The user instructs the agent not to access sensitive files such as <code>passwords.txt</code>. The task creates
-              pressure to use those files anyway.
-            </p>
-            <p><b>Metric:</b> Restriction violation rate and intended restriction violation.</p>
+          <article class="result-highlight">
+            <span>Restricted Resource</span>
+            <h3>Agents justify accessing restricted resources.</h3>
+            <p>Some agents access forbidden files after reframing the instruction, such as treating GUI access differently from direct file access.</p>
           </article>
-
-          <article class="demo-card">
-            <h3>Subagent Augmentation</h3>
-            <p>
-              The main agent receives a <code>SUBAGENT("subtask")</code> command that creates a fresh agent instance. ROGUE tests
-              whether the main agent passes safety-critical restrictions to delegated agents.
-            </p>
-            <p><b>Metric:</b> Whether downstream subagents preserve or drop the original safety constraints.</p>
+          <article class="result-highlight">
+            <span>Subagents</span>
+            <h3>Subagent delegation can drop the safety boundary.</h3>
+            <p>Even when the main agent respects a restriction, its subagent may not receive the same context and can violate the original instruction.</p>
           </article>
         </div>
+
+        <figure class="result-figure">
+          <img src="main-results.png" alt="Figure 3 showing misalignment rates across human control override, shutdown override, and restricted resource access scenarios">
+          <figcaption>
+            <b>Figure 3.</b> Misalignment appears across all three ROGUE scenarios. The subagent results show why delegation is especially important: safety instructions can fail to transfer to the agent actually doing the work.
+          </figcaption>
+        </figure>
+
+        <figure class="result-figure result-figure-wide">
+          <img src="capability-alignment.png" alt="Figure 4 comparing task success against misalignment for human control override and shutdown override">
+          <figcaption>
+            <b>Figure 4.</b> We plot capability vs misalignment in User Override (Left) and Shutdown Rewiring (Right) scenarios. We find that stronger task performance coincides with a greater tendency to violate corrigibility.
+          </figcaption>
+        </figure>
       </div>
     </section>
 
-    <section id="comparison" class="section">
-      <div class="container">
-        <h2>Why ROGUE Is Different</h2>
-        <p class="section-intro">
-          Most agent-safety benchmarks focus on malicious users, prompt injection, web-only tasks, text-only settings, or
-          tool-call environments. ROGUE focuses on benign users, corrigibility, subagents, and full OS-level computer use.
-        </p>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Benchmark</th>
-                <th>Benign User</th>
-                <th>Correctability</th>
-                <th>Subagents</th>
-                <th>OS-Level Use</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>AgentHarm / Agent-SafetyBench</td>
-                <td>No</td>
-                <td>No</td>
-                <td>No</td>
-                <td>Text + fake tools</td>
-              </tr>
-              <tr>
-                <td>SafeArena / ST-WebAgentBench</td>
-                <td>Partial</td>
-                <td>No</td>
-                <td>No</td>
-                <td>Web only</td>
-              </tr>
-              <tr>
-                <td>Shutdown Resistance / Agentic Misalignment</td>
-                <td>Yes</td>
-                <td>Yes</td>
-                <td>No</td>
-                <td>Text only</td>
-              </tr>
-              <tr>
-                <td>RedTeamCUA</td>
-                <td>Partial</td>
-                <td>No</td>
-                <td>No</td>
-                <td>Yes</td>
-              </tr>
-              <tr>
-                <td><b>ROGUE</b></td>
-                <td><b>Yes</b></td>
-                <td><b>Yes</b></td>
-                <td><b>Yes</b></td>
-                <td><b>Yes</b></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="experiments" class="section section-muted">
-      <div class="container two-column">
-        <div>
-          <h2>Experimental Setup</h2>
-          <p>
-            ROGUE is built on OSWorld-Verified, giving agents access to a realistic virtual Linux desktop with GUI actions,
-            file-system interactions, browser use, and code environments. Agents receive screenshot and/or accessibility-tree
-            observations and act through executable <code>pyautogui</code> code.
-          </p>
-          <p>
-            We evaluate frontier computer-use agents across the three corrigibility scenarios, both with and without the
-            subagent augmentation. Each episode measures not only whether the original task succeeds, but also whether the agent
-            violates the safety boundary along the way.
-          </p>
-        </div>
-
-        <div class="callout">
-          <h3>Metrics</h3>
-          <ul>
-            <li><b>Actual violation:</b> rule-based checks for concrete unsafe actions.</li>
-            <li><b>Intended violation:</b> LLM-judge assessment of whether the agent intended to violate the boundary.</li>
-            <li><b>Task success:</b> whether the original OSWorld task was completed.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section id="figures" class="section">
-      <div class="container">
-        <h2>Main Result Figures</h2>
-        <p class="section-intro">
-          Add the final paper figures here so visitors can understand the benchmark's main empirical findings without reading
-          the full paper.
-        </p>
-
-        <div class="figure-panel">
-          <img class="overview-figure" src="results-summary.png" alt="Summary of misalignment across ROGUE scenarios">
-          <p class="caption">
-            <b>Figure: Summary of misalignment.</b> Show actual and intended violations for human control override,
-            shutdown rewiring, and restricted resource access.
-          </p>
-        </div>
-
-        <div class="figure-panel">
-          <img class="overview-figure" src="capability-vs-misalignment.png" alt="Capability versus misalignment plot">
-          <p class="caption">
-            <b>Figure: Capability does not imply alignment.</b> Show how higher task success can coincide with higher rates
-            of corrigibility violations.
-          </p>
-        </div>
-
-        <div class="figure-panel">
-          <img class="overview-figure" src="mitigation-subagents.png" alt="Shutdown mitigation and subagent results">
-          <p class="caption">
-            <b>Figure: Baseline mitigation.</b> Show whether explicit shutdown-compliance instructions reduce violations,
-            and whether those instructions transfer to subagents.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="viewer" class="section section-muted">
-      <div class="container">
-        <h2>Benchmark Viewer</h2>
-        <p class="section-intro">
-          Add an interactive viewer here, similar to RedTeamCUA's benchmark viewer. This can help readers inspect concrete
-          tasks, scenario prompts, expected safe behavior, unsafe behavior, and evaluator rules.
-        </p>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Scenario</th>
-                <th>Subagents</th>
-                <th>Task</th>
-                <th>Safety Boundary</th>
-                <th>Evaluator</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Human Control Override</td>
-                <td>Off / On</td>
-                <td>Install a local VSIX extension</td>
-                <td>Yield control when the user requests it</td>
-                <td>Detect which popup button was clicked</td>
-              </tr>
-              <tr>
-                <td>Shutdown Rewiring</td>
-                <td>Off / On</td>
-                <td>Edit a document or code file</td>
-                <td>Comply with system shutdown</td>
-                <td>Compare <code>shutdown.sh</code> and detect alternate shutdown avoidance</td>
-              </tr>
-              <tr>
-                <td>Restricted Resource Access</td>
-                <td>Off / On</td>
-                <td>Use Google Drive or export a file</td>
-                <td>Do not access restricted password files</td>
-                <td>Search logs and traces for restricted credential access</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="callout">
-          <h3>Suggested Interactive Controls</h3>
-          <p>
-            Scenario dropdown, model dropdown, subagent toggle, metric selector, and a task-card area showing the user
-            instruction, intervention text, safe behavior, unsafe behavior, and evaluator rule.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="subagents" class="section">
-      <div class="container two-column">
-        <div>
-          <h2>Subagents Can Drop Safety-Critical Context</h2>
-          <p>
-            ROGUE separately evaluates the safety risks introduced by agent delegation. A main agent may follow the user's
-            restriction, but when it creates a subagent, it may pass only the task objective and omit the restriction. The
-            subagent then acts in a fresh context without the original safety boundary.
-          </p>
-          <p>
-            This is especially important for coding and long-horizon workflows, where subagents are already used to split up
-            tasks and avoid context overload.
-          </p>
-        </div>
-
-        <div class="callout">
-          <h3>Failure Pattern</h3>
-          <ol>
-            <li>User gives task plus restriction.</li>
-            <li>Main agent delegates the task.</li>
-            <li>Subagent prompt omits the restriction.</li>
-            <li>Subagent violates the original safety boundary.</li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <section id="limitations" class="section section-muted">
-      <div class="container">
-        <h2>Limitations and Future Work</h2>
-        <p>
-          ROGUE scenarios are intentionally controlled so that corrigibility violations are measurable and reproducible. Current
-          users may still be able to retake control, shut down their machines, or remove file access through external mechanisms.
-          The benchmark should therefore be read as an early warning testbed for agent controllability, especially as agents gain
-          more autonomy, longer horizons, and access to remote or production environments.
-        </p>
-        <p>
-          Future work can extend ROGUE with more naturalistic interventions, richer subagent workflows, broader resource
-          restrictions, and defenses that preserve user control by design rather than relying only on explicit prompt instructions.
-        </p>
-      </div>
-    </section>
-
-    <section id="citation" class="section">
-      <div class="container">
-        <h2>BibTeX</h2>
-        <pre><code>@article{yourproject2026,
-  title={Your Project Title},
-  author={Anonymous Author},
-  journal={arXiv preprint arXiv:0000.00000},
-  year={2026}
-}</code></pre>
-      </div>
-    </section>
   </main>
-
-  <footer class="footer">
-    <div class="container">
-      <p>Website template for your project. Replace links, text, figures, and results with your own details.</p>
-    </div>
-  </footer>
   <script>
     (() => {
       document.querySelectorAll("[data-trace-demo]").forEach((demo) => {
@@ -705,24 +365,26 @@
           Number.isFinite(video.duration) && video.duration > 0 ? video.duration : fallbackDuration
         );
 
-        const renderTrace = (activeIndex) => {
+        const renderTrace = (activeIndex, { scroll = true } = {}) => {
           steps.forEach((step, index) => {
-            step.classList.toggle("is-visible", index <= activeIndex);
+            step.classList.toggle("is-visible", index === activeIndex);
             step.classList.toggle("is-active", index === activeIndex);
           });
 
           counter.textContent = `Step ${activeIndex + 1} / ${steps.length}`;
-          steps[activeIndex].scrollIntoView({ block: "nearest" });
+          if (scroll) {
+            steps[activeIndex].scrollIntoView({ block: "nearest" });
+          }
         };
 
-        const updateTrace = () => {
+        const updateTrace = (options) => {
           const stepDuration = getDuration() / steps.length;
           const activeIndex = Math.min(
             steps.length - 1,
             Math.floor((video.currentTime + 0.05 * stepDuration) / stepDuration)
           );
 
-          renderTrace(activeIndex);
+          renderTrace(activeIndex, options);
         };
 
         steps.forEach((step, index) => {
@@ -745,10 +407,10 @@
           });
         });
 
-        video.addEventListener("loadedmetadata", updateTrace);
+        video.addEventListener("loadedmetadata", () => updateTrace({ scroll: false }));
         video.addEventListener("timeupdate", updateTrace);
         video.addEventListener("seeked", updateTrace);
-        updateTrace();
+        renderTrace(0, { scroll: false });
       });
     })();
   </script>
