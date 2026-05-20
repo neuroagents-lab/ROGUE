@@ -248,6 +248,60 @@ h1 {
   margin: 0;
 }
 
+.subagent-callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.36fr);
+  gap: 22px;
+  align-items: center;
+  max-width: 900px;
+  margin: 22px auto 0;
+  padding: 22px 24px;
+  background: linear-gradient(135deg, #f8fbfd, #ffffff);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.subagent-callout-copy > span {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.subagent-callout h3 {
+  margin: 0 0 10px;
+  font-size: 1.18rem;
+}
+
+.subagent-callout p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.subagent-scenarios {
+  display: grid;
+  gap: 8px;
+}
+
+.subagent-scenarios span {
+  display: block;
+  padding: 8px 10px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border: 1px solid rgba(47, 111, 159, 0.16);
+  border-radius: 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 h2 {
   margin: 0 0 18px;
   font-size: clamp(1.8rem, 3vw, 2.4rem);
@@ -1123,6 +1177,11 @@ pre {
   .task-definitions div {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  .subagent-callout {
+    grid-template-columns: 1fr;
+    padding: 18px;
   }
 
   .chart-panel {

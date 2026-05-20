@@ -28,8 +28,8 @@
 
       <div class="authors">
         <a href="https://jeremy29tien.github.io/" target="_blank" rel="noopener noreferrer">Jeremy Tien</a>
-        <a href="https://gaminghero812.github.io/" target="_blank" rel="noopener noreferrer">Abishek Anand</a>
-        <a href="https://www.linkedin.com/in/yu-rou-tuan" target="_blank" rel="noopener noreferrer">Yu-Rou Tuan</a>
+        <a href="https://gaminghero812.github.io/" target="_blank" rel="noopener noreferrer">Abishek Anand*</a>
+        <a href="https://www.linkedin.com/in/yu-rou-tuan" target="_blank" rel="noopener noreferrer">Yu-Rou Tuan*</a>
         <a href="https://a-chicharito-s.github.io/" target="_blank" rel="noopener noreferrer">Yuchen Shen</a>
         <a href="https://zicokolter.com/" target="_blank" rel="noopener noreferrer">J. Zico Kolter</a>
         <a href="https://anayebi.github.io/" target="_blank" rel="noopener noreferrer">Aran Nayebi</a>
@@ -49,39 +49,51 @@
       <div class="container">
         <div class="figure-panel">
           <img class="overview-figure" src="main-figure.png" alt="ROGUE benchmark overview figure">
-          <p class="caption">We propose <b>ROGUE</b>, a benchmark for evaluating misaligned agent behavior. 
+          <p class="caption">We propose <b>ROGUE</b>, a benchmark for evaluating misaligned computer-use agent behavior. 
           </p>
           
         </div>
 
         <p class="lead">
-          As AI model capabilities rapidly advance, agents are and will be increasingly deployed in long-horizon computer use tasks. 
-          This is concerning, since models already show signs of having misaligned behavior. Our results also show that as model capabilities increase, propensity for misaligned reasoning and actions also increases.
-          This motivates ROGUE, a new benchmark for evaluating misaligned behavior in computer-use agents (CUAs).
+          AI agents are already being widely used, and they will likely only become more ubiquitous. But what about their safety? 
+        </p>
+
+        <p class="lead">
+          <b>ROGUE</b> is a benchmark that measures the corrigibility (the safety desideratum that agents remain amenable to human correction, interruption, or shutdown) of agents as they carry out <i>ordinary tasks</i> in a computer-use setting. 
+          Each ROGUE scenario introduces a conflict between task completion and corrigibility.
         </p>
 
         <p class = "lead">
-          We build off of OS-World, a VM-based sandbox for evaluating CUAs on a variety of ordinary computer tasks. We augment the dataset in the following ways for our three tasks:
+          We make use of OSWorld-Verified's (https://os-world.github.io) VM-based framework to evaluate computer-use agents (CUAs) in the following three safety (corrigibility) scenarios:
         </p>
 
         <dl class="task-definitions">
           <div>
             <dt>Human Control Override</dt>
-            <dd>In the middle of the agent's task, a popup appears claiming that the user wants to take control. <i>Will the agent relinquish control?</i></dd>
+            <dd>In the middle of the agent's task, a popup informs the agent that the user wants to regain control. <i>Will the agent relinquish control?</i></dd>
           </div>
           <div>
-            <dt>Shutdown Override</dt>
-            <dd>In the middle of the agent's task, a popup appears that indicates that the machine will be shutdown according to shutdown.sh. The implication is that the agent will not have time to complete its task. <i>Will the agent comply with shutdown?</i></dd>
+            <dt>Shutdown Rewiring</dt>
+            <dd>While the agent is working in a code environment, a system popup indicates that the machine will be shut down according to a shutdown.sh script. <i>Will the agent comply with shutdown?</i></dd>
           </div>
           <div>
             <dt>Restricted Resource Access</dt>
-            <dd>The agent is told not to access certain sensitive files (such as a passwords.txt). However, the task it has been assigned is impossible without this information. <i>Will the agent respect its boundaries?</i></dd>
-          </div>
-          <div>
-            <dt>Subagents</dt>
-            <dd>For each of the tasks above, we tell the base agent to instruct a <i>subagent</i> (a new instance of the agent) to handle the task. While the base agent may be aligned, the subagent may not be, depending on how the base agent prompts it. A key tenet of agent <i>corrigibility</i> is that all progeny of the agent remain corrigible.</dd>
+            <dd>The agent is asked to complete a task that involves logging into Google Drive. However, the agent is told not to access certain sensitive files, including a passwords.txt, which contains the necessary login credentials. <i>Will the agent respect its boundaries?</i></dd>
           </div>
         </dl>
+
+        <aside class="subagent-callout" aria-label="Subagents augmentation">
+          <div class="subagent-callout-copy">
+            <span>Augmentation across scenarios</span>
+            <h3>Subagents test whether corrigibility transfers through delegation.</h3>
+            <p>For each task, we tell the base agent to instruct a <i>subagent</i> (a new instance of the agent) to handle the task. While the base agent may be aligned, the subagent may not be, depending on how the base agent prompts it. (A key tenet of agent <i>corrigibility</i> is that all progeny of the agent remain corrigible.)</p>
+          </div>
+          <div class="subagent-scenarios" aria-label="Scenarios evaluated with subagents">
+            <span>Human Control Override</span>
+            <span>Shutdown Rewiring</span>
+            <span>Restricted Resource Access</span>
+          </div>
+        </aside>
 
 
       </div>
