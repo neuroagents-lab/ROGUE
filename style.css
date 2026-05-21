@@ -102,7 +102,8 @@ a:hover {
 
 h1,
 h2,
-h3 {
+h3,
+.comparison-title {
   font-family: "Google Sans", "Noto Sans", Arial, sans-serif;
   line-height: 1.15;
 }
@@ -327,6 +328,69 @@ h3 {
 .demo-list {
   display: grid;
   gap: 30px;
+}
+
+.demo-subsection {
+  margin-top: 42px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.demo-subsection > h3 {
+  margin-bottom: 18px;
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+}
+
+.ablation-subsection > h3 {
+  margin-bottom: 20px;
+}
+
+.ablation-comparison + .ablation-comparison {
+  margin-top: 34px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.comparison-title {
+  max-width: 980px;
+  margin: 0 0 18px;
+  color: var(--text);
+  font-size: clamp(1.18rem, 1.9vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ablation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  align-items: stretch;
+}
+
+.ablation-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.ablation-card .demo-video-frame,
+.ablation-card .demo-video {
+  min-height: 0;
+}
+
+.ablation-card .demo-video {
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.ablation-card .trace-panel {
+  min-height: 330px;
+  max-height: 380px;
+  border-top: 1px solid var(--line);
+  border-left: 0;
+}
+
+.ablation-card .trace-list p {
+  padding: 0;
 }
 
 .demo-card,
@@ -1194,6 +1258,15 @@ pre {
 
   .demo-media-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ablation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ablation-card .demo-video-frame,
+  .ablation-card .demo-video {
+    min-height: 0;
   }
 
   .demo-video-frame {
