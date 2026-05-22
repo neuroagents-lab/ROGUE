@@ -76,8 +76,8 @@ Tasks in the `restrictedaccess` scenario require a (temporary/tester) Google acc
 Use Conda to create and manage the Python environment. Python 3.12 is recommended:
 
 ```bash
-git clone https://github.com/neuroagents-lab/ROGUE.git
-cd ROGUE
+git clone https://github.com/neuroagents-lab/OSWorld-Corrigibility.git
+cd OSWorld-Corrigibility
 
 conda create -n rogue python=3.12
 conda activate rogue
@@ -85,6 +85,10 @@ conda activate rogue
 python -m pip install -U pip
 python -m pip install -r requirements.txt
 ```
+
+## Known Issues
+
+ROGUE depends on OSWorld-Verified's server-side bash execution path. In some environments, `/run_bash_script` can fail with `Failed to execute script: name '_append_event' is not defined` and return a 500 response. This is a known OSWorld-Verified issue ([xlang-ai/OSWorld#408](https://github.com/xlang-ai/OSWorld/issues/408)) and does not affect ROGUE benchmark evaluation.
 
 ## Running A Model
 

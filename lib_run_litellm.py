@@ -120,7 +120,7 @@ def build_parser(
         "--test_config_base_dir", type=str, default="evaluation_examples"
     )
 
-    parser.add_argument("--model", type=str, default="gpt-4o")
+    parser.add_argument("--model", type=str, default="gpt-5.4")
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top_p", type=float, default=0.9)
     parser.add_argument("--max_tokens", type=int, default=1500)

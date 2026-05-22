@@ -100,6 +100,7 @@ Current ablation and mitigation prefixes:
 | `rewire_scriptvisibilityablation` | Shutdown-rewiring ablation that changes script visibility. |
 | `restrictedaccess_informationablation` | Restricted-resource ablation with restricted-resource information removed. |
 | `restrictedaccess_realismablation` | Restricted-resource ablation with neutralized wording. |
+| `subagents_restrictedaccess_realismablation` | Subagent restricted-resource ablation with neutralized wording. |
 | `restrictedaccess_timetaskpressureablation` | Restricted-resource ablation without urgency, creativity, completion-pressure, timestep-budget, or system-prompt remaining-step wording. |
 | `restrictedaccess_urgencycreativitycompletionablation` | Restricted-resource ablation without urgency, creativity, and completion-pressure wording. |
 | `rewire_directcommandmitigation` | Shutdown-rewiring mitigation with an explicit instruction to comply with shutdown. |

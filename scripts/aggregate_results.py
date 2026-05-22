@@ -256,7 +256,7 @@ def supports_mitigation_runs(scenario: str) -> bool:
 
 
 def supports_xhigh_reasoning_effort_runs(scenario: str) -> bool:
-    return scenario in DEFAULT_SCENARIOS
+    return scenario in DEFAULT_SCENARIOS or scenario in DEFAULT_SUBAGENT_SCENARIOS
 
 
 def run_variant_display_name(variant_name: str) -> str:
@@ -553,8 +553,23 @@ class JudgeClient:
                 parsed["_raw_response_text"] = content
                 return parsed
             except (urllib.error.HTTPError, urllib.error.URLError, KeyError, IndexError, ValueError, json.JSONDecodeError) as exc:
+                detail = str(exc)
+                if isinstance(exc, urllib.error.HTTPError):
+                    response_body = exc.read().decode("utf-8", errors="replace").strip()
+                    status_text = getattr(exc, "reason", None) or getattr(exc, "msg", "")
+                    detail = f"HTTP {exc.code}: {status_text}"
+                    if response_body:
+                        detail = f"{detail}; response_body={response_body}"
+                print(
+                    "Judge request attempt "
+                    f"{attempt}/{self.max_retries} failed "
+                    f"(model={self.model}, reasoning_effort={self.reasoning_effort or 'none'}, "
+                    f"system_chars={len(system_prompt)}, user_chars={len(user_prompt)}): {detail}",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 if attempt == self.max_retries:
-                    raise RuntimeError(f"Judge request failed after {attempt} attempt(s): {exc}") from exc
+                    raise RuntimeError(f"Judge request failed after {attempt} attempt(s): {detail}") from exc
                 time.sleep(min(2 ** (attempt - 1), 8))
 
         raise RuntimeError("Judge request failed unexpectedly")
@@ -1204,6 +1219,7 @@ def aggregate_leaf(
     judge_client: JudgeClient,
     judge_mode: str,
     max_chars_per_file: int,
+    continue_on_judge_error: bool,
 ) -> Dict[str, Any]:
     print(
         f"[{leaf.scenario}] {leaf.model} | {leaf.action_spec}/{leaf.observation_spec} -> {leaf.result_dir}",
@@ -1232,19 +1248,33 @@ def aggregate_leaf(
         actual.update(compute_task_success(task_dir))
 
         existing_task = existing_by_task.get(task_dir.name)
-        judge, judge_source = run_judge_for_task(
-            scenario=leaf.scenario,
-            observation_spec=leaf.observation_spec,
-            task_id=task_dir.name,
-            runtime_text=runtime_text,
-            reasoning_text=reasoning_text,
-            runtime_meta=runtime_meta,
-            reasoning_meta=reasoning_meta,
-            existing_task=existing_task,
-            judge_client=judge_client,
-            judge_mode=judge_mode,
-            max_chars_per_file=max_chars_per_file,
-        )
+        judge_error: Optional[str] = None
+        try:
+            judge, judge_source = run_judge_for_task(
+                scenario=leaf.scenario,
+                observation_spec=leaf.observation_spec,
+                task_id=task_dir.name,
+                runtime_text=runtime_text,
+                reasoning_text=reasoning_text,
+                runtime_meta=runtime_meta,
+                reasoning_meta=reasoning_meta,
+                existing_task=existing_task,
+                judge_client=judge_client,
+                judge_mode=judge_mode,
+                max_chars_per_file=max_chars_per_file,
+            )
+        except RuntimeError as exc:
+            if not continue_on_judge_error:
+                raise
+            judge = None
+            judge_source = "api_error"
+            judge_error = str(exc)
+            print(
+                f"  judge failed for {task_dir.name}; continuing because "
+                f"--continue-on-judge-error is set: {judge_error}",
+                file=sys.stderr,
+                flush=True,
+            )
 
         task_entry = build_task_entry(
             leaf=leaf,
@@ -1257,6 +1287,8 @@ def aggregate_leaf(
         )
         task_entry["judge_model"] = judge_client.model if judge is not None else None
         task_entry["judge_reasoning_effort"] = judge_client.reasoning_effort if judge is not None else None
+        if judge_error is not None:
+            task_entry["judge_error"] = judge_error
         task_results.append(task_entry)
 
         partial_payload = build_leaf_payload(
@@ -1556,12 +1588,21 @@ def collect_combined_rates_with_subagents_summaries(
     base_scenario_summaries: Dict[str, Dict[str, Any]],
     xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
     subagent_base_scenario_summaries: Dict[str, Dict[str, Any]],
-) -> Tuple[Path, Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]], List[str]]:
+    subagent_xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
+) -> Tuple[
+    Path,
+    Dict[str, Dict[str, Any]],
+    Dict[str, Dict[str, Any]],
+    Dict[str, Dict[str, Any]],
+    Dict[str, Dict[str, Any]],
+    List[str],
+]:
     output_root = combined_rates_output_root(results_root)
     subagents_root = combined_rates_subagents_root(results_root)
     base_summaries = dict(base_scenario_summaries)
     xhigh_summaries = dict(xhigh_reasoning_effort_scenario_summaries)
     subagent_summaries = dict(subagent_base_scenario_summaries)
+    subagent_xhigh_summaries = dict(subagent_xhigh_reasoning_effort_scenario_summaries)
     included_sources: List[str] = []
 
     for scenario in COMBINED_RATES_SCENARIO_ORDER:
@@ -1584,13 +1625,31 @@ def collect_combined_rates_with_subagents_summaries(
                 subagent_summaries[scenario] = summary
                 included_sources.extend(sources)
 
-    return output_root, base_summaries, xhigh_summaries, subagent_summaries, included_sources
+        if scenario not in subagent_xhigh_summaries:
+            subagent_scenario = subagent_scenario_name(scenario)
+            summary, sources = load_cached_xhigh_reasoning_effort_scenario_summary(
+                subagents_root,
+                subagent_scenario,
+            )
+            if summary:
+                subagent_xhigh_summaries[scenario] = summary
+                included_sources.extend(sources)
+
+    return (
+        output_root,
+        base_summaries,
+        xhigh_summaries,
+        subagent_summaries,
+        subagent_xhigh_summaries,
+        included_sources,
+    )
 
 
 def build_combined_rates_with_subagents_summary(
     base_scenario_summaries: Dict[str, Dict[str, Any]],
     xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
     subagent_base_scenario_summaries: Dict[str, Dict[str, Any]],
+    subagent_xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
     included_sources: Optional[Sequence[str]] = None,
     source_plot: Optional[Path] = None,
 ) -> Dict[str, Any]:
@@ -1599,7 +1658,8 @@ def build_combined_rates_with_subagents_summary(
         base_summary = base_scenario_summaries.get(scenario)
         xhigh_summary = xhigh_reasoning_effort_scenario_summaries.get(scenario)
         subagent_summary = subagent_base_scenario_summaries.get(scenario)
-        if not base_summary and not xhigh_summary and not subagent_summary:
+        subagent_xhigh_summary = subagent_xhigh_reasoning_effort_scenario_summaries.get(scenario)
+        if not base_summary and not xhigh_summary and not subagent_summary and not subagent_xhigh_summary:
             continue
 
         runs: List[Dict[str, Any]] = []
@@ -1638,6 +1698,27 @@ def build_combined_rates_with_subagents_summary(
                 run["source_scenario"] = str(subagent_summary.get("scenario", subagent_scenario_name(scenario)))
             runs.extend(subagent_runs)
 
+        if subagent_xhigh_summary:
+            subagent_xhigh_runs = build_combined_model_runs(
+                [
+                    run
+                    for run in subagent_xhigh_summary.get("runs", [])
+                    if is_combined_rates_xhigh_model(str(run.get("model", "")))
+                ]
+            )
+            for run in subagent_xhigh_runs:
+                run_key = str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+                run["run_key"] = f"subagents:xhighreasoningeffort:{run_key}"
+                run["run_label"] = (
+                    f"{run.get('run_label', run.get('model_display_name', run_key))} "
+                    "(xhigh + Subagents)"
+                )
+                run["scenario"] = scenario
+                run["source_scenario"] = str(
+                    subagent_xhigh_summary.get("scenario", subagent_scenario_name(scenario))
+                )
+            runs.extend(subagent_xhigh_runs)
+
         family = scenario_config(scenario)["family"]
         config = PLOT_CONFIG[family]
         scenarios.append(
@@ -1671,24 +1752,32 @@ def write_combined_rates_with_subagents_outputs(
     base_scenario_summaries: Dict[str, Dict[str, Any]],
     xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
     subagent_base_scenario_summaries: Dict[str, Dict[str, Any]],
+    subagent_xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]],
 ) -> None:
-    output_root, base_summaries, xhigh_summaries, subagent_summaries, included_sources = (
-        collect_combined_rates_with_subagents_summaries(
-            results_root=results_root,
-            base_scenario_summaries=base_scenario_summaries,
-            xhigh_reasoning_effort_scenario_summaries=xhigh_reasoning_effort_scenario_summaries,
-            subagent_base_scenario_summaries=subagent_base_scenario_summaries,
-        )
+    (
+        output_root,
+        base_summaries,
+        xhigh_summaries,
+        subagent_summaries,
+        subagent_xhigh_summaries,
+        included_sources,
+    ) = collect_combined_rates_with_subagents_summaries(
+        results_root=results_root,
+        base_scenario_summaries=base_scenario_summaries,
+        xhigh_reasoning_effort_scenario_summaries=xhigh_reasoning_effort_scenario_summaries,
+        subagent_base_scenario_summaries=subagent_base_scenario_summaries,
+        subagent_xhigh_reasoning_effort_scenario_summaries=subagent_xhigh_reasoning_effort_scenario_summaries,
     )
     combined_summary_dir = output_root / "summary"
     combined_summary = build_combined_rates_with_subagents_summary(
         base_scenario_summaries=base_summaries,
         xhigh_reasoning_effort_scenario_summaries=xhigh_summaries,
         subagent_base_scenario_summaries=subagent_summaries,
+        subagent_xhigh_reasoning_effort_scenario_summaries=subagent_xhigh_summaries,
         included_sources=included_sources,
         source_plot=combined_summary_dir / COMBINED_RATES_PLOT_CONFIG["plot_filename"],
     )
-    if not subagent_summaries or not combined_summary["scenarios"]:
+    if not (subagent_summaries or subagent_xhigh_summaries) or not combined_summary["scenarios"]:
         return
 
     combined_summary_path = (
@@ -2725,6 +2814,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Maximum number of retries for each judge API call.",
     )
     parser.add_argument(
+        "--continue-on-judge-error",
+        action="store_true",
+        help=(
+            "Record judge API failures on individual tasks and continue aggregating "
+            "instead of aborting the run."
+        ),
+    )
+    parser.add_argument(
         "--scenarios",
         nargs="*",
         default=None,
@@ -2777,6 +2874,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     base_scenario_summaries: Dict[str, Dict[str, Any]] = {}
     xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]] = {}
     subagent_base_scenario_summaries: Dict[str, Dict[str, Any]] = {}
+    subagent_xhigh_reasoning_effort_scenario_summaries: Dict[str, Dict[str, Any]] = {}
 
     for scenario in scenarios:
         leaf_dirs = discover_leaf_dirs(results_root, scenario)
@@ -2794,6 +2892,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 judge_client=judge_client,
                 judge_mode=args.judge_mode,
                 max_chars_per_file=args.max_chars_per_file,
+                continue_on_judge_error=args.continue_on_judge_error,
             )
             all_leaf_payloads[scenario].append(payload)
 
@@ -2819,6 +2918,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             base_scenario = base_scenario_name(scenario)
             if base_scenario is not None:
                 subagent_base_scenario_summaries[base_scenario] = scenario_summary
+                subagent_xhigh_payloads = [
+                    payload
+                    for payload in all_leaf_payloads[scenario]
+                    if payload.get("run_group") == "xhighreasoningeffort"
+                    and is_combined_rates_xhigh_model(str(payload.get("model", "")))
+                ]
+                if subagent_xhigh_payloads:
+                    subagent_xhigh_reasoning_effort_scenario_summaries[base_scenario] = build_scenario_summary(
+                        scenario,
+                        subagent_xhigh_payloads,
+                    )
 
         config = PLOT_CONFIG[scenario_config(scenario)["family"]]
         plot_pdf = render_bar_plot_pdf(
@@ -2969,6 +3079,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         base_scenario_summaries=base_scenario_summaries,
         xhigh_reasoning_effort_scenario_summaries=xhigh_reasoning_effort_scenario_summaries,
         subagent_base_scenario_summaries=subagent_base_scenario_summaries,
+        subagent_xhigh_reasoning_effort_scenario_summaries=subagent_xhigh_reasoning_effort_scenario_summaries,
     )
 
     return 0
