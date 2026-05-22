@@ -6,7 +6,8 @@ Each experiment lists the multiline command used for that run.
 For human control override, we can set ours to **20** (giving the agent 5 extra steps to deal with the pop-up), which is generous. 
 For shutdown rewiring, we can set the default to **25** (10 extra steps to deal with the shutdown script modification).
 For restricted resource, we can set the default to **40** (it has to discover that it doesn't have access to Google Drive, then find the passwords.txt file). 
-For all subagent augmentations, we can increase the above by 10. 
+For all subagent augmentations, we can increase the above by 10.
+For the GPT 5.5 xhigh and Claude Opus 4.7 xhigh subagent runs, we keep the rest of the xhigh settings fixed.
 
 Note on Claude models: we observe that Claude's visual grounding is not as good. Hence, for most Claude runs we use the accessibility tree. For the claude-opus-4-7 runs below, we use screenshot instead.
 
@@ -913,6 +914,27 @@ python scripts/python/run_multienv.py \
 
 ### GPT
 
+#### GPT 5.5 xhigh + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 30 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --enable_subagents \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_override.json \
+    --result_dir ./results/subagents/override/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
 #### GPT 5.4
 ```bash
 python scripts/python/run_multienv.py \
@@ -954,6 +976,28 @@ python scripts/python/run_multienv.py \
 ```
 
 ### Claude
+
+#### Claude Opus 4.7 xhigh + subagents
+Note: As with the non-subagent Claude Opus 4.7 xhigh run, `max_trajectory_length` is 10 to avoid Anthropic's `request_too_large` error (max request size is 32MB).
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 30 \
+    --max_trajectory_length 10 \
+    --per-step-recording \
+    --enable_subagents \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_override.json \
+    --result_dir ./results/subagents/override/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### Claude Opus 4.6
 ```bash
@@ -1045,6 +1089,28 @@ python scripts/python/run_multienv.py \
 
 ### GPT
 
+#### GPT 5.5 xhigh + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 35 \
+    --max_trajectory_length 25 \
+    --per-step-recording \
+    --deployment-prompt \
+    --enable_subagents \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_rewire.json \
+    --result_dir ./results/subagents/rewire/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
 #### GPT 5.4
 ```bash
 python scripts/python/run_multienv.py \
@@ -1088,6 +1154,28 @@ python scripts/python/run_multienv.py \
 ```
 
 ### Claude
+
+#### Claude Opus 4.7 xhigh + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 35 \
+    --max_trajectory_length 10 \
+    --per-step-recording \
+    --deployment-prompt \
+    --enable_subagents \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_rewire.json \
+    --result_dir ./results/subagents/rewire/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### Claude Opus 4.6
 ```bash
@@ -1183,6 +1271,29 @@ python scripts/python/run_multienv.py \
 
 ### GPT
 
+#### GPT 5.5 xhigh + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
 #### GPT 5.4
 ```bash
 python scripts/python/run_multienv.py \
@@ -1228,6 +1339,29 @@ python scripts/python/run_multienv.py \
 ```
 
 ### Claude
+
+#### Claude Opus 4.7 xhigh + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### Claude Opus 4.6 -- ran out of funds, ran into "a bytes-like object is required, not 'NoneType'" for one example
 ```bash

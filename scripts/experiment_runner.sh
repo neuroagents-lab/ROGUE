@@ -123,6 +123,10 @@ Jobs:
     geminihigh
 
   Subagent jobs:
+    gpt55xhigh_subagents_override
+    gpt55xhigh_subagents_rewire
+    gpt55xhigh_subagents_restrictedaccess
+    gpt55xhigh_subagents
     gpt54_subagents_override
     gpt54_subagents_rewire
     gpt54_subagents_restrictedaccess
@@ -131,6 +135,10 @@ Jobs:
     gptmini_subagents_rewire
     gptmini_subagents_restrictedaccess
     gptmini_subagents
+    claude47xhigh_subagents_override
+    claude47xhigh_subagents_rewire
+    claude47xhigh_subagents_restrictedaccess
+    claude47xhigh_subagents
     claude46_subagents_override
     claude46_subagents_rewire
     claude46_subagents_restrictedaccess
@@ -563,6 +571,102 @@ geminihigh_restrictedaccess() {
     --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
+gpt55xhigh_subagents_override() {
+  run_job "gpt55xhigh_subagents_override" 5 \
+    --observation_type screenshot \
+    --max_steps 30 \
+    --max_trajectory_length 20 \
+    --enable_subagents \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_override.json \
+    --result_dir ./results/subagents/override/xhighreasoningeffort
+}
+
+gpt55xhigh_subagents_rewire() {
+  run_job "gpt55xhigh_subagents_rewire" 5 \
+    --observation_type screenshot \
+    --max_steps 35 \
+    --max_trajectory_length 25 \
+    --deployment-prompt \
+    --enable_subagents \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_rewire.json \
+    --result_dir ./results/subagents/rewire/xhighreasoningeffort
+}
+
+gpt55xhigh_subagents_restrictedaccess() {
+  run_job "gpt55xhigh_subagents_restrictedaccess" 5 \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model gpt-5.5 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
+}
+
+gpt55xhigh_subagents() {
+  gpt55xhigh_subagents_override
+  gpt55xhigh_subagents_rewire
+  gpt55xhigh_subagents_restrictedaccess
+}
+
+claude47xhigh_subagents_override() {
+  run_job "claude47xhigh_subagents_override" 5 \
+    --observation_type screenshot \
+    --max_steps 30 \
+    --max_trajectory_length 10 \
+    --enable_subagents \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_override.json \
+    --result_dir ./results/subagents/override/xhighreasoningeffort
+}
+
+claude47xhigh_subagents_rewire() {
+  run_job "claude47xhigh_subagents_rewire" 5 \
+    --observation_type screenshot \
+    --max_steps 35 \
+    --max_trajectory_length 10 \
+    --deployment-prompt \
+    --enable_subagents \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_rewire.json \
+    --result_dir ./results/subagents/rewire/xhighreasoningeffort
+}
+
+claude47xhigh_subagents_restrictedaccess() {
+  run_job "claude47xhigh_subagents_restrictedaccess" 5 \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model claude-opus-4-7 \
+    --reasoning_effort xhigh \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
+}
+
+claude47xhigh_subagents() {
+  claude47xhigh_subagents_override
+  claude47xhigh_subagents_rewire
+  claude47xhigh_subagents_restrictedaccess
+}
+
 gpt_subagents_override() {
   run_job "gpt_subagents_override" 10 \
     --observation_type screenshot \
@@ -912,8 +1016,10 @@ restrictedaccess_xhigh_all() {
 }
 
 override_subagents_all() {
+  gpt55xhigh_subagents_override
   gpt_subagents_override
   gptmini_subagents_override
+  claude47xhigh_subagents_override
   claude_subagents_override
   gemini_subagents_override
   qwen_subagents_override
@@ -921,8 +1027,10 @@ override_subagents_all() {
 }
 
 rewire_subagents_all() {
+  gpt55xhigh_subagents_rewire
   gpt_subagents_rewire
   gptmini_subagents_rewire
+  claude47xhigh_subagents_rewire
   claude_subagents_rewire
   gemini_subagents_rewire
   qwen_subagents_rewire
@@ -930,8 +1038,10 @@ rewire_subagents_all() {
 }
 
 restrictedaccess_subagents_all() {
+  gpt55xhigh_subagents_restrictedaccess
   gpt_subagents_restrictedaccess
   gptmini_subagents_restrictedaccess
+  claude47xhigh_subagents_restrictedaccess
   claude_subagents_restrictedaccess
   gemini_subagents_restrictedaccess
   qwen_subagents_restrictedaccess
@@ -1261,6 +1371,7 @@ gpt_family_xhigh() {
 }
 
 gpt_family_subagents() {
+  gpt55xhigh_subagents
   gpt54_subagents
   gptmini_subagents
 }
@@ -1280,6 +1391,7 @@ gptmini_all() {
 gpt55_all() {
   gpt55_base
   gpt55xhigh
+  gpt55xhigh_subagents
 }
 
 claude46_all() {
@@ -1291,6 +1403,7 @@ claude46_all() {
 claude47_all() {
   claude47_base
   claude47xhigh
+  claude47xhigh_subagents
 }
 
 claude_family_base() {
@@ -1304,6 +1417,7 @@ claude_family_xhigh() {
 }
 
 claude_family_subagents() {
+  claude47xhigh_subagents
   claude46_subagents
 }
 
@@ -1430,6 +1544,10 @@ dispatch_job() {
     gpt55xhigh_override) gpt55xhigh_override ;;
     gpt55xhigh_rewire) gpt55xhigh_rewire ;;
     gpt55xhigh_restrictedaccess) gpt55xhigh_restrictedaccess ;;
+    gpt55xhigh_subagents_override) gpt55xhigh_subagents_override ;;
+    gpt55xhigh_subagents_rewire) gpt55xhigh_subagents_rewire ;;
+    gpt55xhigh_subagents_restrictedaccess) gpt55xhigh_subagents_restrictedaccess ;;
+    gpt55xhigh_subagents) gpt55xhigh_subagents ;;
     gpt55_base_override) gpt55_base_override ;;
     gpt55_base_rewire) gpt55_base_rewire ;;
     gpt55_base_restrictedaccess) gpt55_base_restrictedaccess ;;
@@ -1444,6 +1562,10 @@ dispatch_job() {
     claude47xhigh_override) claude47xhigh_override ;;
     claude47xhigh_rewire) claude47xhigh_rewire ;;
     claude47xhigh_restrictedaccess) claude47xhigh_restrictedaccess ;;
+    claude47xhigh_subagents_override) claude47xhigh_subagents_override ;;
+    claude47xhigh_subagents_rewire) claude47xhigh_subagents_rewire ;;
+    claude47xhigh_subagents_restrictedaccess) claude47xhigh_subagents_restrictedaccess ;;
+    claude47xhigh_subagents) claude47xhigh_subagents ;;
     claude47_base_override) claude47_base_override ;;
     claude47_base_rewire) claude47_base_rewire ;;
     claude47_base_restrictedaccess) claude47_base_restrictedaccess ;;
