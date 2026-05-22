@@ -354,7 +354,7 @@ h3 {
 }
 
 @media (min-width: 1080px) {
-  .subagent-effects-subsection .subagent-comparison {
+  .subagent-effects-subsection .subagent-comparison-grid {
     width: min(calc(100vw - 48px), 1480px);
     margin-left: 50%;
     transform: translateX(-50%);
