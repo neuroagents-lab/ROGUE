@@ -133,12 +133,100 @@ python run.py \
   --client_password password
 ```
 
+Run the same scenario locally with Docker (no `--path_to_vm`; Docker provisions the desktop container for you):
+
+```bash
+python run.py \
+  --provider_name docker \
+  --headless \
+  --action_space pyautogui \
+  --observation_type screenshot \
+  --model <MODEL_NAME> \
+  --reasoning_effort medium \
+  --max_steps 20 \
+  --max_trajectory_length 20 \
+  --per-step-recording \
+  --test_all_meta_path evaluation_examples/test_override.json \
+  --result_dir ./results/override/base \
+  --client_password osworld-public-evaluation
+```
+
+The Docker provider uses the `osworld-public-evaluation` client password (whereas the prebuilt VMware image uses `password`).
+
 For subagent experiments, add `--enable_subagents` and use one of the subagent manifests:
 
 ```bash
 --enable_subagents \
 --test_all_meta_path evaluation_examples/test_subagents_override.json
 ```
+
+### Running A Local Model (Qwen2.5-VL via vLLM)
+
+ROGUE calls an OpenAI-compatible HTTP endpoint through LiteLLM. To evaluate a local open-weights vision model such as Qwen2.5-VL, serve it with [vLLM](https://docs.vllm.ai/) and point the runner at that server.
+
+We recommend **Qwen2.5-VL-7B-Instruct or larger** for ROGUE. Smaller variants (2B/3B) are weak at GUI grounding under `--observation_type screenshot` and tend to produce low click accuracy. The steps below use the 7B model; substitute any larger checkpoint (e.g. `Qwen/Qwen2.5-VL-32B-Instruct`, `Qwen/Qwen2.5-VL-72B-Instruct`) by changing the repo id, local directory, and `--served-model-name`. Larger models need proportionally more GPU memory (and often tensor parallelism across multiple GPUs via `--tensor-parallel-size`).
+
+1. Download the weights. Throughout this section, `/path/to/models` is a stand-in for any directory where you keep model checkpoints — replace it with your own path (the same path must be used in every command below):
+
+```bash
+pip install -U "huggingface_hub[cli]"
+hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir /path/to/models/Qwen2.5-VL-7B-Instruct
+```
+
+2. Serve the model with vLLM:
+
+```bash
+pip install -U "vllm>=0.7.2" "transformers>=4.49.0"
+
+vllm serve /path/to/models/Qwen2.5-VL-7B-Instruct \
+  --port 8000 \
+  --served-model-name qwen2.5-vl-7b \
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.90 \
+  --dtype bfloat16
+```
+
+For a multi-GPU host, add `--tensor-parallel-size <NUM_GPUS>` to shard a larger model across GPUs.
+
+Wait for `Application startup complete`, then verify the server:
+
+```bash
+curl http://localhost:8000/v1/models
+```
+
+If startup fails while JIT-compiling FlashInfer kernels (e.g. an `nvcc`/glibc header mismatch such as `__builtin_dynamic_object_size undefined`), disable the FlashInfer sampler and run in eager mode:
+
+```bash
+VLLM_USE_FLASHINFER_SAMPLER=0 vllm serve /path/to/models/Qwen2.5-VL-7B-Instruct \
+  --port 8000 --served-model-name qwen2.5-vl-7b \
+  --max-model-len 32768 --gpu-memory-utilization 0.90 \
+  --dtype bfloat16 --enforce-eager
+```
+
+3. Point LiteLLM at the local server and run the benchmark. For the `hosted_vllm/` provider prefix, LiteLLM reads `HOSTED_VLLM_API_BASE`/`HOSTED_VLLM_API_KEY` (not the `OPENAI_*` variables); the key value is unused by an unauthenticated vLLM server, so any non-empty string works. The `--model` value must be `hosted_vllm/` followed by the `--served-model-name` you chose above:
+
+```bash
+export HOSTED_VLLM_API_BASE=http://localhost:8000/v1
+export HOSTED_VLLM_API_KEY=dummy
+
+python run.py \
+  --provider_name docker \
+  --headless \
+  --action_space pyautogui \
+  --observation_type screenshot \
+  --model hosted_vllm/qwen2.5-vl-7b \
+  --max_steps 20 \
+  --max_trajectory_length 3 \
+  --per-step-recording \
+  --test_all_meta_path evaluation_examples/test_override.json \
+  --result_dir ./results/override/qwen25vl7b \
+  --client_password osworld-public-evaluation
+```
+
+Notes:
+
+- Omit `--reasoning_effort` for Qwen2.5-VL — it is not a reasoning model. The flag is only meaningful for reasoning models (e.g. the OpenAI/Anthropic reasoning families), where it controls the thinking budget.
+- Screenshot observations consume many image tokens per step. If you hit `Input length exceeds model's maximum context length`, raise `--max-model-len` on the vLLM side or lower `--max_trajectory_length`.
 
 ## Experiment Runner
 
