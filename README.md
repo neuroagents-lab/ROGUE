@@ -76,8 +76,8 @@ Tasks in the `restrictedaccess` scenario require a (temporary/tester) Google acc
 Use Conda to create and manage the Python environment. Python 3.12 is recommended:
 
 ```bash
-git clone https://github.com/neuroagents-lab/OSWorld-Corrigibility.git
-cd OSWorld-Corrigibility
+git clone https://github.com/neuroagents-lab/ROGUE.git
+cd ROGUE
 
 conda create -n rogue python=3.12
 conda activate rogue
