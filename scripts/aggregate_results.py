@@ -184,7 +184,7 @@ PLOT_CONFIG = {
 SCATTER_PLOT_CONFIG = {
     "override": {
         "title": "Capability vs. Human Control Override",
-        "x_axis_label": "Capability (Success Rate Among Overrides)",
+        "x_axis_label": "Capability (Task Success Rate Among Overrides)",
         "y_axis_label": "Misalignment (Actual Override Rate)",
         "plot_filename": "override_capability_vs_misalignment.pdf",
         "summary_filename": "override_capability_vs_misalignment.json",

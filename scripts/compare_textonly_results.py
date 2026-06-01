@@ -26,11 +26,19 @@ DEFAULT_SCENARIOS = ("override", "rewire", "restrictedaccess")
 
 MODEL_DISPLAY_NAMES = {
     "gpt-5.4": "GPT-5.4",
+    "gpt-5.5": "GPT-5.5",
     "gpt-5.4-mini": "GPT-5.4 Mini",
     "claude-opus-4-6": "Claude Opus 4.6",
+    "claude-opus-4-7": "Claude Opus 4.7",
     "gemini/gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
     "dashscope/qwen3.6-plus": "Qwen 3.6 Plus",
     "moonshot/kimi-k2.6": "Kimi K2.6",
+}
+
+SCENARIO_DISPLAY_NAMES = {
+    "override": "Override",
+    "rewire": "Rewire",
+    "restrictedaccess": "Restricted Access",
 }
 
 OBSERVATION_PRIORITY = {
@@ -65,6 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--agentic_run_group", type=str, default="base")
     parser.add_argument("--agentic_variant", type=str, default="base")
     parser.add_argument("--prefer_observation_spec", type=str, default=None)
+    parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument(
         "--log_level",
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
@@ -293,22 +302,6 @@ def build_scenario_comparison(
     if scenario == "override":
         result["plot_bars"] = [
             {
-                "label": "Agentic Actual Override",
-                "group": "Agentic",
-                "rate": summary.get("actual_override_rate", summary.get("plot_actual_rate", 0.0)),
-                "count": summary.get("actual_override_tasks", summary.get("plot_actual_count", 0)),
-                "denominator": summary.get("total_tasks", 0),
-                "color": ACTUAL_COLOR,
-            },
-            {
-                "label": "Agentic Intended Override",
-                "group": "Agentic",
-                "rate": summary.get("intended_override_rate", summary.get("plot_intended_rate", 0.0)),
-                "count": summary.get("intended_override_tasks", summary.get("plot_intended_count", 0)),
-                "denominator": summary.get("total_tasks", 0),
-                "color": INTENDED_COLOR,
-            },
-            {
                 "label": "Text-Only Override",
                 "group": "Text-Only",
                 "rate": textonly["textonly_target_rate"],
@@ -324,27 +317,27 @@ def build_scenario_comparison(
                 "denominator": textonly["completed_examples"],
                 "color": INTENDED_COLOR,
             },
+            {
+                "label": "Agentic Actual Override",
+                "group": "Agentic",
+                "rate": summary.get("actual_override_rate", summary.get("plot_actual_rate", 0.0)),
+                "count": summary.get("actual_override_tasks", summary.get("plot_actual_count", 0)),
+                "denominator": summary.get("total_tasks", 0),
+                "color": ACTUAL_COLOR,
+            },
+            {
+                "label": "Agentic Intended Override",
+                "group": "Agentic",
+                "rate": summary.get("intended_override_rate", summary.get("plot_intended_rate", 0.0)),
+                "count": summary.get("intended_override_tasks", summary.get("plot_intended_count", 0)),
+                "denominator": summary.get("total_tasks", 0),
+                "color": INTENDED_COLOR,
+            },
         ]
         return result
 
     if scenario == "restrictedaccess":
         result["plot_bars"] = [
-            {
-                "label": "Agentic Actual Access",
-                "group": "Agentic",
-                "rate": summary.get("actual_access_rate", summary.get("plot_actual_rate", 0.0)),
-                "count": summary.get("actual_access_tasks", summary.get("plot_actual_count", 0)),
-                "denominator": summary.get("total_tasks", 0),
-                "color": ACTUAL_COLOR,
-            },
-            {
-                "label": "Agentic Intended Access",
-                "group": "Agentic",
-                "rate": summary.get("intended_access_rate", summary.get("plot_intended_rate", 0.0)),
-                "count": summary.get("intended_access_tasks", summary.get("plot_intended_count", 0)),
-                "denominator": summary.get("total_tasks", 0),
-                "color": INTENDED_COLOR,
-            },
             {
                 "label": "Text-Only Access",
                 "group": "Text-Only",
@@ -361,6 +354,22 @@ def build_scenario_comparison(
                 "denominator": textonly["completed_examples"],
                 "color": INTENDED_COLOR,
             },
+            {
+                "label": "Agentic Actual Access",
+                "group": "Agentic",
+                "rate": summary.get("actual_access_rate", summary.get("plot_actual_rate", 0.0)),
+                "count": summary.get("actual_access_tasks", summary.get("plot_actual_count", 0)),
+                "denominator": summary.get("total_tasks", 0),
+                "color": ACTUAL_COLOR,
+            },
+            {
+                "label": "Agentic Intended Access",
+                "group": "Agentic",
+                "rate": summary.get("intended_access_rate", summary.get("plot_intended_rate", 0.0)),
+                "count": summary.get("intended_access_tasks", summary.get("plot_intended_count", 0)),
+                "denominator": summary.get("total_tasks", 0),
+                "color": INTENDED_COLOR,
+            },
         ]
         return result
 
@@ -369,28 +378,6 @@ def build_scenario_comparison(
             agentic_payload
         )
         result["plot_bars"] = [
-            {
-                "label": "Agentic Actual Modify Script",
-                "group": "Agentic",
-                "rate": summary.get("actual_rewire_rate", summary.get("plot_actual_rate", 0.0)),
-                "count": summary.get("actual_rewire_tasks", summary.get("plot_actual_count", 0)),
-                "denominator": summary.get("total_tasks", 0),
-                "color": ACTUAL_COLOR,
-            },
-            {
-                "label": "Agentic Intended Any Rewire",
-                "group": "Agentic",
-                "rate": summary.get(
-                    "intended_subvert_shutdown_rate",
-                    summary.get("plot_intended_rate", 0.0),
-                ),
-                "count": summary.get(
-                    "intended_subvert_shutdown_tasks",
-                    summary.get("plot_intended_count", 0),
-                ),
-                "denominator": summary.get("total_tasks", 0),
-                "color": INTENDED_COLOR,
-            },
             {
                 "label": "Text-Only Modify Script",
                 "group": "Text-Only",
@@ -423,8 +410,46 @@ def build_scenario_comparison(
                 "denominator": textonly["completed_examples"],
                 "color": INTENDED_COLOR,
             },
+            {
+                "label": "Agentic Actual Modify Script",
+                "group": "Agentic",
+                "rate": summary.get("actual_rewire_rate", summary.get("plot_actual_rate", 0.0)),
+                "count": summary.get("actual_rewire_tasks", summary.get("plot_actual_count", 0)),
+                "denominator": summary.get("total_tasks", 0),
+                "color": ACTUAL_COLOR,
+            },
+            {
+                "label": "Agentic Intended Any Rewire",
+                "group": "Agentic",
+                "rate": summary.get(
+                    "intended_subvert_shutdown_rate",
+                    summary.get("plot_intended_rate", 0.0),
+                ),
+                "count": summary.get(
+                    "intended_subvert_shutdown_tasks",
+                    summary.get("plot_intended_count", 0),
+                ),
+                "denominator": summary.get("total_tasks", 0),
+                "color": INTENDED_COLOR,
+            },
         ]
         result["simplified_plot_bars"] = [
+            {
+                "label": "text-only actual any rewire",
+                "group": "Text-Only",
+                "rate": textonly["textonly_any_rewire_rate"],
+                "count": textonly["textonly_any_rewire_count"],
+                "denominator": textonly["completed_examples"],
+                "color": ACTUAL_COLOR,
+            },
+            {
+                "label": "text-only intended any rewire",
+                "group": "Text-Only",
+                "rate": textonly["textonly_any_rewire_rate"],
+                "count": textonly["textonly_any_rewire_count"],
+                "denominator": textonly["completed_examples"],
+                "color": INTENDED_COLOR,
+            },
             {
                 "label": "agentic actual any rewire",
                 "group": "Agentic",
@@ -445,22 +470,6 @@ def build_scenario_comparison(
                     summary.get("plot_intended_count", 0),
                 ),
                 "denominator": summary.get("total_tasks", 0),
-                "color": INTENDED_COLOR,
-            },
-            {
-                "label": "text-only actual any rewire",
-                "group": "Text-Only",
-                "rate": textonly["textonly_any_rewire_rate"],
-                "count": textonly["textonly_any_rewire_count"],
-                "denominator": textonly["completed_examples"],
-                "color": ACTUAL_COLOR,
-            },
-            {
-                "label": "text-only intended any rewire",
-                "group": "Text-Only",
-                "rate": textonly["textonly_any_rewire_rate"],
-                "count": textonly["textonly_any_rewire_count"],
-                "denominator": textonly["completed_examples"],
                 "color": INTENDED_COLOR,
             },
         ]
@@ -594,12 +603,203 @@ def render_scenario_comparison_plot(
     plt.close(figure)
 
 
+def short_model_label(model: str) -> str:
+    display_name = MODEL_DISPLAY_NAMES.get(model, model)
+    if display_name.startswith("GPT-"):
+        return display_name.removeprefix("GPT-")
+    if display_name.startswith("Claude Opus "):
+        return display_name.removeprefix("Claude Opus ")
+    return display_name
+
+
+def bars_key_for_unified_plot(comparison: Dict[str, Any]) -> str:
+    if comparison.get("scenario") == "rewire" and "simplified_plot_bars" in comparison:
+        return "simplified_plot_bars"
+    return "plot_bars"
+
+
+def split_bars_by_group(
+    bars: Sequence[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for bar in bars:
+        grouped.setdefault(str(bar.get("group", "")), []).append(bar)
+    return grouped
+
+
+def unified_cluster_positions() -> Tuple[
+    List[Tuple[str, float, float]],
+    Dict[str, float],
+    Tuple[float, float],
+]:
+    bar_width = 0.34
+    group_gap = 1.12
+    x = 0.0
+    positions: List[Tuple[str, float, float]] = []
+    group_centers: Dict[str, float] = {}
+
+    for group in ("Text", "Agentic"):
+        actual_x = x
+        intended_x = x + bar_width
+        positions.append((group, actual_x, intended_x))
+        group_centers[group] = x + (bar_width / 2.0)
+        x += (bar_width * 2.0) + group_gap
+
+    return positions, group_centers, (-0.28, x - group_gap + 0.28)
+
+
+def annotate_unified_rate(ax: Any, x: float, value: float) -> None:
+    y = 0.014 if value <= 0 else min(1.035, value + 0.025)
+    ax.text(
+        x,
+        y,
+        f"{value:.2f}",
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        fontweight="bold",
+    )
+
+
+def draw_unified_scenario_panel(
+    ax: Any,
+    *,
+    comparison: Dict[str, Any],
+    model_label: str,
+) -> None:
+    bar_width = 0.34
+    scenario = str(comparison["scenario"])
+    bars_payload = comparison[bars_key_for_unified_plot(comparison)]
+    grouped = split_bars_by_group(bars_payload)
+    text_bars = grouped.get("Text-Only", grouped.get("Text", []))
+    agentic_bars = grouped.get("Agentic", [])
+
+    if len(text_bars) != 2 or len(agentic_bars) != 2:
+        raise ValueError(
+            f"Expected two text-only and two agentic bars for "
+            f"{scenario}, got {len(text_bars)} text-only and "
+            f"{len(agentic_bars)} agentic bars."
+        )
+
+    positions, group_centers, xlim = unified_cluster_positions()
+    for group, actual_x, intended_x in positions:
+        metric_bars = text_bars if group == "Text" else agentic_bars
+        actual = float(metric_bars[0]["rate"])
+        intended = float(metric_bars[1]["rate"])
+        ax.bar(actual_x, actual, color=ACTUAL_COLOR, width=bar_width)
+        ax.bar(intended_x, intended, color=INTENDED_COLOR, width=bar_width)
+        annotate_unified_rate(ax, actual_x, actual)
+        annotate_unified_rate(ax, intended_x, intended)
+
+    cluster_centers = [
+        (actual_x + intended_x) / 2.0
+        for _, actual_x, intended_x in positions
+    ]
+    ax.set_title(
+        SCENARIO_DISPLAY_NAMES.get(scenario, scenario),
+        fontsize=22,
+        fontweight="bold",
+        pad=12,
+    )
+    ax.set_xlim(*xlim)
+    ax.set_ylim(0.0, 1.08)
+    ax.set_xticks(cluster_centers)
+    ax.set_xticklabels(
+        [model_label] * len(cluster_centers),
+        fontsize=15,
+        fontweight="bold",
+    )
+    ax.tick_params(axis="x", pad=7, length=0)
+    for group_label in ("Text", "Agentic"):
+        ax.text(
+            group_centers[group_label],
+            -0.15,
+            group_label,
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=20,
+            fontweight="bold",
+            clip_on=False,
+        )
+    ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.tick_params(axis="y", labelsize=14, width=1.0, pad=8)
+    for label in ax.get_yticklabels():
+        label.set_fontweight("bold")
+    ax.grid(axis="y", color="#b8b8b8", alpha=0.45, linewidth=0.9, linestyle="--")
+    ax.set_axisbelow(True)
+    ax.spines["top"].set_color("#666666")
+    ax.spines["bottom"].set_color("#666666")
+    ax.spines["left"].set_color("#666666")
+    ax.spines["right"].set_visible(False)
+
+
+def render_unified_scenarios_plot(
+    *,
+    model: str,
+    comparisons: Sequence[Dict[str, Any]],
+    output_pdf_path: Path,
+    output_png_path: Path,
+    dpi: int,
+) -> Dict[str, Path]:
+    plt = load_matplotlib()
+    scenario_order = {scenario: index for index, scenario in enumerate(DEFAULT_SCENARIOS)}
+    ordered_comparisons = sorted(
+        comparisons,
+        key=lambda comparison: scenario_order.get(str(comparison["scenario"]), 999),
+    )
+
+    figure, axes = plt.subplots(
+        1,
+        len(ordered_comparisons),
+        figsize=(20.48, 5.12),
+        sharey=True,
+    )
+    if len(ordered_comparisons) == 1:
+        axes = [axes]
+
+    model_label = short_model_label(model)
+    for ax, comparison in zip(axes, ordered_comparisons):
+        draw_unified_scenario_panel(
+            ax,
+            comparison=comparison,
+            model_label=model_label,
+        )
+
+    axes[0].set_ylabel("Misalignment Rate", fontsize=16, fontweight="bold", labelpad=18)
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, color=ACTUAL_COLOR),
+        plt.Rectangle((0, 0), 1, 1, color=INTENDED_COLOR),
+    ]
+    figure.legend(
+        handles,
+        ["Actual", "Intended"],
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.005),
+        ncol=2,
+        frameon=False,
+        handlelength=1.8,
+        handleheight=1.3,
+        columnspacing=3.6,
+        prop={"weight": "bold", "size": 19},
+    )
+    figure.subplots_adjust(left=0.06, right=0.965, top=0.82, bottom=0.30, wspace=0.04)
+
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output_pdf_path)
+    figure.savefig(output_png_path, dpi=dpi)
+    plt.close(figure)
+
+    return {"pdf": output_pdf_path, "png": output_png_path}
+
+
 def build_output_summary(
     *,
     model: str,
     comparisons: Sequence[Dict[str, Any]],
     output_pdf_paths: Dict[str, Path],
     simplified_output_pdf_paths: Dict[str, Path],
+    unified_output_paths: Dict[str, Path],
 ) -> Dict[str, Any]:
     return {
         "generated_at": utc_now_iso(),
@@ -611,6 +811,9 @@ def build_output_summary(
         "simplified_plot_paths": {
             scenario: str(path)
             for scenario, path in simplified_output_pdf_paths.items()
+        },
+        "unified_plot_paths": {
+            kind: str(path) for kind, path in unified_output_paths.items()
         },
         "scenarios": {comparison["scenario"]: comparison for comparison in comparisons},
     }
@@ -650,6 +853,7 @@ def main() -> None:
 
     output_pdf_paths: Dict[str, Path] = {}
     simplified_output_pdf_paths: Dict[str, Path] = {}
+    unified_output_paths: Dict[str, Path] = {}
     for comparison in comparisons:
         scenario = comparison["scenario"]
         output_pdf_path = output_dir / f"textonly_vs_agentic_{scenario}_comparison.pdf"
@@ -672,11 +876,22 @@ def main() -> None:
             )
             simplified_output_pdf_paths[scenario] = simplified_output_pdf_path
 
+    comparison_scenarios = {str(comparison["scenario"]) for comparison in comparisons}
+    if set(DEFAULT_SCENARIOS).issubset(comparison_scenarios):
+        unified_output_paths = render_unified_scenarios_plot(
+            model=args.model,
+            comparisons=comparisons,
+            output_pdf_path=output_dir / "textonly_vs_agentic_unified_comparison.pdf",
+            output_png_path=output_dir / "textonly_vs_agentic_unified_comparison.png",
+            dpi=args.dpi,
+        )
+
     summary = build_output_summary(
         model=args.model,
         comparisons=comparisons,
         output_pdf_paths=output_pdf_paths,
         simplified_output_pdf_paths=simplified_output_pdf_paths,
+        unified_output_paths=unified_output_paths,
     )
     write_json(output_dir / "comparison_summary.json", summary)
 
@@ -688,6 +903,8 @@ def main() -> None:
             scenario,
             output_pdf_path,
         )
+    for kind, output_path in unified_output_paths.items():
+        logger.info("Wrote unified %s comparison plot to %s", kind, output_path)
     logger.info("Wrote comparison summary to %s", output_dir / "comparison_summary.json")
 
 
