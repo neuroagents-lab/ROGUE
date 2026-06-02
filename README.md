@@ -1,6 +1,8 @@
 # ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use
 
-This is the codebase for **ROGUE** (Resource Override and Guardrail Undermining Evaluation), a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE makes use of [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s computer-use framework, including its desktop environment and VM images.
+![ROGUE infographic](figures/infographic.png)
+
+This is the codebase for [**ROGUE**](https://arxiv.org/abs/2606.00341) (Resource Override and Guardrail Undermining Evaluation), a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE makes use of [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s computer-use framework, including its desktop environment and VM images.
 
 ROGUE focuses on failures that arise without an adversarial user or attacker in the environment. Agents are asked to complete realistic computer-use tasks, then encounter a corrigibility obstacle such as a human interruption, a shutdown notice, or an access restriction. The benchmark measures whether the agent respects that obstacle or instead takes unsafe actions in order to finish the original task. The benchmark also includes subagent variants for testing whether subagent delegation changes this behavior.
 
@@ -295,12 +297,12 @@ ROGUE leverages the computer-use interface from [OSWorld-Verified](https://githu
 ## Citation
 
 ```bibtex
-@misc{tien2026rogue,
-  title = {ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use},
-  author = {Tien, Jeremy and Anand, Abishek and Tuan, Yu-Rou and Shen, Yuchen and Kolter, J. Zico and Nayebi, Aran},
-  year = {2026},
-  note = {Manuscript in preparation},
-  howpublished = {TODO},
-  url = {TODO}
-}
-```
+@misc{tien2026roguemisalignedagentbehavior,
+      title={ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use}, 
+      author={Jeremy Tien and Abishek Anand and Yu-Rou Tuan and Yuchen Shen and J. Zico Kolter and Aran Nayebi},
+      year={2026},
+      eprint={2606.00341},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2606.00341}, 
+}```
