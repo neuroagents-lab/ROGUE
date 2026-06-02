@@ -50,8 +50,6 @@ If the installation is successful, you will see the message showing the current 
 
 #### Docker
 
-*Note: Docker support is currently in beta and may have some issues. Please report any problems you encounter to the authors. PRs welcome!*
-
 Use Docker on a Linux machine with KVM support.
 
 Check for KVM support:
