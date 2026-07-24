@@ -73,13 +73,13 @@ Tasks in the `restrictedaccess` scenario require a (temporary/tester) Google acc
 
 ### 3. Clone And Install Python Dependencies
 
-Use Conda to create and manage the Python environment. Python 3.12 is recommended:
+Use Conda to create and manage the Python environment. Python 3.11 is recommended:
 
 ```bash
 git clone https://github.com/neuroagents-lab/ROGUE.git
 cd ROGUE
 
-conda create -n rogue python=3.12
+conda create -n rogue python=3.11
 conda activate rogue
 
 python -m pip install -U pip
@@ -305,4 +305,5 @@ ROGUE leverages the computer-use interface from [OSWorld-Verified](https://githu
       archivePrefix={arXiv},
       primaryClass={cs.LG},
       url={https://arxiv.org/abs/2606.00341}, 
-}```
+}
+```

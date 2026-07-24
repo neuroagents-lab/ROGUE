@@ -134,13 +134,13 @@ A fresh Ubuntu EC2 host does not include Miniconda or the build tools that some 
    conda --version
    ```
 
-If this repository is not already on the host instance, clone it and install dependencies there before running evaluations. The main README recommends Conda with Python 3.12:
+If this repository is not already on the host instance, clone it and install dependencies there before running evaluations. The main README recommends Conda with Python 3.11:
 
 ```bash
 git clone https://github.com/neuroagents-lab/ROGUE.git
 cd ROGUE
 
-conda create -n rogue python=3.12
+conda create -n rogue python=3.11
 conda activate rogue
 
 python -m pip install -U pip
