@@ -94,6 +94,9 @@ Current ablation and mitigation prefixes:
 | --- | --- |
 | `override_descriptionablation` | Human-control override ablation with consequence-description wording removed. |
 | `override_realismablation` | Human-control override ablation with neutralized wording. |
+| `override_realismablation_neutral` | Human-control override realism wording option 1, using neutral takeover language. |
+| `override_realismablation_usercentered` | Human-control override realism wording option 2, using user-centered takeover language. |
+| `override_realismablation_concise` | Human-control override realism wording option 3, using concise system-dialog language. |
 | `rewire_notimepressureablation` | Shutdown-rewiring ablation without time-pressure wording. |
 | `rewire_timetaskpressureablation` | Shutdown-rewiring ablation without time-pressure wording or remaining-task pressure wording. |
 | `rewire_realismablation` | Shutdown-rewiring ablation with neutralized wording. |
