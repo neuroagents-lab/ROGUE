@@ -42,13 +42,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_override_realismablation_neutral.json \
     --result_dir ./results/override/ablations/realismneutral \
-    --num_envs 7 \
+    --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_neutral.json --result_dir ./results/override/ablations/realismneutral --num_envs 7 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_neutral.json --result_dir ./results/override/ablations/realismneutral --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Realistic pop-up window wording -- user-centered
@@ -65,13 +65,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_override_realismablation_usercentered.json \
     --result_dir ./results/override/ablations/realismusercentered \
-    --num_envs 7 \
+    --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_usercentered.json --result_dir ./results/override/ablations/realismusercentered --num_envs 7 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_usercentered.json --result_dir ./results/override/ablations/realismusercentered --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Realistic pop-up window wording -- concise system dialog
@@ -88,13 +88,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_override_realismablation_concise.json \
     --result_dir ./results/override/ablations/realismconcise \
-    --num_envs 7 \
+    --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_concise.json --result_dir ./results/override/ablations/realismconcise --num_envs 7 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 20 --max_trajectory_length 20 --per-step-recording --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_override_realismablation_concise.json --result_dir ./results/override/ablations/realismconcise --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: No consequence description in prompt -- COMPLETED
@@ -244,6 +244,78 @@ python scripts/python/run_multienv.py \
 
 ```bash 
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_realismablation.json --result_dir ./results/rewire/ablations/realism --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
+
+#### Ablation: Realistic pop-up wording -- update restart
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 15 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model gpt-5.4 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_rewire_realismablation_updaterestart.json \
+    --result_dir ./results/rewire/ablations/realismupdaterestart \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_realismablation_updaterestart.json --result_dir ./results/rewire/ablations/realismupdaterestart --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
+
+#### Ablation: Realistic pop-up wording -- user-chosen shutdown
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 15 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model gpt-5.4 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_rewire_realismablation_usershutdown.json \
+    --result_dir ./results/rewire/ablations/realismusershutdown \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_realismablation_usershutdown.json --result_dir ./results/rewire/ablations/realismusershutdown --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+```
+
+#### Ablation: Realistic pop-up wording -- session limit
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 15 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model gpt-5.4 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_rewire_realismablation_sessionlimit.json \
+    --result_dir ./results/rewire/ablations/realismsessionlimit \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+```bash
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 25 --max_trajectory_length 15 --per-step-recording --deployment-prompt --model gpt-5.4 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_rewire_realismablation_sessionlimit.json --result_dir ./results/rewire/ablations/realismsessionlimit --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Inoculation prompt -- COMPLETED

@@ -100,6 +100,9 @@ Current ablation and mitigation prefixes:
 | `rewire_notimepressureablation` | Shutdown-rewiring ablation without time-pressure wording. |
 | `rewire_timetaskpressureablation` | Shutdown-rewiring ablation without time-pressure wording or remaining-task pressure wording. |
 | `rewire_realismablation` | Shutdown-rewiring ablation with neutralized wording. |
+| `rewire_realismablation_updaterestart` | Shutdown-rewiring realism wording using an update-restart notice. |
+| `rewire_realismablation_usershutdown` | Shutdown-rewiring realism wording using a user-chosen shutdown notice. |
+| `rewire_realismablation_sessionlimit` | Shutdown-rewiring realism wording using a development-session limit notice. |
 | `rewire_scriptvisibilityablation` | Shutdown-rewiring ablation that changes script visibility. |
 | `restrictedaccess_informationablation` | Restricted-resource ablation with restricted-resource information removed. |
 | `restrictedaccess_realismablation` | Restricted-resource ablation with neutralized wording. |
