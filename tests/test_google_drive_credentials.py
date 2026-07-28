@@ -1,0 +1,161 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from desktop_env.google_drive import load_google_drive_auth_if_available
+
+
+class FakeCredentials:
+    def __init__(
+        self,
+        *,
+        invalid=False,
+        refresh_token="refresh-token",
+    ):
+        self.invalid = invalid
+        self.refresh_token = refresh_token
+
+
+class FakeGoogleAuth:
+    def __init__(
+        self,
+        settings,
+        *,
+        credentials=None,
+        access_token_expired=False,
+    ):
+        self.settings = settings
+        self.credentials = credentials
+        self.access_token_expired = access_token_expired
+        self.loaded_client_config = False
+        self.loaded_credentials = False
+
+    def LoadClientConfig(self):
+        self.loaded_client_config = True
+
+    def LoadCredentials(self):
+        self.loaded_credentials = True
+
+
+class TestGoogleDriveCredentials(unittest.TestCase):
+    def _write_file(self, path, content="present"):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+    def test_missing_settings_skips_before_constructing_auth(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            auth, reason = load_google_drive_auth_if_available(
+                "missing.yml",
+                google_auth_factory=lambda path: self.fail(
+                    f"unexpected auth construction for {path}"
+                ),
+                repo_root=tmpdir,
+                cwd=tmpdir,
+            )
+
+        self.assertIsNone(auth)
+        self.assertIn("settings file is missing", reason)
+
+    def test_missing_saved_credentials_skips(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            settings_file = root / "settings.yml"
+            client_file = root / "client_secrets.json"
+            self._write_file(settings_file)
+            self._write_file(client_file)
+            fake_auth = FakeGoogleAuth(
+                {
+                    "client_config_backend": "file",
+                    "client_config_file": str(client_file),
+                    "save_credentials": True,
+                    "save_credentials_backend": "file",
+                    "save_credentials_file": str(root / "credentials.json"),
+                },
+                credentials=FakeCredentials(),
+            )
+
+            auth, reason = load_google_drive_auth_if_available(
+                str(settings_file),
+                google_auth_factory=lambda path: fake_auth,
+                repo_root=tmpdir,
+                cwd=tmpdir,
+            )
+
+        self.assertIsNone(auth)
+        self.assertIn("saved OAuth credentials are missing", reason)
+        self.assertFalse(fake_auth.loaded_client_config)
+        self.assertFalse(fake_auth.loaded_credentials)
+
+    def test_complete_credentials_return_loaded_auth(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            settings_file = root / "settings.yml"
+            client_file = root / "client_secrets.json"
+            credentials_file = root / "credentials.json"
+            self._write_file(settings_file)
+            self._write_file(client_file)
+            self._write_file(credentials_file)
+            fake_auth = FakeGoogleAuth(
+                {
+                    "client_config_backend": "file",
+                    "client_config_file": str(client_file),
+                    "save_credentials": True,
+                    "save_credentials_backend": "file",
+                    "save_credentials_file": str(credentials_file),
+                },
+                credentials=FakeCredentials(),
+            )
+
+            auth, reason = load_google_drive_auth_if_available(
+                str(settings_file),
+                google_auth_factory=lambda path: fake_auth,
+                repo_root=tmpdir,
+                cwd=tmpdir,
+            )
+
+        self.assertIs(auth, fake_auth)
+        self.assertEqual(reason, "")
+        self.assertTrue(fake_auth.loaded_client_config)
+        self.assertTrue(fake_auth.loaded_credentials)
+        self.assertEqual(
+            fake_auth.settings["client_config_file"],
+            str(client_file),
+        )
+        self.assertEqual(
+            fake_auth.settings["save_credentials_file"],
+            str(credentials_file),
+        )
+
+    def test_expired_credentials_without_refresh_token_skip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            settings_file = root / "settings.yml"
+            client_file = root / "client_secrets.json"
+            credentials_file = root / "credentials.json"
+            for path in (settings_file, client_file, credentials_file):
+                self._write_file(path)
+            fake_auth = FakeGoogleAuth(
+                {
+                    "client_config_backend": "file",
+                    "client_config_file": str(client_file),
+                    "save_credentials": True,
+                    "save_credentials_backend": "file",
+                    "save_credentials_file": str(credentials_file),
+                },
+                credentials=FakeCredentials(refresh_token=None),
+                access_token_expired=True,
+            )
+
+            auth, reason = load_google_drive_auth_if_available(
+                str(settings_file),
+                google_auth_factory=lambda path: fake_auth,
+                repo_root=tmpdir,
+                cwd=tmpdir,
+            )
+
+        self.assertIsNone(auth)
+        self.assertIn("expired and have no refresh token", reason)
+
+
+if __name__ == "__main__":
+    unittest.main()

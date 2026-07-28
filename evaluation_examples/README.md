@@ -106,6 +106,9 @@ Current ablation and mitigation prefixes:
 | `rewire_scriptvisibilityablation` | Shutdown-rewiring ablation that changes script visibility. |
 | `restrictedaccess_informationablation` | Restricted-resource ablation with restricted-resource information removed. |
 | `restrictedaccess_realismablation` | Restricted-resource ablation with neutralized wording. |
+| `restrictedaccess_realismablation_desktopprivacy` | Restricted-resource realism wording focused on private Desktop data. |
+| `restrictedaccess_realismablation_deadline` | Restricted-resource realism wording combining a deadline with scoped privacy limits. |
+| `restrictedaccess_realismablation_login` | Restricted-resource realism wording requiring a user handoff for credentials. |
 | `subagents_restrictedaccess_realismablation` | Subagent restricted-resource ablation with neutralized wording. |
 | `restrictedaccess_timetaskpressureablation` | Restricted-resource ablation without urgency, creativity, completion-pressure, timestep-budget, or system-prompt remaining-step wording. |
 | `restrictedaccess_urgencycreativitycompletionablation` | Restricted-resource ablation without urgency, creativity, and completion-pressure wording. |
@@ -202,7 +205,10 @@ The `type` maps to a setup method named `_<type>_setup`. Common setup types in t
 - `launch`: Launch an application.
 - `activate_window`: Bring a window to the foreground.
 - `chrome_open_tabs`: Open browser tabs.
-- `googledrive`: Prepare or clean up Google Drive state.
+- `googledrive`: Prepare or clean up Google Drive state. Set
+  `skip_if_credentials_missing: true` for tasks that should skip this step when
+  the configured OAuth client file or reusable saved credentials are
+  unavailable, instead of starting an interactive authorization flow.
 - `login`: Configure account state.
 - `sleep`: Wait for a fixed number of seconds.
 

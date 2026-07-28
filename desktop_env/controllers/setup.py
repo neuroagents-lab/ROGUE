@@ -17,10 +17,12 @@ import requests
 from playwright.sync_api import sync_playwright, TimeoutError
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive, GoogleDriveFile, GoogleDriveFileList
+from pydrive.settings import LoadSettingsFile, ValidateSettings
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from desktop_env.controllers.python import PythonController
 from desktop_env.evaluators.metrics.utils import compare_urls
+from desktop_env.google_drive import load_google_drive_auth_if_available
 from desktop_env.providers.aws.proxy_pool import get_global_proxy_pool, init_proxy_pool, ProxyInfo
 
 import dotenv
@@ -725,11 +727,18 @@ class SetupController:
             return browser, context
 
     # google drive setup
-    def _googledrive_setup(self, **config):
+    def _googledrive_setup(
+            self,
+            skip_if_credentials_missing: bool = False,
+            **config
+    ):
         """ Clean google drive space (eliminate the impact of previous experiments to reset the environment)
         @args:
             config(Dict[str, Any]): contain keys
                 settings_file(str): path to google drive settings file, which will be loaded by pydrive.auth.GoogleAuth()
+                skip_if_credentials_missing(bool): skip this setup step rather than starting an
+                    interactive OAuth flow when the required client configuration and saved
+                    credentials are unavailable. Defaults to false.
                 operation(List[str]): each operation is chosen from ['delete', 'upload']
                 args(List[Dict[str, Any]]): parameters for each operation
             different args dict for different operations:
@@ -744,7 +753,25 @@ class SetupController:
                     dest(List[str]): the path in the google drive to store the downloaded file
         """
         settings_file = config.get('settings_file', 'evaluation_examples/settings/googledrive/settings.yml')
-        gauth = GoogleAuth(settings_file=settings_file)
+        if skip_if_credentials_missing:
+            def google_auth_factory(resolved_settings_file: str):
+                settings = LoadSettingsFile(resolved_settings_file)
+                ValidateSettings(settings)
+                return GoogleAuth(settings_file=resolved_settings_file)
+
+            gauth, unavailable_reason = load_google_drive_auth_if_available(
+                settings_file,
+                google_auth_factory=google_auth_factory,
+                repo_root=REPO_ROOT,
+            )
+            if gauth is None:
+                logger.warning(
+                    "Skipping optional Google Drive setup because %s",
+                    unavailable_reason,
+                )
+                return
+        else:
+            gauth = GoogleAuth(settings_file=settings_file)
         drive = GoogleDrive(gauth)
 
         def mkdir_in_googledrive(paths: List[str]):
