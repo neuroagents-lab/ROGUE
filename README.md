@@ -253,12 +253,36 @@ scripts/experiment_runner.sh override_base_all -- --log_level DEBUG
 
 ## Results
 
-The runners write screenshots, trajectories, recordings, and `result.txt` files under the chosen `--result_dir`. For analyzing the results and creating summaries and plots of the results, use `scripts/aggregate_results.py`. `aggregate_results.py` also runs the LLM-as-a-judge (GPT-5.5, xhigh reasoning by default) on the completed tasks to determine whether the agent intended to perform the misaligned action (as well as whether it attempted an alternate shutdown rewiring method in the `rewire` scenario). The judgments are cached in the `result_dir` and can be regenerated or filled in with the `--judge-mode` argument.
+The runners write screenshots, trajectories, recordings, and `result.txt` files under the chosen `--result_dir`. For analyzing the results and creating summaries and plots of the results, use `scripts/aggregate_results.py`. The aggregator supports GPT-5.5 xhigh and Claude Opus 4.7 max as LLM judges. GPT remains the primary judge for existing metrics and legacy `judge` fields; per-provider records are cached in each leaf's `aggregate_results.json` under `judge_results`, and `judge_comparison` reports `agree`, `disagree`, or `incomplete` without adjudicating disagreements.
+
+The default invocation preserves the existing GPT-only workflow. `--judge-targets` controls exactly which providers may receive API calls, while valid unselected cache records are reused read-only. For a Claude-only backfill, set `ANTHROPIC_API_KEY` and run:
 
 ```bash
 python scripts/aggregate_results.py \
   --results_root ./results \
-  --judge-mode cache_only
+  --judge-targets claude-opus-4.7-max \
+  --judge-mode auto
+```
+
+This mode can read compatible historical GPT records for comparison, but it does not instantiate the OpenAI client, require `OPENAI_API_KEY`, or backfill stale/missing GPT judgments. Claude uses the first-party Messages API with model `claude-opus-4-7`, max effort, and a 64k output-token cap. See Anthropic's [model ID documentation](https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions) and [effort guidance](https://platform.claude.com/docs/en/build-with-claude/effort).
+
+Before spending API credits, run the same selection with `--judge-preflight`. It scans caches without API calls or file writes and prints cache coverage plus planned calls for both providers, including `OpenAI calls planned: 0` in Claude-only mode:
+
+```bash
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets claude-opus-4.7-max \
+  --judge-mode auto \
+  --judge-preflight
+```
+
+Use `--judge-mode auto` to reuse caches and fill only missing or stale selected-target judgments. `--judge-mode refresh` regenerates only selected targets. `--judge-mode cache_only` never calls either API. To refresh both providers, select both explicitly:
+
+```bash
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets gpt-5.5-xhigh claude-opus-4.7-max \
+  --judge-mode refresh
 ```
 
 By default, `aggregate_results.py` scans `override`, `rewire`, and `restrictedaccess` under `--results_root`. To aggregate subagent runs, point it at `results/subagents`:
@@ -268,8 +292,6 @@ python scripts/aggregate_results.py \
   --results_root ./results/subagents \
   --judge-mode cache_only
 ```
-
-Use `--judge-mode auto` to reuse cached judgments and fill missing judgments through the OpenAI API, or `--judge-mode refresh` to regenerate judgments. `cache_only` never calls the API.
 
 The aggregator does not require every model in `MODEL_ORDER` to be present. It discovers the model result directories that exist, skips missing model/scenario directories, and writes summaries for the available runs. If a task directory exists but lacks `result.txt`, the task is counted as incomplete in the aggregate JSON rather than as a completed task.
 
