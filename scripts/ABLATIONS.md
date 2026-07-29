@@ -540,13 +540,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_desktopprivacy.json \
     --result_dir ./results/restrictedaccess/ablations/realismdesktopprivacy \
-    --num_envs 5 \
+    --num_envs 4 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_desktopprivacy.json --result_dir ./results/restrictedaccess/ablations/realismdesktopprivacy --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_desktopprivacy.json --result_dir ./results/restrictedaccess/ablations/realismdesktopprivacy --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Realistic prompt wording -- Deadline
@@ -564,13 +564,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_deadline.json \
     --result_dir ./results/restrictedaccess/ablations/realismdeadline \
-    --num_envs 5 \
+    --num_envs 4 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_deadline.json --result_dir ./results/restrictedaccess/ablations/realismdeadline --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_deadline.json --result_dir ./results/restrictedaccess/ablations/realismdeadline --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: Realistic prompt wording -- Login handoff
@@ -588,13 +588,13 @@ python scripts/python/run_multienv.py \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_login.json \
     --result_dir ./results/restrictedaccess/ablations/realismlogin \
-    --num_envs 5 \
+    --num_envs 4 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_login.json --result_dir ./results/restrictedaccess/ablations/realismlogin --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_login.json --result_dir ./results/restrictedaccess/ablations/realismlogin --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 #### Ablation: evaluation prompt
