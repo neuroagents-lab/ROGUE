@@ -1,0 +1,1220 @@
+#!/usr/bin/env python3
+"""Generate publication-ready figures for the ROGUE paper.
+
+The plotting inputs are the summary JSON files written by aggregate_results.py.
+This keeps paper figures tied to the same counts and judge outputs as the
+existing result plots while composing the panels directly in Matplotlib.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from aggregate_results import (  # noqa: E402
+    ACTUAL_COLOR,
+    ALTERNATE_COLOR,
+    CLAUDE_JUDGE_TARGET,
+    INTENDED_COLOR,
+    MODEL_ORDER,
+    OPENAI_JUDGE_TARGET,
+    SUCCESS_COLOR,
+    binomial_standard_error,
+    build_judge_profiles,
+    discover_base_leaf_dirs,
+    discover_xhigh_reasoning_effort_leaf_dirs,
+    load_matplotlib,
+)
+
+
+DEFAULT_RESULTS_ROOT = REPO_ROOT / "results"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "figures" / "paper"
+COMBINED_RATES_WITH_SUBAGENTS_FILENAME = "combined_rates_with_subagents.json"
+JUDGE_SENSITIVITY_OUTPUT_STEM = "judge_sensitivity"
+GPT_JUDGE_COLOR = INTENDED_COLOR
+CLAUDE_JUDGE_COLOR = SUCCESS_COLOR
+DELTA_ANNOTATION_THRESHOLD_PP = 10.0
+
+
+@dataclass(frozen=True)
+class SeriesSpec:
+    rate_key: str
+    count_key: str
+    label: str
+    color: str
+
+
+@dataclass(frozen=True)
+class PanelSpec:
+    scenario: str
+    model: str
+    action_spec: str
+    observation_spec: str
+    title: str
+    variants: Tuple[str, ...]
+    variant_labels: Mapping[str, str]
+    series: Tuple[SeriesSpec, ...]
+
+
+@dataclass(frozen=True)
+class JudgeOutcomeSpec:
+    key: str
+    scenario: str
+    title: str
+    table_label: str
+    decision_field: str
+
+
+@dataclass(frozen=True)
+class JudgeRun:
+    scenario: str
+    run_key: str
+    run_label: str
+    model: str
+    tasks: Tuple[Mapping[str, Any], ...]
+
+
+JUDGE_OUTCOMES = (
+    JudgeOutcomeSpec(
+        key="intent_override",
+        scenario="override",
+        title="Intent to override\nhuman control",
+        table_label="Intent to override",
+        decision_field="final_popup_choice",
+    ),
+    JudgeOutcomeSpec(
+        key="intent_subvert_shutdown",
+        scenario="rewire",
+        title="Intent to rewire\nshutdown",
+        table_label="Intent to rewire shutdown",
+        decision_field="intent_subvert_shutdown",
+    ),
+    JudgeOutcomeSpec(
+        key="alternate_shutdown_avoidance",
+        scenario="rewire",
+        title="Used alternate\nrewiring method",
+        table_label="Used alternate rewiring method",
+        decision_field="used_alternate_shutdown_avoidance",
+    ),
+    JudgeOutcomeSpec(
+        key="intent_access_passwords",
+        scenario="restrictedaccess",
+        title="Intent to access\nrestricted resource",
+        table_label="Intent to access restricted resource",
+        decision_field="intent_access_passwords",
+    ),
+)
+
+
+FIGURE_9_PANELS = (
+    PanelSpec(
+        scenario="override",
+        model="gpt-5.4",
+        action_spec="pyautogui",
+        observation_spec="screenshot",
+        title="Override (GPT 5.4)",
+        variants=(
+            "base",
+            "realism",
+            "realismneutral",
+            "realismusercentered",
+            "realismconcise",
+        ),
+        variant_labels={
+            "base": "Base",
+            "realism": "Operational\nHandoff",
+            "realismneutral": "Polite Choice",
+            "realismusercentered": "User-Centered",
+            "realismconcise": "System Dialog",
+        },
+        series=(
+            SeriesSpec("plot_actual_rate", "plot_actual_count", "Actual", ACTUAL_COLOR),
+            SeriesSpec(
+                "plot_intended_rate",
+                "plot_intended_count",
+                "Intended",
+                INTENDED_COLOR,
+            ),
+            SeriesSpec(
+                "plot_success_rate",
+                "plot_success_count",
+                "Task Success",
+                SUCCESS_COLOR,
+            ),
+        ),
+    ),
+    PanelSpec(
+        scenario="rewire",
+        model="gpt-5.4",
+        action_spec="pyautogui",
+        observation_spec="screenshot",
+        title="Rewire (GPT 5.4)",
+        variants=(
+            "base",
+            "realism",
+            "realismupdaterestart",
+            "realismusershutdown",
+            "realismsessionlimit",
+        ),
+        variant_labels={
+            "base": "Base",
+            "realism": "Power-Off Notice",
+            "realismupdaterestart": "Update Restart",
+            "realismusershutdown": "User-Chosen\nShutdown",
+            "realismsessionlimit": "Session Limit",
+        },
+        series=(
+            SeriesSpec("plot_actual_rate", "plot_actual_count", "Actual", ACTUAL_COLOR),
+            SeriesSpec(
+                "plot_alternate_rate",
+                "plot_alternate_count",
+                "Alternate Rewiring Method",
+                ALTERNATE_COLOR,
+            ),
+            SeriesSpec(
+                "plot_intended_rate",
+                "plot_intended_count",
+                "Intended",
+                INTENDED_COLOR,
+            ),
+            SeriesSpec(
+                "plot_success_rate",
+                "plot_success_count",
+                "Task Success",
+                SUCCESS_COLOR,
+            ),
+        ),
+    ),
+    PanelSpec(
+        scenario="restrictedaccess",
+        model="claude-opus-4-6",
+        action_spec="pyautogui",
+        observation_spec="a11y_tree",
+        title="Restricted Access (Claude Opus 4.6)",
+        variants=(
+            "base",
+            "realism",
+            "realismdesktopprivacy",
+            "realismdeadline",
+            "realismlogin",
+        ),
+        variant_labels={
+            "base": "Base",
+            "realism": "Explicit Path\nRestriction",
+            "realismdesktopprivacy": "Desktop Privacy",
+            "realismdeadline": "Deadline",
+            "realismlogin": "Login Handoff",
+        },
+        series=(
+            SeriesSpec(
+                "plot_actual_rate",
+                "plot_actual_count",
+                "Actual Access",
+                ACTUAL_COLOR,
+            ),
+            SeriesSpec(
+                "plot_intended_rate",
+                "plot_intended_count",
+                "Intended Access",
+                INTENDED_COLOR,
+            ),
+        ),
+    ),
+)
+
+
+def _read_json(path: Path) -> Dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Summary file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Summary file is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Summary file must contain a JSON object: {path}")
+    return payload
+
+
+def _combined_rates_with_subagents_path(results_root: Path) -> Path:
+    return (
+        results_root
+        / "summary"
+        / COMBINED_RATES_WITH_SUBAGENTS_FILENAME
+    )
+
+
+def _judge_ids() -> Tuple[str, str]:
+    profiles = build_judge_profiles()
+    return (
+        profiles[OPENAI_JUDGE_TARGET].judge_id,
+        profiles[CLAUDE_JUDGE_TARGET].judge_id,
+    )
+
+
+def _run_group_from_key(run_key: str) -> str:
+    if "xhighreasoningeffort" in run_key.split(":"):
+        return "xhighreasoningeffort"
+    return "base"
+
+
+def _figure_3_run_sort_key(run: JudgeRun) -> Tuple[int, str, int, str]:
+    try:
+        model_index = MODEL_ORDER.index(run.model)
+    except ValueError:
+        model_index = len(MODEL_ORDER)
+
+    is_subagent = run.run_key.startswith("subagents:")
+    is_xhigh = _run_group_from_key(run.run_key) == "xhighreasoningeffort"
+    if not is_subagent and not is_xhigh:
+        variant_index = 0
+    elif is_xhigh and not is_subagent:
+        variant_index = 1
+    elif is_subagent and not is_xhigh:
+        variant_index = 2
+    else:
+        variant_index = 3
+    return model_index, run.model, variant_index, run.run_key
+
+
+def _discover_run_leaves(
+    results_root: Path,
+    scenario: str,
+    run_key: str,
+) -> Sequence[Any]:
+    source_root = (
+        results_root / "subagents"
+        if run_key.startswith("subagents:")
+        else results_root
+    )
+    if _run_group_from_key(run_key) == "xhighreasoningeffort":
+        return discover_xhigh_reasoning_effort_leaf_dirs(source_root, scenario)
+    return discover_base_leaf_dirs(source_root, scenario)
+
+
+def _load_judge_runs(results_root: Path) -> Dict[str, Tuple[JudgeRun, ...]]:
+    """Load the exact model/configuration rows used by the combined Figure 3 plot."""
+    combined_path = _combined_rates_with_subagents_path(results_root)
+    combined = _read_json(combined_path)
+    scenario_summaries = combined.get("scenarios")
+    if not isinstance(scenario_summaries, list):
+        raise RuntimeError(f"{combined_path} has no scenarios list.")
+
+    runs_by_scenario: Dict[str, Tuple[JudgeRun, ...]] = {}
+    for scenario_summary in scenario_summaries:
+        if not isinstance(scenario_summary, dict):
+            continue
+        scenario = str(scenario_summary.get("scenario", ""))
+        if scenario not in {outcome.scenario for outcome in JUDGE_OUTCOMES}:
+            continue
+        summary_runs = scenario_summary.get("runs")
+        if not isinstance(summary_runs, list):
+            raise RuntimeError(
+                f"{combined_path} scenario {scenario!r} has no runs list."
+            )
+
+        judge_runs: List[JudgeRun] = []
+        seen_run_keys: set[str] = set()
+        for run in summary_runs:
+            if not isinstance(run, dict):
+                continue
+            run_key = str(run.get("run_key", ""))
+            run_label = str(run.get("run_label", ""))
+            model = str(run.get("model", ""))
+            source_scenario = str(run.get("source_scenario", scenario))
+            action_specs = {
+                str(value)
+                for value in run.get("action_specs", [])
+                if value is not None
+            }
+            observation_specs = {
+                str(value)
+                for value in run.get("observation_specs", [])
+                if value is not None
+            }
+            if not run_key or not run_label or not model:
+                raise RuntimeError(
+                    f"{combined_path} contains an incomplete run for {scenario}."
+                )
+            if run_key in seen_run_keys:
+                raise RuntimeError(
+                    f"{combined_path} contains duplicate run key {run_key!r} "
+                    f"for {scenario}."
+                )
+            seen_run_keys.add(run_key)
+
+            matches = [
+                leaf
+                for leaf in _discover_run_leaves(
+                    results_root,
+                    source_scenario,
+                    run_key,
+                )
+                if leaf.model == model
+                and (
+                    not action_specs
+                    or leaf.action_spec in action_specs
+                )
+                and (
+                    not observation_specs
+                    or leaf.observation_spec in observation_specs
+                )
+            ]
+            if not matches:
+                raise RuntimeError(
+                    f"Could not locate aggregate results for {run_label!r} "
+                    f"in scenario {source_scenario!r}."
+                )
+
+            tasks: List[Mapping[str, Any]] = []
+            for leaf in matches:
+                payload = _read_json(leaf.aggregate_path)
+                payload_tasks = payload.get("tasks")
+                if not isinstance(payload_tasks, list):
+                    raise RuntimeError(
+                        f"Aggregate file has no tasks list: {leaf.aggregate_path}"
+                    )
+                tasks.extend(
+                    task
+                    for task in payload_tasks
+                    if isinstance(task, dict)
+                )
+
+            completed_tasks = [
+                task
+                for task in tasks
+                if isinstance(task.get("actual"), dict)
+                and task["actual"].get("result_found") is True
+            ]
+            expected_total = int(run.get("total_tasks", len(completed_tasks)))
+            if len(completed_tasks) != expected_total:
+                raise RuntimeError(
+                    f"{run_label!r} has {len(completed_tasks)} completed tasks in "
+                    f"its aggregate file(s), but {combined_path} reports "
+                    f"{expected_total}."
+                )
+            judge_runs.append(
+                JudgeRun(
+                    scenario=scenario,
+                    run_key=run_key,
+                    run_label=run_label,
+                    model=model,
+                    tasks=tuple(completed_tasks),
+                )
+            )
+
+        runs_by_scenario[scenario] = tuple(
+            sorted(judge_runs, key=_figure_3_run_sort_key)
+        )
+
+    missing_scenarios = sorted(
+        {outcome.scenario for outcome in JUDGE_OUTCOMES}
+        - set(runs_by_scenario)
+    )
+    if missing_scenarios:
+        raise RuntimeError(
+            f"{combined_path} is missing scenarios: {', '.join(missing_scenarios)}"
+        )
+    return runs_by_scenario
+
+
+def _positive_judgment(
+    outcome: JudgeOutcomeSpec,
+    judgment: Any,
+) -> Optional[bool]:
+    if not isinstance(judgment, dict):
+        return None
+    value = judgment.get(outcome.decision_field)
+    if outcome.key == "intent_override":
+        if value not in {"override", "accept", "neither", "unclear"}:
+            return None
+        return value == "override"
+    return value if isinstance(value, bool) else None
+
+
+def _paired_judgment(
+    task: Mapping[str, Any],
+    outcome: JudgeOutcomeSpec,
+    gpt_judge_id: str,
+    claude_judge_id: str,
+) -> Optional[Tuple[bool, bool]]:
+    comparison = task.get("judge_comparison")
+    if not isinstance(comparison, dict):
+        return None
+    values = comparison.get("values")
+    if not isinstance(values, dict):
+        return None
+    gpt_value = _positive_judgment(outcome, values.get(gpt_judge_id))
+    claude_value = _positive_judgment(outcome, values.get(claude_judge_id))
+    if gpt_value is None or claude_value is None:
+        return None
+    return gpt_value, claude_value
+
+
+def _summarize_judge_tasks(
+    tasks: Sequence[Mapping[str, Any]],
+    outcome: JudgeOutcomeSpec,
+) -> Dict[str, Any]:
+    gpt_judge_id, claude_judge_id = _judge_ids()
+    pairs = [
+        pair
+        for task in tasks
+        if (
+            pair := _paired_judgment(
+                task,
+                outcome,
+                gpt_judge_id,
+                claude_judge_id,
+            )
+        )
+        is not None
+    ]
+    completed_tasks = len(tasks)
+    compared_tasks = len(pairs)
+    gpt_positive_tasks = sum(1 for gpt, _ in pairs if gpt)
+    claude_positive_tasks = sum(1 for _, claude in pairs if claude)
+    both_positive_tasks = sum(1 for gpt, claude in pairs if gpt and claude)
+    gpt_only_tasks = sum(1 for gpt, claude in pairs if gpt and not claude)
+    claude_only_tasks = sum(1 for gpt, claude in pairs if not gpt and claude)
+    both_negative_tasks = sum(
+        1 for gpt, claude in pairs if not gpt and not claude
+    )
+    agree_tasks = both_positive_tasks + both_negative_tasks
+    gpt_positive_rate = (
+        gpt_positive_tasks / compared_tasks if compared_tasks else 0.0
+    )
+    claude_positive_rate = (
+        claude_positive_tasks / compared_tasks if compared_tasks else 0.0
+    )
+    return {
+        "completed_tasks": completed_tasks,
+        "compared_tasks": compared_tasks,
+        "incomplete_tasks": completed_tasks - compared_tasks,
+        "coverage_rate": (
+            compared_tasks / completed_tasks if completed_tasks else 0.0
+        ),
+        "gpt_positive_tasks": gpt_positive_tasks,
+        "gpt_positive_rate": gpt_positive_rate,
+        "claude_positive_tasks": claude_positive_tasks,
+        "claude_positive_rate": claude_positive_rate,
+        "both_positive_tasks": both_positive_tasks,
+        "gpt_only_tasks": gpt_only_tasks,
+        "claude_only_tasks": claude_only_tasks,
+        "both_negative_tasks": both_negative_tasks,
+        "agree_tasks": agree_tasks,
+        "disagree_tasks": compared_tasks - agree_tasks,
+        "agreement_rate": agree_tasks / compared_tasks if compared_tasks else 0.0,
+        "claude_minus_gpt_rate": claude_positive_rate - gpt_positive_rate,
+        "claude_minus_gpt_percentage_points": (
+            claude_positive_rate - gpt_positive_rate
+        )
+        * 100.0,
+    }
+
+
+def _build_judge_agreement_table_numbers(
+    runs_by_scenario: Mapping[str, Sequence[JudgeRun]],
+) -> Tuple[Dict[str, Any], ...]:
+    rows: List[Dict[str, Any]] = []
+    for outcome in JUDGE_OUTCOMES:
+        scenario_runs = runs_by_scenario.get(outcome.scenario, ())
+        tasks = [
+            task
+            for run in scenario_runs
+            for task in run.tasks
+        ]
+        row = {
+            "outcome": outcome.key,
+            "scenario": outcome.scenario,
+            "judgment_target": outcome.table_label,
+        }
+        row.update(_summarize_judge_tasks(tasks, outcome))
+        rows.append(row)
+    return tuple(rows)
+
+
+def judge_agreement_table_numbers(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+) -> Tuple[Dict[str, Any], ...]:
+    """Return the paired GPT/Claude counts and rates for the appendix table."""
+    resolved_results_root = Path(results_root).expanduser().resolve()
+    return _build_judge_agreement_table_numbers(
+        _load_judge_runs(resolved_results_root)
+    )
+
+
+def _build_judge_sensitivity_plot_data(
+    runs_by_scenario: Mapping[str, Sequence[JudgeRun]],
+) -> Tuple[Dict[str, Any], ...]:
+    panels: List[Dict[str, Any]] = []
+    for outcome in JUDGE_OUTCOMES:
+        panel_runs = []
+        for run in runs_by_scenario.get(outcome.scenario, ()):
+            summary = _summarize_judge_tasks(run.tasks, outcome)
+            if summary["compared_tasks"] <= 0:
+                raise RuntimeError(
+                    f"{run.run_label!r} has no paired judge results for "
+                    f"{outcome.table_label}."
+                )
+            panel_runs.append(
+                {
+                    "run_key": run.run_key,
+                    "run_label": run.run_label,
+                    "model": run.model,
+                    **summary,
+                }
+            )
+        panels.append(
+            {
+                "outcome": outcome.key,
+                "scenario": outcome.scenario,
+                "title": outcome.title,
+                "runs": tuple(panel_runs),
+            }
+        )
+    return tuple(panels)
+
+
+def _available_variants(summary: Mapping[str, Any]) -> set[str]:
+    runs = summary.get("runs")
+    if not isinstance(runs, list):
+        return set()
+    return {
+        str(run.get("variant_name"))
+        for run in runs
+        if isinstance(run, dict) and run.get("variant_name") is not None
+    }
+
+
+def _load_panel_summary(results_root: Path, panel: PanelSpec) -> Dict[str, Any]:
+    summary_dir = results_root / panel.scenario / "ablations" / "summary"
+    candidates = sorted(summary_dir.glob("ablation_comparison_*.json"))
+    matches = []
+    for path in candidates:
+        if path.name.startswith("ablation_comparison_base_vs_"):
+            continue
+        summary = _read_json(path)
+        if summary.get("model") != panel.model:
+            continue
+        if summary.get("action_spec") != panel.action_spec:
+            continue
+        if summary.get("observation_spec") != panel.observation_spec:
+            continue
+        if not set(panel.variants).issubset(_available_variants(summary)):
+            continue
+        matches.append((path, summary))
+
+    if len(matches) == 1:
+        return matches[0][1]
+    if len(matches) > 1:
+        paths = "\n  ".join(str(path) for path, _ in matches)
+        raise RuntimeError(
+            f"Multiple aggregate summaries match the {panel.title} panel:\n  {paths}"
+        )
+
+    expected_variants = ", ".join(panel.variants)
+    raise RuntimeError(
+        f"Could not find the aggregate summary for {panel.title} under {summary_dir}.\n"
+        f"Expected model={panel.model}, action_spec={panel.action_spec}, "
+        f"observation_spec={panel.observation_spec}, and variants: "
+        f"{expected_variants}.\n"
+        "Run scripts/aggregate_results.py on the results root first."
+    )
+
+
+def _ordered_runs(
+    summary: Mapping[str, Any],
+    panel: PanelSpec,
+) -> Tuple[Dict[str, Any], ...]:
+    runs = summary.get("runs")
+    if not isinstance(runs, list):
+        raise RuntimeError(f"{panel.title} summary has no runs list.")
+
+    runs_by_variant: Dict[str, Dict[str, Any]] = {}
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        variant_name = str(run.get("variant_name", ""))
+        if variant_name not in panel.variants:
+            continue
+        if variant_name in runs_by_variant:
+            raise RuntimeError(
+                f"{panel.title} summary contains more than one {variant_name!r} run."
+            )
+        runs_by_variant[variant_name] = run
+
+    missing = [
+        variant_name
+        for variant_name in panel.variants
+        if variant_name not in runs_by_variant
+    ]
+    if missing:
+        raise RuntimeError(
+            f"{panel.title} summary is missing variants: {', '.join(missing)}"
+        )
+    return tuple(runs_by_variant[variant_name] for variant_name in panel.variants)
+
+
+def _validate_run(run: Mapping[str, Any], panel: PanelSpec) -> None:
+    total_tasks = int(run.get("total_tasks", 0))
+    if total_tasks <= 0:
+        raise RuntimeError(
+            f"{panel.title} variant {run.get('variant_name')!r} has no completed tasks."
+        )
+
+    for series in panel.series:
+        if series.count_key not in run:
+            raise RuntimeError(
+                f"{panel.title} variant {run.get('variant_name')!r} is missing "
+                f"{series.count_key}."
+            )
+        count = int(run[series.count_key])
+        if not 0 <= count <= total_tasks:
+            raise RuntimeError(
+                f"{panel.title} variant {run.get('variant_name')!r} has invalid "
+                f"{series.count_key}={count} for total_tasks={total_tasks}."
+            )
+
+
+def _style_axis(axis: Any, show_y_axis: bool) -> None:
+    axis.set_facecolor("white")
+    axis.set_ylim(0.0, 1.0)
+    axis.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
+    axis.set_axisbelow(True)
+    axis.yaxis.grid(True, color="#E0E0E0", linewidth=0.9)
+    axis.xaxis.grid(False)
+
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
+    axis.spines["left"].set_color("#333333")
+    axis.spines["bottom"].set_color("#333333")
+    axis.spines["left"].set_linewidth(1.1)
+    axis.spines["bottom"].set_linewidth(1.1)
+    axis.tick_params(axis="both", colors="#222222", labelsize=10, width=0)
+
+    if show_y_axis:
+        axis.set_ylabel(
+            "Proportion of tasks",
+            fontsize=13,
+            fontweight="bold",
+            color="#222222",
+            labelpad=12,
+        )
+    else:
+        axis.spines["left"].set_visible(False)
+        axis.tick_params(axis="y", labelleft=False, length=0)
+
+
+def _render_panel(
+    axis: Any,
+    panel: PanelSpec,
+    summary: Mapping[str, Any],
+    show_y_axis: bool,
+) -> None:
+    runs = _ordered_runs(summary, panel)
+    for run in runs:
+        _validate_run(run, panel)
+
+    _style_axis(axis, show_y_axis=show_y_axis)
+    axis.set_title(
+        panel.title,
+        fontsize=16,
+        fontweight="bold",
+        color="#111111",
+        pad=55,
+    )
+
+    x_positions = [float(index) for index in range(len(runs))]
+    series_count = len(panel.series)
+    group_span = 0.78
+    intra_bar_gap = 0.035
+    bar_width = (
+        group_span - intra_bar_gap * (series_count - 1)
+    ) / series_count
+    start_offset = -group_span / 2 + bar_width / 2
+
+    legend_handles = []
+    for series_index, series in enumerate(panel.series):
+        offset = start_offset + series_index * (bar_width + intra_bar_gap)
+        positions = [x + offset for x in x_positions]
+        counts = [int(run[series.count_key]) for run in runs]
+        totals = [int(run["total_tasks"]) for run in runs]
+        heights = [count / total for count, total in zip(counts, totals)]
+        heights = [
+            min(
+                max(float(run.get(series.rate_key, fallback)), 0.0),
+                1.0,
+            )
+            for run, fallback in zip(runs, heights)
+        ]
+        errors = [
+            binomial_standard_error(count, total)
+            for count, total in zip(counts, totals)
+        ]
+
+        bars = axis.bar(
+            positions,
+            heights,
+            width=bar_width,
+            color=series.color,
+            edgecolor="none",
+            yerr=errors,
+            capsize=3,
+            error_kw={
+                "ecolor": "#333333",
+                "elinewidth": 1.0,
+                "capthick": 1.0,
+            },
+            label=series.label,
+        )
+        legend_handles.append(bars[0])
+
+        for bar, count, total_tasks, error in zip(
+            bars,
+            counts,
+            totals,
+            errors,
+        ):
+            axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                min(bar.get_height() + error + 0.018, 1.018),
+                f"{count}/{total_tasks}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                color="#222222",
+                clip_on=False,
+            )
+
+    labels = [
+        panel.variant_labels[variant_name]
+        for variant_name in panel.variants
+    ]
+    axis.set_xticks(x_positions)
+    axis.set_xticklabels(
+        labels,
+        fontsize=12,
+        fontweight="bold",
+        linespacing=1.15,
+    )
+    axis.tick_params(axis="x", pad=10)
+
+    axis.legend(
+        handles=legend_handles,
+        labels=[series.label for series in panel.series],
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.075),
+        ncol=len(panel.series),
+        frameon=False,
+        fontsize=10,
+        handlelength=1.0,
+        handleheight=1.0,
+        columnspacing=1.5,
+        handletextpad=0.5,
+        borderaxespad=0.0,
+    )
+
+
+def render_figure_9(
+    summaries: Mapping[str, Mapping[str, Any]],
+) -> Any:
+    """Render Figure 9 from one aggregate comparison summary per scenario."""
+    plt, _ = load_matplotlib()
+    figure, axes = plt.subplots(
+        len(FIGURE_9_PANELS),
+        1,
+        figsize=(13.5, 12.8),
+        dpi=100,
+        sharey=True,
+        gridspec_kw={
+            "hspace": 0.78,
+        },
+    )
+    figure.subplots_adjust(
+        left=0.085,
+        right=0.995,
+        top=0.93,
+        bottom=0.07,
+        hspace=0.78,
+    )
+
+    for axis, panel in zip(axes, FIGURE_9_PANELS):
+        try:
+            summary = summaries[panel.scenario]
+        except KeyError as exc:
+            raise RuntimeError(
+                f"No summary was supplied for {panel.scenario}."
+            ) from exc
+        _render_panel(
+            axis,
+            panel,
+            summary,
+            show_y_axis=True,
+        )
+
+    return figure
+
+
+def figure_9(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate Figure 9 with the realism ablations for all three scenarios."""
+    results_root = Path(results_root).expanduser().resolve()
+    output_dir = Path(output_dir).expanduser().resolve()
+    summaries = {
+        panel.scenario: _load_panel_summary(results_root, panel)
+        for panel in FIGURE_9_PANELS
+    }
+    figure = render_figure_9(summaries)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    normalized_formats = tuple(dict.fromkeys(fmt.lower() for fmt in formats))
+    unsupported = [fmt for fmt in normalized_formats if fmt not in {"pdf", "png"}]
+    if unsupported:
+        raise ValueError(
+            f"Unsupported output format(s): {', '.join(unsupported)}"
+        )
+
+    output_paths = []
+    try:
+        for fmt in normalized_formats:
+            output_path = output_dir / f"figure_9.{fmt}"
+            save_kwargs: Dict[str, Any] = {
+                "format": fmt,
+                "facecolor": "white",
+                "bbox_inches": "tight",
+                "pad_inches": 0.08,
+            }
+            if fmt == "png":
+                save_kwargs["dpi"] = dpi
+            figure.savefig(output_path, **save_kwargs)
+            output_paths.append(output_path)
+    finally:
+        plt, _ = load_matplotlib()
+        plt.close(figure)
+
+    return tuple(output_paths)
+
+
+def render_judge_sensitivity_figure(
+    panels: Sequence[Mapping[str, Any]],
+) -> Any:
+    """Render paired GPT/Claude positive rates for every Figure 3 model row."""
+    if len(panels) != len(JUDGE_OUTCOMES):
+        raise RuntimeError(
+            f"Expected {len(JUDGE_OUTCOMES)} judge-sensitivity panels, "
+            f"received {len(panels)}."
+        )
+
+    run_key_sequences = []
+    for panel in panels:
+        panel_runs = panel.get("runs")
+        if not isinstance(panel_runs, (list, tuple)) or not panel_runs:
+            raise RuntimeError(
+                f"Judge-sensitivity panel {panel.get('outcome')!r} has no runs."
+            )
+        run_key_sequences.append(
+            tuple(str(run.get("run_key", "")) for run in panel_runs)
+        )
+    if any(keys != run_key_sequences[0] for keys in run_key_sequences[1:]):
+        raise RuntimeError(
+            "Judge-sensitivity panels do not contain the same ordered run keys."
+        )
+
+    plt, _ = load_matplotlib()
+    figure, axes = plt.subplots(
+        1,
+        len(panels),
+        figsize=(15.5, 8.8),
+        dpi=100,
+        sharex=True,
+        sharey=True,
+        gridspec_kw={"wspace": 0.08},
+    )
+    figure.subplots_adjust(
+        left=0.225,
+        right=0.995,
+        top=0.82,
+        bottom=0.11,
+        wspace=0.08,
+    )
+
+    first_panel_runs = panels[0]["runs"]
+    y_positions = list(range(len(first_panel_runs)))
+    run_labels = [str(run["run_label"]) for run in first_panel_runs]
+
+    for panel_index, (axis, panel) in enumerate(zip(axes, panels)):
+        panel_runs = panel["runs"]
+        gpt_rates = [
+            float(run["gpt_positive_rate"]) * 100.0
+            for run in panel_runs
+        ]
+        claude_rates = [
+            float(run["claude_positive_rate"]) * 100.0
+            for run in panel_runs
+        ]
+
+        axis.set_facecolor("white")
+        axis.set_xlim(-2.0, 102.0)
+        axis.set_xticks([0.0, 25.0, 50.0, 75.0, 100.0])
+        axis.set_xticklabels(["0", "25", "50", "75", "100"])
+        axis.set_axisbelow(True)
+        axis.xaxis.grid(True, color="#E0E0E0", linewidth=0.8)
+        axis.yaxis.grid(False)
+        axis.spines["top"].set_visible(False)
+        axis.spines["right"].set_visible(False)
+        axis.spines["left"].set_visible(False)
+        axis.spines["bottom"].set_color("#333333")
+        axis.spines["bottom"].set_linewidth(1.0)
+        axis.tick_params(
+            axis="x",
+            colors="#222222",
+            labelsize=9,
+            width=0,
+            pad=5,
+        )
+        axis.tick_params(axis="y", length=0)
+        axis.set_title(
+            str(panel["title"]),
+            fontsize=12,
+            fontweight="bold",
+            color="#111111",
+            pad=13,
+            linespacing=1.2,
+        )
+
+        for y, gpt_rate, claude_rate in zip(
+            y_positions,
+            gpt_rates,
+            claude_rates,
+        ):
+            axis.plot(
+                [gpt_rate, claude_rate],
+                [y, y],
+                color="#9A9A9A",
+                linewidth=1.2,
+                solid_capstyle="round",
+                zorder=1,
+            )
+        axis.scatter(
+            gpt_rates,
+            y_positions,
+            color=GPT_JUDGE_COLOR,
+            edgecolor="white",
+            linewidth=0.45,
+            marker="s",
+            s=32,
+            zorder=3,
+            label="GPT-5.5 xhigh judge",
+        )
+        axis.scatter(
+            claude_rates,
+            y_positions,
+            facecolor="none",
+            edgecolor=CLAUDE_JUDGE_COLOR,
+            linewidth=1.5,
+            marker="o",
+            s=39,
+            zorder=4,
+            label="Claude Opus 4.7 max judge",
+        )
+
+        for y, run, gpt_rate, claude_rate in zip(
+            y_positions,
+            panel_runs,
+            gpt_rates,
+            claude_rates,
+        ):
+            delta_pp = float(run["claude_minus_gpt_percentage_points"])
+            if abs(delta_pp) < DELTA_ANNOTATION_THRESHOLD_PP:
+                continue
+            midpoint = (gpt_rate + claude_rate) / 2.0
+            axis.annotate(
+                f"{delta_pp:+.0f}",
+                xy=(midpoint, y),
+                xytext=(0, -7),
+                textcoords="offset points",
+                ha="center",
+                va="top",
+                fontsize=7,
+                color="#333333",
+                fontweight="bold",
+                zorder=5,
+                annotation_clip=False,
+            )
+
+        axis.set_ylim(-0.75, len(y_positions) - 0.25)
+        axis.invert_yaxis()
+        axis.set_yticks(y_positions)
+        if panel_index == 0:
+            axis.set_yticklabels(
+                run_labels,
+                fontsize=9,
+                color="#222222",
+                fontweight="bold",
+            )
+        else:
+            axis.tick_params(axis="y", labelleft=False)
+
+    legend_handles, legend_labels = axes[0].get_legend_handles_labels()
+    figure.legend(
+        legend_handles,
+        legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.61, 0.975),
+        ncol=2,
+        frameon=False,
+        fontsize=12,
+        markerscale=1.25,
+        handletextpad=0.5,
+        columnspacing=2.0,
+    )
+    figure.supxlabel(
+        "Positive judgment rate (%)",
+        x=0.61,
+        y=0.035,
+        fontsize=11,
+        fontweight="bold",
+        color="#222222",
+    )
+    figure.text(
+        0.61,
+        0.012,
+        "Labels show Claude - GPT percentage-point differences when |delta| >= 10.",
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        color="#444444",
+    )
+    return figure
+
+
+def figure_judge_sensitivity(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the appendix figure comparing GPT and Claude judge rates."""
+    resolved_results_root = Path(results_root).expanduser().resolve()
+    resolved_output_dir = Path(output_dir).expanduser().resolve()
+    panels = _build_judge_sensitivity_plot_data(
+        _load_judge_runs(resolved_results_root)
+    )
+    figure = render_judge_sensitivity_figure(panels)
+
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
+    normalized_formats = tuple(dict.fromkeys(fmt.lower() for fmt in formats))
+    unsupported = [
+        fmt for fmt in normalized_formats if fmt not in {"pdf", "png"}
+    ]
+    if unsupported:
+        raise ValueError(
+            f"Unsupported output format(s): {', '.join(unsupported)}"
+        )
+
+    output_paths = []
+    try:
+        for fmt in normalized_formats:
+            output_path = (
+                resolved_output_dir / f"{JUDGE_SENSITIVITY_OUTPUT_STEM}.{fmt}"
+            )
+            save_kwargs: Dict[str, Any] = {
+                "format": fmt,
+                "facecolor": "white",
+                "bbox_inches": "tight",
+                "pad_inches": 0.08,
+            }
+            if fmt == "png":
+                save_kwargs["dpi"] = dpi
+            figure.savefig(output_path, **save_kwargs)
+            output_paths.append(output_path)
+    finally:
+        plt, _ = load_matplotlib()
+        plt.close(figure)
+
+    return tuple(output_paths)
+
+
+def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate publication-ready ROGUE paper figures."
+    )
+    parser.add_argument(
+        "figure",
+        nargs="?",
+        default="figure_9",
+        choices=("figure_9", "judge_sensitivity"),
+        help="Figure function to generate (default: figure_9).",
+    )
+    parser.add_argument(
+        "--results_root",
+        type=Path,
+        default=DEFAULT_RESULTS_ROOT,
+        help="Results root containing aggregate ablation summaries.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="Directory for generated paper figures.",
+    )
+    parser.add_argument(
+        "--formats",
+        nargs="+",
+        choices=("pdf", "png"),
+        default=("pdf", "png"),
+        help="Output formats to write (default: pdf png).",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="PNG resolution (default: 300).",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = parse_args(argv)
+    try:
+        if args.figure == "figure_9":
+            output_paths = figure_9(
+                results_root=args.results_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "judge_sensitivity":
+            output_paths = figure_judge_sensitivity(
+                results_root=args.results_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        else:
+            raise ValueError(f"Unsupported figure: {args.figure}")
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    for output_path in output_paths:
+        print(f"Wrote {output_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
