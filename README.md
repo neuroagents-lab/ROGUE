@@ -264,7 +264,7 @@ python scripts/aggregate_results.py \
   --judge-mode auto
 ```
 
-This mode can read compatible historical GPT records for comparison, but it does not instantiate the OpenAI client, require `OPENAI_API_KEY`, or backfill stale/missing GPT judgments. Claude uses the first-party Messages API with model `claude-opus-4-7`, max effort, and a 64k output-token cap. See Anthropic's [model ID documentation](https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions) and [effort guidance](https://platform.claude.com/docs/en/build-with-claude/effort).
+This mode can read compatible historical GPT records for comparison, but it does not instantiate the OpenAI client, require `OPENAI_API_KEY`, or backfill stale/missing GPT judgments. Claude uses the first-party Messages API with model `claude-opus-4-7`, adaptive thinking, max effort, and a 64k output-token cap. The thinking mode is part of cache validation, so records created without adaptive thinking are regenerated in `auto` mode. See Anthropic's [model ID documentation](https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions), [thinking configuration](https://platform.claude.com/docs/en/build-with-claude/thinking#configuring-thinking), and [effort guidance](https://platform.claude.com/docs/en/build-with-claude/effort).
 
 Before spending API credits, run the same selection with `--judge-preflight`. It scans caches without API calls or file writes and prints cache coverage plus planned calls for both providers, including `OpenAI calls planned: 0` in Claude-only mode:
 
@@ -275,6 +275,58 @@ python scripts/aggregate_results.py \
   --judge-mode auto \
   --judge-preflight
 ```
+
+For large backfills, both providers have asynchronous batch workflows. Run one provider action per invocation. OpenAI Batch uploads JSONL, creates a 24-hour `/v1/chat/completions` batch, and later applies the output/error files by `custom_id`:
+
+```bash
+# Submit only missing/stale GPT judgments.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets gpt-5.5-xhigh \
+  --judge-mode auto \
+  --openai-batch-action submit
+
+# Check the saved batch.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets gpt-5.5-xhigh \
+  --openai-batch-action status
+
+# Once terminal, cache available results and rebuild summaries locally.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets gpt-5.5-xhigh \
+  --openai-batch-action apply
+```
+
+The default OpenAI state file is `results/summary/openai_judge_batch_state.json`. Submission first saves the uploaded input-file ID, then saves the created batch ID; neither POST is automatically retried. If batch creation has an ambiguous failure after upload, the state is retained and the command directs you to inspect the OpenAI dashboard before retrying. The JSONL is limited to 50,000 requests/200 MB. Applying a completed, expired, cancelled, or failed batch streams both output and error files, records per-task usage and batch IDs, checks source-log hashes, and rebuilds with `--judge-mode cache_only`. See OpenAI's [Batch API guide](https://developers.openai.com/api/docs/guides/batch).
+
+For Claude, submission, status checking, and result application likewise use separate explicit actions:
+
+```bash
+# Submit only missing/stale Claude judgments.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets claude-opus-4.7-max \
+  --judge-mode auto \
+  --claude-batch-action submit
+
+# Poll without rerunning or resubmitting the batch.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets claude-opus-4.7-max \
+  --claude-batch-action status
+
+# Once the status is "ended", cache the results and rebuild summaries locally.
+python scripts/aggregate_results.py \
+  --results_root ./results \
+  --judge-targets claude-opus-4.7-max \
+  --claude-batch-action apply
+```
+
+The default Claude state file is `results/summary/claude_judge_batch_state.json`. It contains the Anthropic batch ID, source-log hashes, and task mapping, but not the large prompts. Submission refuses to replace an unapplied state file, does not automatically retry its POST, enforces Anthropic's 100,000-request/256 MB limits, and skips empty-log tasks for local deterministic handling. `apply` accepts only an ended batch, verifies that every task's logs still match their submission hashes, writes per-task usage and batch IDs, and then rebuilds with `--judge-mode cache_only`, so it cannot call OpenAI or Anthropic. Run the applicable provider commands with `--results_root ./results/subagents` for a separate subagent batch and state file.
+
+Anthropic documents a 50% Batch API discount and a maximum 24-hour processing window; most batches finish sooner. Message Batches are not eligible for Zero Data Retention. See the [Message Batches guide](https://platform.claude.com/docs/en/build-with-claude/message-batches) and [pricing](https://platform.claude.com/docs/en/about-claude/pricing).
 
 Use `--judge-mode auto` to reuse caches and fill only missing or stale selected-target judgments. `--judge-mode refresh` regenerates only selected targets. `--judge-mode cache_only` never calls either API. To refresh both providers, select both explicitly:
 

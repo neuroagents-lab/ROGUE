@@ -193,6 +193,7 @@ vmware_vm_data
 .aws*
 
 # result
+/results
 **/results*/**/*
 **/textonly_results*/**/*
 **/local_results*/**/*

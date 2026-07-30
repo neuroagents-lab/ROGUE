@@ -11,6 +11,7 @@ import json
 import math
 import os
 import re
+import ssl
 import sys
 import textwrap
 import time
@@ -25,19 +26,43 @@ from calc_override_score import _compute_metrics, _load_from_task_logs
 
 
 SCRIPT_VERSION = "aggregate-results-v2"
+HTTP_USER_AGENT = f"ROGUE/{SCRIPT_VERSION}"
 JUDGE_PROMPT_VERSION = "judge-prompts-v3"
 DEFAULT_RESULTS_ROOT = "results"
 DEFAULT_JUDGE_MODEL = "gpt-5.5"
 DEFAULT_JUDGE_REASONING_EFFORT = "xhigh"
 DEFAULT_CLAUDE_JUDGE_MODEL = "claude-opus-4-7"
 DEFAULT_CLAUDE_JUDGE_REASONING_EFFORT = "max"
+DEFAULT_CLAUDE_JUDGE_THINKING_MODE = "adaptive"
 DEFAULT_CLAUDE_JUDGE_MAX_TOKENS = 64_000
+OPENAI_BATCH_STATE_VERSION = "openai-judge-batch-v1"
+DEFAULT_OPENAI_BATCH_STATE_FILENAME = "openai_judge_batch_state.json"
+OPENAI_BATCH_MAX_REQUESTS = 50_000
+OPENAI_BATCH_MAX_BYTES = 200_000_000
+CLAUDE_BATCH_STATE_VERSION = "anthropic-judge-batch-v1"
+DEFAULT_CLAUDE_BATCH_STATE_FILENAME = "claude_judge_batch_state.json"
+ANTHROPIC_BATCH_MAX_REQUESTS = 100_000
+ANTHROPIC_BATCH_MAX_BYTES = 256_000_000
 OPENAI_JUDGE_TARGET = "gpt-5.5-xhigh"
 CLAUDE_JUDGE_TARGET = "claude-opus-4.7-max"
 SUPPORTED_JUDGE_TARGETS = (OPENAI_JUDGE_TARGET, CLAUDE_JUDGE_TARGET)
 DEFAULT_MAX_CHARS_PER_FILE = 800_000
 REPO_ROOT = Path(__file__).resolve().parents[1]
 GOOGLE_SETTINGS_PATH = REPO_ROOT / "evaluation_examples" / "settings" / "google" / "settings.json"
+
+
+def configure_default_ca_bundle() -> None:
+    """Use the macOS system CA bundle when framework Python has none configured."""
+    if os.getenv("SSL_CERT_FILE", "").strip():
+        return
+    if ssl.get_default_verify_paths().cafile is not None:
+        return
+    system_ca_path = Path("/etc/ssl/cert.pem")
+    if system_ca_path.is_file():
+        os.environ["SSL_CERT_FILE"] = str(system_ca_path)
+
+
+configure_default_ca_bundle()
 
 
 @dataclass(frozen=True)
@@ -47,6 +72,7 @@ class JudgeProfile:
     provider: str
     model: str
     reasoning_effort: str
+    thinking_mode: Optional[str] = None
     max_output_tokens: Optional[int] = None
 
 
@@ -68,6 +94,7 @@ def build_judge_profiles(
         provider="anthropic",
         model=DEFAULT_CLAUDE_JUDGE_MODEL,
         reasoning_effort=DEFAULT_CLAUDE_JUDGE_REASONING_EFFORT,
+        thinking_mode=DEFAULT_CLAUDE_JUDGE_THINKING_MODE,
         max_output_tokens=claude_max_tokens,
     )
     return {
@@ -556,6 +583,23 @@ def normalize_chat_content(value: Any) -> str:
     return str(value)
 
 
+def build_openai_chat_completion_body(
+    profile: JudgeProfile,
+    system_prompt: str,
+    user_prompt: str,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "model": profile.model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+    if profile.reasoning_effort:
+        payload["reasoning_effort"] = profile.reasoning_effort
+    return payload
+
+
 class JudgeClient:
     def __init__(self, model: str, reasoning_effort: str, timeout_seconds: int, max_retries: int):
         self.provider = "openai"
@@ -583,21 +627,24 @@ class JudgeClient:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            "User-Agent": HTTP_USER_AGENT,
         }
         if self.organization:
             headers["OpenAI-Organization"] = self.organization
         if self.project:
             headers["OpenAI-Project"] = self.project
 
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        }
-        if self.reasoning_effort:
-            payload["reasoning_effort"] = self.reasoning_effort
+        payload = build_openai_chat_completion_body(
+            JudgeProfile(
+                target=OPENAI_JUDGE_TARGET,
+                judge_id=self.judge_id,
+                provider=self.provider,
+                model=self.model,
+                reasoning_effort=self.reasoning_effort,
+            ),
+            system_prompt,
+            user_prompt,
+        )
 
         for attempt in range(1, self.max_retries + 1):
             request = urllib.request.Request(
@@ -636,11 +683,224 @@ class JudgeClient:
         raise RuntimeError("Judge request failed unexpectedly")
 
 
+def openai_error_detail(exc: BaseException) -> str:
+    detail = str(exc)
+    if isinstance(exc, urllib.error.HTTPError):
+        response_body = exc.read().decode("utf-8", errors="replace").strip()
+        status_text = getattr(exc, "reason", None) or getattr(exc, "msg", "")
+        detail = f"HTTP {exc.code}: {status_text}"
+        if response_body:
+            detail = f"{detail}; response_body={response_body}"
+    return detail
+
+
+def serialize_openai_batch_rows(rows: Sequence[Dict[str, Any]]) -> bytes:
+    return (
+        "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in rows
+        )
+        + ("\n" if rows else "")
+    ).encode("utf-8")
+
+
+def encode_multipart_batch_file(jsonl_bytes: bytes) -> Tuple[bytes, str]:
+    boundary = (
+        "----rogue-openai-batch-"
+        + hashlib.sha256(jsonl_bytes).hexdigest()[:32]
+    )
+    boundary_bytes = boundary.encode("ascii")
+    if boundary_bytes in jsonl_bytes:
+        raise RuntimeError("Generated multipart boundary unexpectedly appears in JSONL.")
+    body = b"".join(
+        [
+            b"--" + boundary_bytes + b"\r\n",
+            b'Content-Disposition: form-data; name="purpose"\r\n\r\n',
+            b"batch\r\n",
+            b"--" + boundary_bytes + b"\r\n",
+            (
+                b'Content-Disposition: form-data; name="file"; '
+                b'filename="rogue_openai_judge_batch.jsonl"\r\n'
+            ),
+            b"Content-Type: application/jsonl\r\n\r\n",
+            jsonl_bytes,
+            b"\r\n--" + boundary_bytes + b"--\r\n",
+        ]
+    )
+    return body, boundary
+
+
+class OpenAIBatchClient:
+    """Minimal Files/Batch client with intentionally non-retried POST requests."""
+
+    def __init__(self, timeout_seconds: int):
+        self.timeout_seconds = timeout_seconds
+        self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        self.base_url = os.getenv(
+            "OPENAI_BASE_URL", "https://api.openai.com/v1"
+        ).rstrip("/")
+        self.organization = os.getenv("OPENAI_ORG_ID", "").strip()
+        self.project = os.getenv("OPENAI_PROJECT", "").strip()
+
+    def ensure_ready(self) -> None:
+        if not self.api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not set. Set it before using the OpenAI Batch API."
+            )
+
+    def _headers(self, content_type: Optional[str] = "application/json") -> Dict[str, str]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "User-Agent": HTTP_USER_AGENT,
+        }
+        if content_type:
+            headers["Content-Type"] = content_type
+        if self.organization:
+            headers["OpenAI-Organization"] = self.organization
+        if self.project:
+            headers["OpenAI-Project"] = self.project
+        return headers
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        payload_bytes: Optional[bytes] = None,
+        content_type: Optional[str] = "application/json",
+    ) -> Dict[str, Any]:
+        self.ensure_ready()
+        request = urllib.request.Request(
+            url=f"{self.base_url}{path}",
+            data=payload_bytes,
+            headers=self._headers(content_type),
+            method=method,
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds
+            ) as response:
+                body = response.read()
+        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            raise RuntimeError(
+                f"OpenAI Batch API {method} {path} failed: "
+                f"{openai_error_detail(exc)}"
+            ) from exc
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                f"OpenAI Batch API {method} {path} returned invalid JSON."
+            ) from exc
+        if not isinstance(payload, dict):
+            raise RuntimeError(
+                f"OpenAI Batch API {method} {path} did not return a JSON object."
+            )
+        return payload
+
+    def upload_batch_file(self, jsonl_bytes: bytes) -> Dict[str, Any]:
+        multipart_body, boundary = encode_multipart_batch_file(jsonl_bytes)
+        payload = self._request_json(
+            "POST",
+            "/files",
+            multipart_body,
+            f"multipart/form-data; boundary={boundary}",
+        )
+        if not isinstance(payload.get("id"), str):
+            raise RuntimeError("OpenAI batch file upload response did not contain an id.")
+        return payload
+
+    def create_batch(
+        self,
+        input_file_id: str,
+        submission_id: str,
+    ) -> Dict[str, Any]:
+        payload = {
+            "input_file_id": input_file_id,
+            "endpoint": "/v1/chat/completions",
+            "completion_window": "24h",
+            "metadata": {
+                "rogue_submission_id": submission_id,
+                "purpose": "judge_backfill",
+            },
+        }
+        response = self._request_json(
+            "POST",
+            "/batches",
+            json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+        )
+        if not isinstance(response.get("id"), str):
+            raise RuntimeError("OpenAI batch creation response did not contain an id.")
+        return response
+
+    def retrieve_batch(self, batch_id: str) -> Dict[str, Any]:
+        return self._request_json("GET", f"/batches/{batch_id}")
+
+    def retrieve_file_results(self, file_id: str) -> Iterable[Dict[str, Any]]:
+        """Stream an OpenAI batch output/error JSONL file."""
+        self.ensure_ready()
+        path = f"/files/{file_id}/content"
+        request = urllib.request.Request(
+            url=f"{self.base_url}{path}",
+            headers=self._headers(None),
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds
+            ) as response:
+                for line_number, raw_line in enumerate(response, start=1):
+                    try:
+                        line = raw_line.decode("utf-8")
+                    except UnicodeDecodeError as exc:
+                        raise RuntimeError(
+                            f"OpenAI batch file {file_id} line {line_number} "
+                            "was not UTF-8."
+                        ) from exc
+                    if not line.strip():
+                        continue
+                    try:
+                        item = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise RuntimeError(
+                            f"OpenAI batch file {file_id} line {line_number} "
+                            "was invalid JSON."
+                        ) from exc
+                    if not isinstance(item, dict):
+                        raise RuntimeError(
+                            f"OpenAI batch file {file_id} line {line_number} "
+                            "was not an object."
+                        )
+                    yield item
+        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            raise RuntimeError(
+                f"OpenAI Batch API GET {path} failed: "
+                f"{openai_error_detail(exc)}"
+            ) from exc
+
+
+def build_anthropic_message_params(
+    profile: JudgeProfile,
+    system_prompt: str,
+    user_prompt: str,
+) -> Dict[str, Any]:
+    return {
+        "model": profile.model,
+        "max_tokens": profile.max_output_tokens or DEFAULT_CLAUDE_JUDGE_MAX_TOKENS,
+        "system": system_prompt,
+        "messages": [{"role": "user", "content": user_prompt}],
+        "thinking": {
+            "type": profile.thinking_mode or DEFAULT_CLAUDE_JUDGE_THINKING_MODE
+        },
+        "output_config": {"effort": profile.reasoning_effort},
+    }
+
+
 class AnthropicJudgeClient:
     def __init__(
         self,
         model: str,
         reasoning_effort: str,
+        thinking_mode: str,
         max_output_tokens: int,
         timeout_seconds: int,
         max_retries: int,
@@ -648,6 +908,7 @@ class AnthropicJudgeClient:
         self.provider = "anthropic"
         self.model = model
         self.reasoning_effort = reasoning_effort
+        self.thinking_mode = thinking_mode
         self.max_output_tokens = max_output_tokens
         self.judge_id = f"anthropic:{model}:{reasoning_effort}"
         self.timeout_seconds = timeout_seconds
@@ -671,14 +932,21 @@ class AnthropicJudgeClient:
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
+            "User-Agent": HTTP_USER_AGENT,
         }
-        payload = {
-            "model": self.model,
-            "max_tokens": self.max_output_tokens,
-            "system": system_prompt,
-            "messages": [{"role": "user", "content": user_prompt}],
-            "output_config": {"effort": self.reasoning_effort},
-        }
+        payload = build_anthropic_message_params(
+            JudgeProfile(
+                target=CLAUDE_JUDGE_TARGET,
+                judge_id=self.judge_id,
+                provider=self.provider,
+                model=self.model,
+                reasoning_effort=self.reasoning_effort,
+                thinking_mode=self.thinking_mode,
+                max_output_tokens=self.max_output_tokens,
+            ),
+            system_prompt,
+            user_prompt,
+        )
 
         for attempt in range(1, self.max_retries + 1):
             request = urllib.request.Request(
@@ -713,6 +981,7 @@ class AnthropicJudgeClient:
                     "Judge request attempt "
                     f"{attempt}/{self.max_retries} failed "
                     f"(provider=anthropic, model={self.model}, "
+                    f"thinking_mode={self.thinking_mode}, "
                     f"reasoning_effort={self.reasoning_effort or 'none'}, "
                     f"system_chars={len(system_prompt)}, user_chars={len(user_prompt)}): {detail}",
                     file=sys.stderr,
@@ -725,6 +994,141 @@ class AnthropicJudgeClient:
                 time.sleep(min(2 ** (attempt - 1), 8))
 
         raise RuntimeError("Judge request failed unexpectedly")
+
+
+def anthropic_error_detail(exc: BaseException) -> str:
+    detail = str(exc)
+    if isinstance(exc, urllib.error.HTTPError):
+        response_body = exc.read().decode("utf-8", errors="replace").strip()
+        status_text = getattr(exc, "reason", None) or getattr(exc, "msg", "")
+        detail = f"HTTP {exc.code}: {status_text}"
+        if response_body:
+            detail = f"{detail}; response_body={response_body}"
+    return detail
+
+
+def serialize_anthropic_batch_requests(requests: Sequence[Dict[str, Any]]) -> bytes:
+    return json.dumps(
+        {"requests": list(requests)},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+class AnthropicBatchClient:
+    """Minimal Message Batches client with intentionally non-retried submission."""
+
+    def __init__(self, timeout_seconds: int):
+        self.timeout_seconds = timeout_seconds
+        self.api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        base_url = os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+        self.base_url = base_url[:-3] if base_url.endswith("/v1") else base_url
+
+    def ensure_ready(self) -> None:
+        if not self.api_key:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY is not set. Set it before using the Claude Batch API."
+            )
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload_bytes: Optional[bytes] = None,
+    ) -> bytes:
+        self.ensure_ready()
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+            "User-Agent": HTTP_USER_AGENT,
+        }
+        request = urllib.request.Request(
+            url=f"{self.base_url}{path}",
+            data=payload_bytes,
+            headers=headers,
+            method=method,
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds
+            ) as response:
+                return response.read()
+        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            raise RuntimeError(
+                f"Anthropic Batch API {method} {path} failed: "
+                f"{anthropic_error_detail(exc)}"
+            ) from exc
+
+    def create_batch(self, requests: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+        # Do not retry this POST: a lost response after server-side creation could
+        # otherwise create a duplicate paid batch.
+        body = self._request(
+            "POST",
+            "/v1/messages/batches",
+            serialize_anthropic_batch_requests(requests),
+        )
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Anthropic batch submission returned invalid JSON.") from exc
+        if not isinstance(payload, dict) or not isinstance(payload.get("id"), str):
+            raise RuntimeError("Anthropic batch submission response did not contain an id.")
+        return payload
+
+    def retrieve_batch(self, batch_id: str) -> Dict[str, Any]:
+        body = self._request("GET", f"/v1/messages/batches/{batch_id}")
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Anthropic batch status returned invalid JSON.") from exc
+        if not isinstance(payload, dict):
+            raise RuntimeError("Anthropic batch status was not a JSON object.")
+        return payload
+
+    def retrieve_results(self, batch_id: str) -> Iterable[Dict[str, Any]]:
+        """Stream JSONL results so large thinking outputs are not retained in memory."""
+        self.ensure_ready()
+        path = f"/v1/messages/batches/{batch_id}/results"
+        request = urllib.request.Request(
+            url=f"{self.base_url}{path}",
+            headers={
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+                "User-Agent": HTTP_USER_AGENT,
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds
+            ) as response:
+                for line_number, raw_line in enumerate(response, start=1):
+                    try:
+                        line = raw_line.decode("utf-8")
+                    except UnicodeDecodeError as exc:
+                        raise RuntimeError(
+                            f"Anthropic batch results line {line_number} was not UTF-8."
+                        ) from exc
+                    if not line.strip():
+                        continue
+                    try:
+                        item = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise RuntimeError(
+                            f"Anthropic batch results line {line_number} was invalid JSON."
+                        ) from exc
+                    if not isinstance(item, dict):
+                        raise RuntimeError(
+                            f"Anthropic batch results line {line_number} was not an object."
+                        )
+                    yield item
+        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+            raise RuntimeError(
+                f"Anthropic Batch API GET {path} failed: "
+                f"{anthropic_error_detail(exc)}"
+            ) from exc
 
 
 def build_override_prompts(task_id: str, runtime_excerpt: str, reasoning_excerpt: str) -> Tuple[str, str]:
@@ -1141,6 +1545,7 @@ def make_judge_record(
         "provider": profile.provider,
         "model": profile.model,
         "reasoning_effort": profile.reasoning_effort,
+        "thinking_mode": profile.thinking_mode,
         "max_output_tokens": profile.max_output_tokens,
         "judge_prompt_version": f"{JUDGE_PROMPT_VERSION}:{scenario}",
         "source": source,
@@ -1182,6 +1587,8 @@ def _modern_cached_judge_record(
         return None
     if record.get("reasoning_effort") != profile.reasoning_effort:
         return None
+    if record.get("thinking_mode") != profile.thinking_mode:
+        return None
     if record.get("max_output_tokens") != profile.max_output_tokens:
         return None
     if record.get("judge_prompt_version") != f"{JUDGE_PROMPT_VERSION}:{scenario}":
@@ -1191,7 +1598,11 @@ def _modern_cached_judge_record(
     output = record.get("output")
     if judgment_decisions(scenario, output) is None:
         return None
-    return make_judge_record(profile, scenario, output, "cache")
+    cached_record = make_judge_record(profile, scenario, output, "cache")
+    for key in ("batch_id", "usage"):
+        if key in record:
+            cached_record[key] = record[key]
+    return cached_record
 
 
 def _legacy_cached_primary_record(
@@ -3275,6 +3686,1031 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     return buffer.getvalue()
 
 
+def claude_batch_profile_snapshot(profile: JudgeProfile) -> Dict[str, Any]:
+    return {
+        "target": profile.target,
+        "judge_id": profile.judge_id,
+        "provider": profile.provider,
+        "model": profile.model,
+        "reasoning_effort": profile.reasoning_effort,
+        "thinking_mode": profile.thinking_mode,
+        "max_output_tokens": profile.max_output_tokens,
+        "judge_prompt_version": JUDGE_PROMPT_VERSION,
+    }
+
+
+def default_claude_batch_state_path(results_root: Path) -> Path:
+    return results_root / "summary" / DEFAULT_CLAUDE_BATCH_STATE_FILENAME
+
+
+def resolve_claude_batch_state_path(
+    results_root: Path, configured_path: Optional[str]
+) -> Path:
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+    return default_claude_batch_state_path(results_root)
+
+
+def relative_path_under_root(path: Path, results_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(results_root.resolve()))
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Batch path {path} is outside the results root {results_root}."
+        ) from exc
+
+
+def path_from_batch_relative(results_root: Path, relative_path: str) -> Path:
+    candidate = (results_root / relative_path).resolve()
+    try:
+        candidate.relative_to(results_root.resolve())
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Batch state contains a path outside the results root: {relative_path}"
+        ) from exc
+    return candidate
+
+
+def openai_batch_profile_snapshot(profile: JudgeProfile) -> Dict[str, Any]:
+    return {
+        "target": profile.target,
+        "judge_id": profile.judge_id,
+        "provider": profile.provider,
+        "model": profile.model,
+        "reasoning_effort": profile.reasoning_effort,
+        "thinking_mode": profile.thinking_mode,
+        "max_output_tokens": profile.max_output_tokens,
+        "judge_prompt_version": JUDGE_PROMPT_VERSION,
+        "endpoint": "/v1/chat/completions",
+    }
+
+
+def default_openai_batch_state_path(results_root: Path) -> Path:
+    return results_root / "summary" / DEFAULT_OPENAI_BATCH_STATE_FILENAME
+
+
+def resolve_openai_batch_state_path(
+    results_root: Path, configured_path: Optional[str]
+) -> Path:
+    if configured_path:
+        return Path(configured_path).expanduser().resolve()
+    return default_openai_batch_state_path(results_root)
+
+
+def build_openai_batch_plan(
+    results_root: Path,
+    scenarios: Sequence[str],
+    judge_profiles: Dict[str, JudgeProfile],
+    judge_mode: str,
+    max_chars_per_file: int,
+) -> Dict[str, Any]:
+    """Build OpenAI Batch JSONL using the synchronous GPT judge prompt path."""
+    if judge_mode == "cache_only":
+        raise ValueError("OpenAI batch submission requires judge mode 'auto' or 'refresh'.")
+
+    profile = judge_profiles[OPENAI_JUDGE_TARGET]
+    rows: List[Dict[str, Any]] = []
+    manifest: List[Dict[str, Any]] = []
+    custom_ids: set[str] = set()
+    valid_cache_tasks = 0
+    empty_log_tasks = 0
+    input_characters = 0
+
+    for scenario in scenarios:
+        for leaf in discover_leaf_dirs(results_root, scenario):
+            existing_by_task = load_existing_tasks(leaf.aggregate_path)
+            for task_dir in list_task_dirs(leaf.result_dir, leaf.task_prefix):
+                runtime_path = task_dir / "runtime.log"
+                reasoning_path = task_dir / "reasoning_content.jsonl"
+                runtime_text = read_text(runtime_path)
+                reasoning_text = read_text(reasoning_path)
+                runtime_meta = file_meta(runtime_path)
+                reasoning_meta = file_meta(reasoning_path)
+                existing_task = existing_by_task.get(task_dir.name)
+                status, _ = cached_judge_status(
+                    existing_task,
+                    profile,
+                    runtime_meta,
+                    reasoning_meta,
+                    scenario,
+                )
+                if judge_mode != "refresh" and status == "valid":
+                    valid_cache_tasks += 1
+                    continue
+                if not runtime_text.strip() and not reasoning_text.strip():
+                    empty_log_tasks += 1
+                    continue
+
+                system_prompt, user_prompt = build_prompts_for_task(
+                    scenario=scenario,
+                    observation_spec=leaf.observation_spec,
+                    task_id=task_dir.name,
+                    runtime_text=runtime_text,
+                    reasoning_text=reasoning_text,
+                    max_chars_per_file=max_chars_per_file,
+                )
+                relative_task_dir = relative_path_under_root(task_dir, results_root)
+                custom_id = (
+                    "rogue-"
+                    + hashlib.sha256(relative_task_dir.encode("utf-8")).hexdigest()[:48]
+                )
+                if custom_id in custom_ids:
+                    raise RuntimeError(
+                        f"Duplicate OpenAI batch custom_id generated for "
+                        f"{relative_task_dir}."
+                    )
+                custom_ids.add(custom_id)
+                rows.append(
+                    {
+                        "custom_id": custom_id,
+                        "method": "POST",
+                        "url": "/v1/chat/completions",
+                        "body": build_openai_chat_completion_body(
+                            profile, system_prompt, user_prompt
+                        ),
+                    }
+                )
+                manifest.append(
+                    {
+                        "custom_id": custom_id,
+                        "scenario": scenario,
+                        "observation_spec": leaf.observation_spec,
+                        "task_id": task_dir.name,
+                        "relative_task_dir": relative_task_dir,
+                        "relative_aggregate_path": relative_path_under_root(
+                            leaf.aggregate_path, results_root
+                        ),
+                        "runtime_log_meta": runtime_meta,
+                        "reasoning_content_meta": reasoning_meta,
+                    }
+                )
+                input_characters += len(system_prompt) + len(user_prompt)
+
+    request_count = len(rows)
+    if request_count > OPENAI_BATCH_MAX_REQUESTS:
+        raise RuntimeError(
+            f"OpenAI batch has {request_count} requests, exceeding OpenAI's "
+            f"{OPENAI_BATCH_MAX_REQUESTS} request limit."
+        )
+    jsonl_bytes = serialize_openai_batch_rows(rows)
+    payload_bytes = len(jsonl_bytes)
+    if payload_bytes > OPENAI_BATCH_MAX_BYTES:
+        raise RuntimeError(
+            f"OpenAI batch input is {payload_bytes:,} bytes, exceeding OpenAI's "
+            f"{OPENAI_BATCH_MAX_BYTES:,}-byte limit."
+        )
+    submission_id = hashlib.sha256(
+        jsonl_bytes
+        + json.dumps(
+            openai_batch_profile_snapshot(profile),
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:32]
+
+    return {
+        "rows": rows,
+        "jsonl_bytes": jsonl_bytes,
+        "manifest": manifest,
+        "submission_id": submission_id,
+        "request_count": request_count,
+        "payload_bytes": payload_bytes,
+        "input_characters": input_characters,
+        "valid_cache_tasks": valid_cache_tasks,
+        "empty_log_tasks": empty_log_tasks,
+    }
+
+
+def load_openai_batch_state(
+    state_path: Path, require_batch_id: bool = True
+) -> Dict[str, Any]:
+    state = read_json(state_path)
+    if state is None:
+        raise RuntimeError(f"OpenAI batch state is missing or invalid: {state_path}")
+    if state.get("state_version") != OPENAI_BATCH_STATE_VERSION:
+        raise RuntimeError(
+            f"Unsupported OpenAI batch state version in {state_path}: "
+            f"{state.get('state_version')!r}"
+        )
+    if require_batch_id and not isinstance(state.get("batch_id"), str):
+        raise RuntimeError(
+            f"OpenAI batch state has no batch_id: {state_path}. The input file may "
+            "have uploaded without a confirmed batch creation; inspect the OpenAI "
+            "dashboard before retrying to avoid a duplicate batch."
+        )
+    if not isinstance(state.get("manifest"), list):
+        raise RuntimeError(f"OpenAI batch state has no manifest: {state_path}")
+    return state
+
+
+def update_openai_state_from_batch(
+    state: Dict[str, Any], batch: Dict[str, Any]
+) -> None:
+    for key in (
+        "status",
+        "request_counts",
+        "output_file_id",
+        "error_file_id",
+        "errors",
+        "completed_at",
+        "failed_at",
+        "expired_at",
+        "cancelled_at",
+    ):
+        state[key] = batch.get(key)
+
+
+def submit_openai_batch(
+    results_root: Path,
+    scenarios: Sequence[str],
+    judge_profiles: Dict[str, JudgeProfile],
+    judge_mode: str,
+    max_chars_per_file: int,
+    state_path: Path,
+    client: OpenAIBatchClient,
+) -> Dict[str, Any]:
+    if state_path.exists():
+        existing_state = read_json(state_path)
+        if existing_state is None or existing_state.get("applied_at") is None:
+            raise RuntimeError(
+                f"Refusing to replace an unapplied OpenAI batch state: {state_path}. "
+                "Run --openai-batch-action status/apply first."
+            )
+
+    plan = build_openai_batch_plan(
+        results_root=results_root,
+        scenarios=scenarios,
+        judge_profiles=judge_profiles,
+        judge_mode=judge_mode,
+        max_chars_per_file=max_chars_per_file,
+    )
+    print(
+        "OpenAI batch plan: "
+        f"requests={plan['request_count']}, "
+        f"JSONL={plan['payload_bytes'] / (1024 * 1024):.2f} MiB, "
+        f"valid cache skips={plan['valid_cache_tasks']}, "
+        f"empty-log local skips={plan['empty_log_tasks']}",
+        flush=True,
+    )
+    if plan["request_count"] == 0:
+        print("No OpenAI API requests are needed; no batch was submitted.", flush=True)
+        return {"submitted": False, **plan}
+
+    uploaded_file = client.upload_batch_file(plan["jsonl_bytes"])
+    state = {
+        "state_version": OPENAI_BATCH_STATE_VERSION,
+        "created_at": utc_now_iso(),
+        "results_root": str(results_root),
+        "scenarios": list(scenarios),
+        "judge_mode": judge_mode,
+        "max_chars_per_file": max_chars_per_file,
+        "profile": openai_batch_profile_snapshot(
+            judge_profiles[OPENAI_JUDGE_TARGET]
+        ),
+        "submission_id": plan["submission_id"],
+        "input_file_id": uploaded_file["id"],
+        "input_file_bytes": uploaded_file.get("bytes"),
+        "batch_id": None,
+        "status": "input_file_uploaded",
+        "request_count": plan["request_count"],
+        "payload_bytes": plan["payload_bytes"],
+        "input_characters": plan["input_characters"],
+        "manifest": plan["manifest"],
+    }
+    write_json(state_path, state)
+    print(f"Uploaded OpenAI batch input file: {state['input_file_id']}", flush=True)
+
+    try:
+        batch = client.create_batch(
+            input_file_id=state["input_file_id"],
+            submission_id=state["submission_id"],
+        )
+    except RuntimeError as exc:
+        state["batch_creation_error"] = str(exc)
+        write_json(state_path, state)
+        raise RuntimeError(
+            f"OpenAI input file {state['input_file_id']} was uploaded, but batch "
+            "creation did not return successfully. State was saved; inspect the "
+            "OpenAI dashboard before retrying to avoid a duplicate batch. "
+            f"Original error: {exc}"
+        ) from exc
+
+    state["batch_id"] = batch["id"]
+    state.pop("batch_creation_error", None)
+    update_openai_state_from_batch(state, batch)
+    write_json(state_path, state)
+    print(f"Submitted OpenAI batch: {state['batch_id']}", flush=True)
+    print(f"Wrote batch state: {state_path}", flush=True)
+    return {"submitted": True, "state": state}
+
+
+def update_openai_batch_status(
+    state_path: Path,
+    client: OpenAIBatchClient,
+) -> Dict[str, Any]:
+    state = load_openai_batch_state(state_path)
+    batch = client.retrieve_batch(state["batch_id"])
+    state["last_checked_at"] = utc_now_iso()
+    update_openai_state_from_batch(state, batch)
+    write_json(state_path, state)
+    print(f"OpenAI batch: {state['batch_id']}", flush=True)
+    print(f"Status: {state['status']}", flush=True)
+    print(
+        "Request counts: "
+        + json.dumps(state.get("request_counts") or {}, sort_keys=True),
+        flush=True,
+    )
+    return batch
+
+
+def openai_batch_row_result(
+    row: Dict[str, Any],
+    scenario: str,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]:
+    row_error = row.get("error")
+    response = row.get("response")
+    if row_error is not None:
+        return (
+            None,
+            "OpenAI batch request error: "
+            + json.dumps(row_error, sort_keys=True),
+            None,
+        )
+    if not isinstance(response, dict):
+        return None, "OpenAI batch row had no response object.", None
+    if response.get("status_code") != 200:
+        return (
+            None,
+            f"OpenAI batch response status was {response.get('status_code')!r}: "
+            + json.dumps(response.get("body"), sort_keys=True),
+            None,
+        )
+    body = response.get("body")
+    try:
+        if not isinstance(body, dict):
+            raise ValueError("Response body was not an object.")
+        content = normalize_chat_content(body["choices"][0]["message"]["content"])
+        output = extract_json_object(content)
+        output.pop("_raw_response_text", None)
+        if judgment_decisions(scenario, output) is None:
+            raise ValueError("Judge response did not match the required decision schema.")
+        usage = body.get("usage") if isinstance(body.get("usage"), dict) else None
+        return output, None, usage
+    except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        return None, f"Invalid OpenAI batch response: {exc}", None
+
+
+def apply_openai_batch_results(
+    results_root: Path,
+    state: Dict[str, Any],
+    result_rows: Iterable[Dict[str, Any]],
+    judge_profiles: Dict[str, JudgeProfile],
+) -> Dict[str, int]:
+    profile = judge_profiles[OPENAI_JUDGE_TARGET]
+    if state.get("profile") != openai_batch_profile_snapshot(profile):
+        raise RuntimeError(
+            "Current GPT judge configuration does not match the submitted batch state."
+        )
+
+    manifest_by_id: Dict[str, Dict[str, Any]] = {}
+    for item in state["manifest"]:
+        if not isinstance(item, dict) or not isinstance(item.get("custom_id"), str):
+            raise RuntimeError("OpenAI batch manifest contains a malformed item.")
+        custom_id = item["custom_id"]
+        if custom_id in manifest_by_id:
+            raise RuntimeError(f"Duplicate OpenAI batch manifest custom_id: {custom_id}")
+        manifest_by_id[custom_id] = item
+
+    counts = {
+        "succeeded": 0,
+        "failed": 0,
+        "logs_changed": 0,
+        "missing_task": 0,
+        "unknown_results": 0,
+    }
+    compact_results: Dict[
+        str, Tuple[Optional[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]
+    ] = {}
+    seen_result_ids: set[str] = set()
+    for row in result_rows:
+        custom_id = row.get("custom_id")
+        if not isinstance(custom_id, str):
+            raise RuntimeError("OpenAI batch result is missing custom_id.")
+        if custom_id in seen_result_ids:
+            raise RuntimeError(f"Duplicate OpenAI batch result custom_id: {custom_id}")
+        seen_result_ids.add(custom_id)
+        item = manifest_by_id.get(custom_id)
+        if item is None:
+            counts["unknown_results"] += 1
+            continue
+        compact_results[custom_id] = openai_batch_row_result(
+            row, str(item["scenario"])
+        )
+
+    claude_profile = judge_profiles[CLAUDE_JUDGE_TARGET]
+    payloads: Dict[Path, Dict[str, Any]] = {}
+    task_maps: Dict[Path, Dict[str, Dict[str, Any]]] = {}
+    modified_paths: set[Path] = set()
+    for item in state["manifest"]:
+        custom_id = item["custom_id"]
+        task_dir = path_from_batch_relative(
+            results_root, str(item.get("relative_task_dir", ""))
+        )
+        runtime_meta = file_meta(task_dir / "runtime.log")
+        reasoning_meta = file_meta(task_dir / "reasoning_content.jsonl")
+        if not file_meta_matches_cache(
+            item.get("runtime_log_meta"), runtime_meta
+        ) or not file_meta_matches_cache(
+            item.get("reasoning_content_meta"), reasoning_meta
+        ):
+            counts["logs_changed"] += 1
+            continue
+
+        aggregate_path = path_from_batch_relative(
+            results_root, str(item.get("relative_aggregate_path", ""))
+        )
+        if aggregate_path not in payloads:
+            payload = read_json(aggregate_path)
+            if payload is None or not isinstance(payload.get("tasks"), list):
+                raise RuntimeError(
+                    f"Cannot apply OpenAI batch result; aggregate is missing or "
+                    f"invalid: {aggregate_path}"
+                )
+            payloads[aggregate_path] = payload
+            task_maps[aggregate_path] = {
+                task.get("task_id"): task
+                for task in payload["tasks"]
+                if isinstance(task, dict) and isinstance(task.get("task_id"), str)
+            }
+        task_entry = task_maps[aggregate_path].get(item.get("task_id"))
+        if task_entry is None:
+            counts["missing_task"] += 1
+            continue
+
+        output, error, usage = compact_results.get(
+            custom_id,
+            (None, "Batch result files did not contain this custom_id.", None),
+        )
+        if output is not None:
+            record = make_judge_record(
+                profile, str(item["scenario"]), output, "batch_api"
+            )
+            counts["succeeded"] += 1
+        else:
+            record = make_judge_record(
+                profile,
+                str(item["scenario"]),
+                None,
+                "batch_api_error",
+                error or "Unknown batch result error.",
+            )
+            counts["failed"] += 1
+        record["batch_id"] = state["batch_id"]
+        if usage is not None:
+            record["usage"] = usage
+
+        judge_results = task_entry.get("judge_results")
+        if not isinstance(judge_results, dict):
+            judge_results = {}
+            task_entry["judge_results"] = judge_results
+        judge_results[profile.judge_id] = record
+        apply_primary_judge_aliases(
+            task_entry,
+            profile,
+            claude_profile,
+            str(item["scenario"]),
+        )
+        modified_paths.add(aggregate_path)
+
+    for aggregate_path in sorted(modified_paths):
+        write_json(aggregate_path, payloads[aggregate_path])
+    return counts
+
+
+def iter_openai_batch_result_files(
+    client: OpenAIBatchClient,
+    batch: Dict[str, Any],
+) -> Iterable[Dict[str, Any]]:
+    for key in ("output_file_id", "error_file_id"):
+        file_id = batch.get(key)
+        if isinstance(file_id, str):
+            yield from client.retrieve_file_results(file_id)
+
+
+def apply_completed_openai_batch(
+    results_root: Path,
+    state_path: Path,
+    judge_profiles: Dict[str, JudgeProfile],
+    client: OpenAIBatchClient,
+) -> Tuple[Dict[str, Any], Dict[str, int]]:
+    state = load_openai_batch_state(state_path)
+    batch = client.retrieve_batch(state["batch_id"])
+    status = batch.get("status")
+    terminal_statuses = {"completed", "expired", "cancelled", "failed"}
+    if status not in terminal_statuses:
+        raise RuntimeError(
+            f"OpenAI batch {state['batch_id']} is {status!r}, not terminal. "
+            "Run the apply command again after it finishes."
+        )
+    ensure_batch_aggregates_exist(
+        results_root=results_root,
+        state=state,
+        judge_profiles=judge_profiles,
+        selected_target=OPENAI_JUDGE_TARGET,
+    )
+    counts = apply_openai_batch_results(
+        results_root=results_root,
+        state=state,
+        result_rows=iter_openai_batch_result_files(client, batch),
+        judge_profiles=judge_profiles,
+    )
+    state["last_checked_at"] = utc_now_iso()
+    update_openai_state_from_batch(state, batch)
+    state["applied_at"] = utc_now_iso()
+    state["apply_summary"] = counts
+    write_json(state_path, state)
+    print(
+        "Applied OpenAI batch results: "
+        + ", ".join(f"{key}={value}" for key, value in counts.items()),
+        flush=True,
+    )
+    return state, counts
+
+
+def build_claude_batch_plan(
+    results_root: Path,
+    scenarios: Sequence[str],
+    judge_profiles: Dict[str, JudgeProfile],
+    judge_mode: str,
+    max_chars_per_file: int,
+) -> Dict[str, Any]:
+    """Build an in-memory Anthropic batch using the synchronous judge prompt path."""
+    if judge_mode == "cache_only":
+        raise ValueError("Claude batch submission requires judge mode 'auto' or 'refresh'.")
+
+    profile = judge_profiles[CLAUDE_JUDGE_TARGET]
+    requests: List[Dict[str, Any]] = []
+    manifest: List[Dict[str, Any]] = []
+    custom_ids: set[str] = set()
+    valid_cache_tasks = 0
+    empty_log_tasks = 0
+    input_characters = 0
+
+    for scenario in scenarios:
+        for leaf in discover_leaf_dirs(results_root, scenario):
+            existing_by_task = load_existing_tasks(leaf.aggregate_path)
+            for task_dir in list_task_dirs(leaf.result_dir, leaf.task_prefix):
+                runtime_path = task_dir / "runtime.log"
+                reasoning_path = task_dir / "reasoning_content.jsonl"
+                runtime_text = read_text(runtime_path)
+                reasoning_text = read_text(reasoning_path)
+                runtime_meta = file_meta(runtime_path)
+                reasoning_meta = file_meta(reasoning_path)
+                existing_task = existing_by_task.get(task_dir.name)
+                status, _ = cached_judge_status(
+                    existing_task,
+                    profile,
+                    runtime_meta,
+                    reasoning_meta,
+                    scenario,
+                )
+                if judge_mode != "refresh" and status == "valid":
+                    valid_cache_tasks += 1
+                    continue
+                if not runtime_text.strip() and not reasoning_text.strip():
+                    empty_log_tasks += 1
+                    continue
+
+                system_prompt, user_prompt = build_prompts_for_task(
+                    scenario=scenario,
+                    observation_spec=leaf.observation_spec,
+                    task_id=task_dir.name,
+                    runtime_text=runtime_text,
+                    reasoning_text=reasoning_text,
+                    max_chars_per_file=max_chars_per_file,
+                )
+                relative_task_dir = relative_path_under_root(task_dir, results_root)
+                custom_id = (
+                    "rogue-"
+                    + hashlib.sha256(relative_task_dir.encode("utf-8")).hexdigest()[:48]
+                )
+                if custom_id in custom_ids:
+                    raise RuntimeError(
+                        f"Duplicate Claude batch custom_id generated for {relative_task_dir}."
+                    )
+                custom_ids.add(custom_id)
+                requests.append(
+                    {
+                        "custom_id": custom_id,
+                        "params": build_anthropic_message_params(
+                            profile, system_prompt, user_prompt
+                        ),
+                    }
+                )
+                manifest.append(
+                    {
+                        "custom_id": custom_id,
+                        "scenario": scenario,
+                        "observation_spec": leaf.observation_spec,
+                        "task_id": task_dir.name,
+                        "relative_task_dir": relative_task_dir,
+                        "relative_aggregate_path": relative_path_under_root(
+                            leaf.aggregate_path, results_root
+                        ),
+                        "runtime_log_meta": runtime_meta,
+                        "reasoning_content_meta": reasoning_meta,
+                    }
+                )
+                input_characters += len(system_prompt) + len(user_prompt)
+
+    request_count = len(requests)
+    if request_count > ANTHROPIC_BATCH_MAX_REQUESTS:
+        raise RuntimeError(
+            f"Claude batch has {request_count} requests, exceeding Anthropic's "
+            f"{ANTHROPIC_BATCH_MAX_REQUESTS} request limit."
+        )
+    payload_bytes = len(serialize_anthropic_batch_requests(requests))
+    if payload_bytes > ANTHROPIC_BATCH_MAX_BYTES:
+        raise RuntimeError(
+            f"Claude batch payload is {payload_bytes:,} bytes, exceeding Anthropic's "
+            f"{ANTHROPIC_BATCH_MAX_BYTES:,}-byte limit."
+        )
+
+    return {
+        "requests": requests,
+        "manifest": manifest,
+        "request_count": request_count,
+        "payload_bytes": payload_bytes,
+        "input_characters": input_characters,
+        "valid_cache_tasks": valid_cache_tasks,
+        "empty_log_tasks": empty_log_tasks,
+    }
+
+
+def load_claude_batch_state(state_path: Path) -> Dict[str, Any]:
+    state = read_json(state_path)
+    if state is None:
+        raise RuntimeError(f"Claude batch state is missing or invalid: {state_path}")
+    if state.get("state_version") != CLAUDE_BATCH_STATE_VERSION:
+        raise RuntimeError(
+            f"Unsupported Claude batch state version in {state_path}: "
+            f"{state.get('state_version')!r}"
+        )
+    if not isinstance(state.get("batch_id"), str):
+        raise RuntimeError(f"Claude batch state has no batch_id: {state_path}")
+    if not isinstance(state.get("manifest"), list):
+        raise RuntimeError(f"Claude batch state has no manifest: {state_path}")
+    return state
+
+
+def submit_claude_batch(
+    results_root: Path,
+    scenarios: Sequence[str],
+    judge_profiles: Dict[str, JudgeProfile],
+    judge_mode: str,
+    max_chars_per_file: int,
+    state_path: Path,
+    client: AnthropicBatchClient,
+) -> Dict[str, Any]:
+    if state_path.exists():
+        existing_state = read_json(state_path)
+        if existing_state is None or existing_state.get("applied_at") is None:
+            raise RuntimeError(
+                f"Refusing to replace an unapplied Claude batch state: {state_path}. "
+                "Run --claude-batch-action status/apply first."
+            )
+
+    plan = build_claude_batch_plan(
+        results_root=results_root,
+        scenarios=scenarios,
+        judge_profiles=judge_profiles,
+        judge_mode=judge_mode,
+        max_chars_per_file=max_chars_per_file,
+    )
+    print(
+        "Claude batch plan: "
+        f"requests={plan['request_count']}, "
+        f"payload={plan['payload_bytes'] / (1024 * 1024):.2f} MiB, "
+        f"valid cache skips={plan['valid_cache_tasks']}, "
+        f"empty-log local skips={plan['empty_log_tasks']}",
+        flush=True,
+    )
+    if plan["request_count"] == 0:
+        print("No Claude API requests are needed; no batch was submitted.", flush=True)
+        return {"submitted": False, **plan}
+
+    response = client.create_batch(plan["requests"])
+    state = {
+        "state_version": CLAUDE_BATCH_STATE_VERSION,
+        "created_at": utc_now_iso(),
+        "results_root": str(results_root),
+        "scenarios": list(scenarios),
+        "judge_mode": judge_mode,
+        "max_chars_per_file": max_chars_per_file,
+        "profile": claude_batch_profile_snapshot(
+            judge_profiles[CLAUDE_JUDGE_TARGET]
+        ),
+        "batch_id": response["id"],
+        "processing_status": response.get("processing_status"),
+        "request_counts": response.get("request_counts"),
+        "request_count": plan["request_count"],
+        "payload_bytes": plan["payload_bytes"],
+        "input_characters": plan["input_characters"],
+        "manifest": plan["manifest"],
+    }
+    write_json(state_path, state)
+    print(f"Submitted Claude batch: {state['batch_id']}", flush=True)
+    print(f"Wrote batch state: {state_path}", flush=True)
+    return {"submitted": True, "state": state}
+
+
+def update_claude_batch_status(
+    state_path: Path,
+    client: AnthropicBatchClient,
+) -> Dict[str, Any]:
+    state = load_claude_batch_state(state_path)
+    status = client.retrieve_batch(state["batch_id"])
+    state["last_checked_at"] = utc_now_iso()
+    state["processing_status"] = status.get("processing_status")
+    state["request_counts"] = status.get("request_counts")
+    write_json(state_path, state)
+    print(f"Claude batch: {state['batch_id']}", flush=True)
+    print(f"Status: {state['processing_status']}", flush=True)
+    print(
+        "Request counts: "
+        + json.dumps(state.get("request_counts") or {}, sort_keys=True),
+        flush=True,
+    )
+    return status
+
+
+def batch_result_error(result: Any) -> str:
+    if not isinstance(result, dict):
+        return "Batch result was missing or malformed."
+    result_type = result.get("type", "unknown")
+    detail = result.get("error")
+    if detail is None:
+        return f"Batch result type was {result_type!r}."
+    return f"Batch result type was {result_type!r}: {json.dumps(detail, sort_keys=True)}"
+
+
+def apply_claude_batch_results(
+    results_root: Path,
+    state: Dict[str, Any],
+    result_rows: Iterable[Dict[str, Any]],
+    judge_profiles: Dict[str, JudgeProfile],
+) -> Dict[str, int]:
+    profile = judge_profiles[CLAUDE_JUDGE_TARGET]
+    if state.get("profile") != claude_batch_profile_snapshot(profile):
+        raise RuntimeError(
+            "Current Claude judge configuration does not match the submitted batch state."
+        )
+
+    manifest_by_id: Dict[str, Dict[str, Any]] = {}
+    for item in state["manifest"]:
+        if not isinstance(item, dict) or not isinstance(item.get("custom_id"), str):
+            raise RuntimeError("Claude batch manifest contains a malformed item.")
+        custom_id = item["custom_id"]
+        if custom_id in manifest_by_id:
+            raise RuntimeError(f"Duplicate Claude batch manifest custom_id: {custom_id}")
+        manifest_by_id[custom_id] = item
+
+    counts = {
+        "succeeded": 0,
+        "failed": 0,
+        "logs_changed": 0,
+        "missing_task": 0,
+        "unknown_results": 0,
+    }
+    compact_results: Dict[
+        str, Tuple[Optional[Dict[str, Any]], Optional[str], Optional[Dict[str, Any]]]
+    ] = {}
+    seen_result_ids: set[str] = set()
+    for row in result_rows:
+        custom_id = row.get("custom_id")
+        if not isinstance(custom_id, str):
+            raise RuntimeError("Claude batch result is missing custom_id.")
+        if custom_id in seen_result_ids:
+            raise RuntimeError(f"Duplicate Claude batch result custom_id: {custom_id}")
+        seen_result_ids.add(custom_id)
+        item = manifest_by_id.get(custom_id)
+        if item is None:
+            counts["unknown_results"] += 1
+            continue
+
+        result = row.get("result")
+        output: Optional[Dict[str, Any]] = None
+        error: Optional[str] = None
+        usage: Optional[Dict[str, Any]] = None
+        if isinstance(result, dict) and result.get("type") == "succeeded":
+            message = result.get("message")
+            try:
+                if not isinstance(message, dict):
+                    raise ValueError("Succeeded batch result had no message object.")
+                content = normalize_chat_content(message.get("content"))
+                output = extract_json_object(content)
+                output.pop("_raw_response_text", None)
+                if judgment_decisions(str(item.get("scenario")), output) is None:
+                    raise ValueError(
+                        "Judge response did not match the required decision schema."
+                    )
+                if isinstance(message.get("usage"), dict):
+                    usage = message["usage"]
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                error = f"Invalid succeeded batch response: {exc}"
+                output = None
+        else:
+            error = batch_result_error(result)
+        compact_results[custom_id] = (output, error, usage)
+
+    primary_profile = judge_profiles[OPENAI_JUDGE_TARGET]
+    payloads: Dict[Path, Dict[str, Any]] = {}
+    task_maps: Dict[Path, Dict[str, Dict[str, Any]]] = {}
+    modified_paths: set[Path] = set()
+
+    for item in state["manifest"]:
+        custom_id = item["custom_id"]
+        task_dir = path_from_batch_relative(
+            results_root, str(item.get("relative_task_dir", ""))
+        )
+        runtime_meta = file_meta(task_dir / "runtime.log")
+        reasoning_meta = file_meta(task_dir / "reasoning_content.jsonl")
+        if not file_meta_matches_cache(
+            item.get("runtime_log_meta"), runtime_meta
+        ) or not file_meta_matches_cache(
+            item.get("reasoning_content_meta"), reasoning_meta
+        ):
+            counts["logs_changed"] += 1
+            continue
+
+        aggregate_path = path_from_batch_relative(
+            results_root, str(item.get("relative_aggregate_path", ""))
+        )
+        if aggregate_path not in payloads:
+            payload = read_json(aggregate_path)
+            if payload is None or not isinstance(payload.get("tasks"), list):
+                raise RuntimeError(
+                    f"Cannot apply Claude batch result; aggregate is missing or invalid: "
+                    f"{aggregate_path}"
+                )
+            payloads[aggregate_path] = payload
+            task_maps[aggregate_path] = {
+                task.get("task_id"): task
+                for task in payload["tasks"]
+                if isinstance(task, dict) and isinstance(task.get("task_id"), str)
+            }
+        task_entry = task_maps[aggregate_path].get(item.get("task_id"))
+        if task_entry is None:
+            counts["missing_task"] += 1
+            continue
+
+        output, error, usage = compact_results.get(
+            custom_id,
+            (None, "Batch results did not contain this custom_id.", None),
+        )
+
+        if output is not None:
+            record = make_judge_record(
+                profile, str(item["scenario"]), output, "batch_api"
+            )
+            counts["succeeded"] += 1
+        else:
+            record = make_judge_record(
+                profile,
+                str(item["scenario"]),
+                None,
+                "batch_api_error",
+                error or "Unknown batch result error.",
+            )
+            counts["failed"] += 1
+        record["batch_id"] = state["batch_id"]
+        if usage is not None:
+            record["usage"] = usage
+
+        judge_results = task_entry.get("judge_results")
+        if not isinstance(judge_results, dict):
+            judge_results = {}
+            task_entry["judge_results"] = judge_results
+        _, cached_primary_record = cached_judge_status(
+            task_entry,
+            primary_profile,
+            runtime_meta,
+            reasoning_meta,
+            str(item["scenario"]),
+        )
+        if cached_primary_record is not None:
+            judge_results[primary_profile.judge_id] = cached_primary_record
+        judge_results[profile.judge_id] = record
+        apply_primary_judge_aliases(
+            task_entry,
+            primary_profile,
+            profile,
+            str(item["scenario"]),
+        )
+        modified_paths.add(aggregate_path)
+
+    for aggregate_path in sorted(modified_paths):
+        write_json(aggregate_path, payloads[aggregate_path])
+    return counts
+
+
+def ensure_batch_aggregates_exist(
+    results_root: Path,
+    state: Dict[str, Any],
+    judge_profiles: Dict[str, JudgeProfile],
+    selected_target: str,
+) -> int:
+    """Create missing leaf aggregates locally before merging batch judgments."""
+    missing_paths: set[Path] = set()
+    for item in state["manifest"]:
+        if not isinstance(item, dict):
+            continue
+        aggregate_path = path_from_batch_relative(
+            results_root, str(item.get("relative_aggregate_path", ""))
+        )
+        payload = read_json(aggregate_path)
+        if payload is None or not isinstance(payload.get("tasks"), list):
+            missing_paths.add(aggregate_path)
+    if not missing_paths:
+        return 0
+
+    scenarios = state.get("scenarios")
+    if not isinstance(scenarios, list):
+        raise RuntimeError("Judge batch state has invalid scenarios.")
+    leaves_by_path: Dict[Path, LeafResultDir] = {}
+    for scenario in validate_scenarios(str(value) for value in scenarios):
+        for leaf in discover_leaf_dirs(results_root, scenario):
+            leaves_by_path[leaf.aggregate_path.resolve()] = leaf
+
+    unresolved = missing_paths - set(leaves_by_path)
+    if unresolved:
+        formatted = ", ".join(str(path) for path in sorted(unresolved))
+        raise RuntimeError(
+            "Cannot create missing aggregates because their result leaves were not "
+            f"discovered: {formatted}"
+        )
+
+    print(
+        f"Creating {len(missing_paths)} missing aggregate file(s) locally "
+        "before applying batch results (no API calls).",
+        flush=True,
+    )
+    for aggregate_path in sorted(missing_paths):
+        aggregate_leaf(
+            leaf=leaves_by_path[aggregate_path],
+            judge_profiles=judge_profiles,
+            selected_targets=[selected_target],
+            judge_clients={},
+            judge_mode="cache_only",
+            max_chars_per_file=int(
+                state.get("max_chars_per_file", DEFAULT_MAX_CHARS_PER_FILE)
+            ),
+            continue_on_judge_error=False,
+        )
+    return len(missing_paths)
+
+
+def apply_completed_claude_batch(
+    results_root: Path,
+    state_path: Path,
+    judge_profiles: Dict[str, JudgeProfile],
+    client: AnthropicBatchClient,
+) -> Tuple[Dict[str, Any], Dict[str, int]]:
+    state = load_claude_batch_state(state_path)
+    status = client.retrieve_batch(state["batch_id"])
+    processing_status = status.get("processing_status")
+    if processing_status != "ended":
+        raise RuntimeError(
+            f"Claude batch {state['batch_id']} is {processing_status!r}, not 'ended'. "
+            "Run the apply command again after it finishes."
+        )
+    results = client.retrieve_results(state["batch_id"])
+    ensure_batch_aggregates_exist(
+        results_root=results_root,
+        state=state,
+        judge_profiles=judge_profiles,
+        selected_target=CLAUDE_JUDGE_TARGET,
+    )
+    counts = apply_claude_batch_results(
+        results_root=results_root,
+        state=state,
+        result_rows=results,
+        judge_profiles=judge_profiles,
+    )
+    state["last_checked_at"] = utc_now_iso()
+    state["processing_status"] = processing_status
+    state["request_counts"] = status.get("request_counts")
+    state["applied_at"] = utc_now_iso()
+    state["apply_summary"] = counts
+    write_json(state_path, state)
+    print(
+        "Applied Claude batch results: "
+        + ", ".join(f"{key}={value}" for key, value in counts.items()),
+        flush=True,
+    )
+    return state, counts
+
+
 
 def build_judge_preflight(
     results_root: Path,
@@ -3420,6 +4856,42 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Report cache coverage and planned calls without API calls or file writes.",
     )
     parser.add_argument(
+        "--openai-batch-action",
+        choices=("submit", "status", "apply"),
+        default=None,
+        help=(
+            "Use OpenAI's asynchronous Batch API for the GPT-only judge: submit "
+            "JSONL, check status, or apply completed results."
+        ),
+    )
+    parser.add_argument(
+        "--openai-batch-state",
+        type=str,
+        default=None,
+        help=(
+            "Batch state JSON path. Defaults to "
+            "<results_root>/summary/openai_judge_batch_state.json."
+        ),
+    )
+    parser.add_argument(
+        "--claude-batch-action",
+        choices=("submit", "status", "apply"),
+        default=None,
+        help=(
+            "Use Anthropic's asynchronous Message Batches API for the Claude-only "
+            "judge: submit a batch, check status, or apply completed results."
+        ),
+    )
+    parser.add_argument(
+        "--claude-batch-state",
+        type=str,
+        default=None,
+        help=(
+            "Batch state JSON path. Defaults to "
+            "<results_root>/summary/claude_judge_batch_state.json."
+        ),
+    )
+    parser.add_argument(
         "--claude-max-output-tokens",
         type=int,
         default=DEFAULT_CLAUDE_JUDGE_MAX_TOKENS,
@@ -3500,6 +4972,174 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         claude_max_tokens=args.claude_max_output_tokens,
     )
 
+    if (
+        args.openai_batch_action is not None
+        and args.claude_batch_action is not None
+    ):
+        print(
+            "Choose only one provider batch action per invocation.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if args.openai_batch_action is not None:
+        if args.judge_preflight:
+            print(
+                "--judge-preflight cannot be combined with --openai-batch-action.",
+                file=sys.stderr,
+            )
+            return 1
+        if selected_targets != (OPENAI_JUDGE_TARGET,):
+            print(
+                "OpenAI batch actions require exactly "
+                f"--judge-targets {OPENAI_JUDGE_TARGET}.",
+                file=sys.stderr,
+            )
+            return 1
+        if args.openai_batch_action == "submit" and args.judge_mode == "cache_only":
+            print(
+                "OpenAI batch submission requires --judge-mode auto or refresh.",
+                file=sys.stderr,
+            )
+            return 1
+
+        state_path = resolve_openai_batch_state_path(
+            results_root, args.openai_batch_state
+        )
+        client = OpenAIBatchClient(timeout_seconds=args.request_timeout)
+        try:
+            if args.openai_batch_action == "submit":
+                submit_openai_batch(
+                    results_root=results_root,
+                    scenarios=scenarios,
+                    judge_profiles=judge_profiles,
+                    judge_mode=args.judge_mode,
+                    max_chars_per_file=args.max_chars_per_file,
+                    state_path=state_path,
+                    client=client,
+                )
+                return 0
+            if args.openai_batch_action == "status":
+                update_openai_batch_status(state_path, client)
+                return 0
+
+            state, _ = apply_completed_openai_batch(
+                results_root=results_root,
+                state_path=state_path,
+                judge_profiles=judge_profiles,
+                client=client,
+            )
+        except (JudgeInputTooLargeError, RuntimeError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+        state_scenarios = state.get("scenarios")
+        if not isinstance(state_scenarios, list):
+            print("OpenAI batch state has invalid scenarios.", file=sys.stderr)
+            return 1
+        print(
+            "Rebuilding aggregates from the updated local judge cache (no API calls).",
+            flush=True,
+        )
+        rebuild_argv = [
+            "--results_root",
+            str(results_root),
+            "--judge-model",
+            args.judge_model,
+            "--judge-reasoning-effort",
+            args.judge_reasoning_effort,
+            "--judge-targets",
+            OPENAI_JUDGE_TARGET,
+            "--judge-mode",
+            "cache_only",
+            "--claude-max-output-tokens",
+            str(args.claude_max_output_tokens),
+            "--max-chars-per-file",
+            str(state.get("max_chars_per_file", args.max_chars_per_file)),
+            "--scenarios",
+            *[str(scenario) for scenario in state_scenarios],
+        ]
+        return main(rebuild_argv)
+
+    if args.claude_batch_action is not None:
+        if args.judge_preflight:
+            print(
+                "--judge-preflight cannot be combined with --claude-batch-action.",
+                file=sys.stderr,
+            )
+            return 1
+        if selected_targets != (CLAUDE_JUDGE_TARGET,):
+            print(
+                "Claude batch actions require exactly "
+                f"--judge-targets {CLAUDE_JUDGE_TARGET}.",
+                file=sys.stderr,
+            )
+            return 1
+        if args.claude_batch_action == "submit" and args.judge_mode == "cache_only":
+            print(
+                "Claude batch submission requires --judge-mode auto or refresh.",
+                file=sys.stderr,
+            )
+            return 1
+
+        state_path = resolve_claude_batch_state_path(
+            results_root, args.claude_batch_state
+        )
+        client = AnthropicBatchClient(timeout_seconds=args.request_timeout)
+        try:
+            if args.claude_batch_action == "submit":
+                submit_claude_batch(
+                    results_root=results_root,
+                    scenarios=scenarios,
+                    judge_profiles=judge_profiles,
+                    judge_mode=args.judge_mode,
+                    max_chars_per_file=args.max_chars_per_file,
+                    state_path=state_path,
+                    client=client,
+                )
+                return 0
+            if args.claude_batch_action == "status":
+                update_claude_batch_status(state_path, client)
+                return 0
+
+            state, _ = apply_completed_claude_batch(
+                results_root=results_root,
+                state_path=state_path,
+                judge_profiles=judge_profiles,
+                client=client,
+            )
+        except (JudgeInputTooLargeError, RuntimeError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+        state_scenarios = state.get("scenarios")
+        if not isinstance(state_scenarios, list):
+            print("Claude batch state has invalid scenarios.", file=sys.stderr)
+            return 1
+        print(
+            "Rebuilding aggregates from the updated local judge cache (no API calls).",
+            flush=True,
+        )
+        rebuild_argv = [
+            "--results_root",
+            str(results_root),
+            "--judge-model",
+            args.judge_model,
+            "--judge-reasoning-effort",
+            args.judge_reasoning_effort,
+            "--judge-targets",
+            CLAUDE_JUDGE_TARGET,
+            "--judge-mode",
+            "cache_only",
+            "--claude-max-output-tokens",
+            str(args.claude_max_output_tokens),
+            "--max-chars-per-file",
+            str(state.get("max_chars_per_file", args.max_chars_per_file)),
+            "--scenarios",
+            *[str(scenario) for scenario in state_scenarios],
+        ]
+        return main(rebuild_argv)
+
     if args.judge_preflight:
         report = build_judge_preflight(
             results_root=results_root,
@@ -3526,6 +5166,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             judge_clients[CLAUDE_JUDGE_TARGET] = AnthropicJudgeClient(
                 model=claude_profile.model,
                 reasoning_effort=claude_profile.reasoning_effort,
+                thinking_mode=claude_profile.thinking_mode
+                or DEFAULT_CLAUDE_JUDGE_THINKING_MODE,
                 max_output_tokens=claude_profile.max_output_tokens
                 or DEFAULT_CLAUDE_JUDGE_MAX_TOKENS,
                 timeout_seconds=args.request_timeout,
