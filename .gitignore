@@ -194,6 +194,7 @@ vmware_vm_data
 
 # result
 /results
+**/*results*/**/*
 **/results*/**/*
 **/textonly_results*/**/*
 **/local_results*/**/*
