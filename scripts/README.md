@@ -36,3 +36,20 @@ scripts/experiment_runner.sh override_base_all -- --log_level DEBUG
 ```
 
 Run scripts from the repository root so relative paths such as `evaluation_examples/test_override.json` resolve correctly.
+
+## Paper Figures
+
+`paper_figures.py` is the single entry point for publication plots, including
+the text-only versus agentic comparisons. For example:
+
+```bash
+python scripts/paper_figures.py figure_2
+python scripts/paper_figures.py figure_8
+python scripts/paper_figures.py figure_9
+```
+
+Figures 2 and 8 expect text-only run groups under `textonly_results/` and
+agentic aggregates under `results/`. Override those locations with
+`--textonly_root` and `--results_root` when the data lives elsewhere. The older
+mixed-reasoning comparison remains available as
+`textonly_agentic_mixed_reasoning`, but it is not a numbered paper figure.

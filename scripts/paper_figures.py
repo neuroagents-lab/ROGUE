@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Generate publication-ready figures for the ROGUE paper.
 
-The plotting inputs are the summary JSON files written by aggregate_results.py.
-This keeps paper figures tied to the same counts and judge outputs as the
-existing result plots while composing the panels directly in Matplotlib.
+Inputs come from the agentic and text-only aggregate JSON files produced by the
+repository's aggregation scripts. This keeps paper figures tied to the same
+counts and judge outputs as the existing result plots while composing panels
+directly in Matplotlib.
 """
 
 from __future__ import annotations
@@ -35,15 +36,24 @@ from aggregate_results import (  # noqa: E402
     discover_xhigh_reasoning_effort_leaf_dirs,
     load_matplotlib,
 )
+from compare_textonly_results import (  # noqa: E402
+    build_scenario_comparison,
+    discover_agentic_aggregate,
+    load_textonly_scenario_aggregate,
+)
 
 
 DEFAULT_RESULTS_ROOT = REPO_ROOT / "results"
+DEFAULT_TEXTONLY_ROOT = REPO_ROOT / "textonly_results"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "figures" / "paper"
 COMBINED_RATES_WITH_SUBAGENTS_FILENAME = "combined_rates_with_subagents.json"
 JUDGE_SENSITIVITY_OUTPUT_STEM = "judge_sensitivity"
 GPT_JUDGE_COLOR = INTENDED_COLOR
 CLAUDE_JUDGE_COLOR = SUCCESS_COLOR
 DELTA_ANNOTATION_THRESHOLD_PP = 10.0
+TEXT_AGENTIC_BAR_WIDTH = 0.60
+TEXT_AGENTIC_CLUSTER_GAP = 0.18
+TEXT_AGENTIC_GROUP_GAP = 1.0
 
 
 @dataclass(frozen=True)
@@ -82,6 +92,30 @@ class JudgeRun:
     run_label: str
     model: str
     tasks: Tuple[Mapping[str, Any], ...]
+
+
+@dataclass(frozen=True)
+class TextAgenticModelSpec:
+    model: str
+    short_label: str
+    textonly_run_group: str
+    agentic_run_group: str
+    agentic_variant: str
+    preferred_observation_spec: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class TextAgenticPanelSpec:
+    title: str
+    scenario: str
+    models: Tuple[TextAgenticModelSpec, ...]
+
+
+@dataclass(frozen=True)
+class TextAgenticFigureSpec:
+    output_stem: str
+    rows: Tuple[Tuple[TextAgenticPanelSpec, ...], ...]
+    figure_size: Tuple[float, float]
 
 
 JUDGE_OUTCOMES = (
@@ -233,6 +267,147 @@ FIGURE_9_PANELS = (
 )
 
 
+GPT_54_XHIGH = TextAgenticModelSpec(
+    model="gpt-5.4",
+    short_label="5.4",
+    textonly_run_group="xhighreasoningeffort",
+    agentic_run_group="xhighreasoningeffort",
+    agentic_variant="xhighreasoningeffort",
+)
+GPT_55_XHIGH = TextAgenticModelSpec(
+    model="gpt-5.5",
+    short_label="5.5",
+    textonly_run_group="xhighreasoningeffort",
+    agentic_run_group="xhighreasoningeffort",
+    agentic_variant="xhighreasoningeffort",
+)
+CLAUDE_46_XHIGH = TextAgenticModelSpec(
+    model="claude-opus-4-6",
+    short_label="4.6",
+    textonly_run_group="xhighreasoningeffort",
+    agentic_run_group="xhighreasoningeffort",
+    agentic_variant="xhighreasoningeffort",
+)
+CLAUDE_47_XHIGH = TextAgenticModelSpec(
+    model="claude-opus-4-7",
+    short_label="4.7",
+    textonly_run_group="xhighreasoningeffort",
+    agentic_run_group="xhighreasoningeffort",
+    agentic_variant="xhighreasoningeffort",
+)
+
+
+FIGURE_2_SPEC = TextAgenticFigureSpec(
+    output_stem="figure_2",
+    rows=(
+        (
+            TextAgenticPanelSpec(
+                title="Override (GPT)",
+                scenario="override",
+                models=(GPT_54_XHIGH, GPT_55_XHIGH),
+            ),
+            TextAgenticPanelSpec(
+                title="Rewire (GPT)",
+                scenario="rewire",
+                models=(GPT_54_XHIGH, GPT_55_XHIGH),
+            ),
+            TextAgenticPanelSpec(
+                title="Restricted Access (Claude Opus)",
+                scenario="restrictedaccess",
+                models=(CLAUDE_46_XHIGH, CLAUDE_47_XHIGH),
+            ),
+        ),
+    ),
+    figure_size=(20.48, 5.12),
+)
+
+
+def _figure_8_row(
+    model: TextAgenticModelSpec,
+    *,
+    show_titles: bool,
+) -> Tuple[TextAgenticPanelSpec, ...]:
+    titles = ("Override", "Rewire", "Restricted Access")
+    scenarios = ("override", "rewire", "restrictedaccess")
+    return tuple(
+        TextAgenticPanelSpec(
+            title=title if show_titles else "",
+            scenario=scenario,
+            models=(model,),
+        )
+        for title, scenario in zip(titles, scenarios)
+    )
+
+
+FIGURE_8_SPEC = TextAgenticFigureSpec(
+    output_stem="figure_8",
+    rows=tuple(
+        _figure_8_row(model, show_titles=row_index == 0)
+        for row_index, model in enumerate(
+            (
+                GPT_54_XHIGH,
+                GPT_55_XHIGH,
+                CLAUDE_46_XHIGH,
+                CLAUDE_47_XHIGH,
+            )
+        )
+    ),
+    figure_size=(20.48, 16.0),
+)
+
+
+MIXED_REASONING_SPEC = TextAgenticFigureSpec(
+    output_stem="textonly_agentic_mixed_reasoning",
+    rows=(
+        (
+            TextAgenticPanelSpec(
+                title="Override (GPT)",
+                scenario="override",
+                models=(
+                    TextAgenticModelSpec(
+                        model="gpt-5.4",
+                        short_label="5.4",
+                        textonly_run_group="base",
+                        agentic_run_group="base",
+                        agentic_variant="base",
+                    ),
+                    GPT_55_XHIGH,
+                ),
+            ),
+            TextAgenticPanelSpec(
+                title="Rewire (GPT)",
+                scenario="rewire",
+                models=(
+                    TextAgenticModelSpec(
+                        model="gpt-5.4",
+                        short_label="5.4",
+                        textonly_run_group="base",
+                        agentic_run_group="base",
+                        agentic_variant="base",
+                    ),
+                    GPT_55_XHIGH,
+                ),
+            ),
+            TextAgenticPanelSpec(
+                title="Restricted Access (Claude Opus)",
+                scenario="restrictedaccess",
+                models=(
+                    TextAgenticModelSpec(
+                        model="claude-opus-4-6",
+                        short_label="4.6",
+                        textonly_run_group="base",
+                        agentic_run_group="base",
+                        agentic_variant="base",
+                    ),
+                    CLAUDE_47_XHIGH,
+                ),
+            ),
+        ),
+    ),
+    figure_size=(20.48, 5.12),
+)
+
+
 def _read_json(path: Path) -> Dict[str, Any]:
     try:
         with path.open("r", encoding="utf-8") as handle:
@@ -244,6 +419,473 @@ def _read_json(path: Path) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"Summary file must contain a JSON object: {path}")
     return payload
+
+
+def _textonly_run_root(textonly_root: Path, run_group: str) -> Path:
+    return textonly_root / run_group
+
+
+def _text_agentic_bars_key(scenario: str) -> str:
+    return "simplified_plot_bars" if scenario == "rewire" else "plot_bars"
+
+
+def _split_text_agentic_bars(
+    bars: Sequence[Mapping[str, Any]],
+) -> Dict[str, List[Mapping[str, Any]]]:
+    grouped: Dict[str, List[Mapping[str, Any]]] = {}
+    for bar in bars:
+        grouped.setdefault(str(bar.get("group", "")), []).append(bar)
+    return grouped
+
+
+def _load_text_agentic_model_comparison(
+    *,
+    results_root: Path,
+    textonly_root: Path,
+    panel: TextAgenticPanelSpec,
+    model_spec: TextAgenticModelSpec,
+) -> Dict[str, Any]:
+    model_textonly_root = _textonly_run_root(
+        textonly_root,
+        model_spec.textonly_run_group,
+    )
+    try:
+        textonly_payload = load_textonly_scenario_aggregate(
+            model_textonly_root,
+            model_spec.model,
+            panel.scenario,
+        )
+        agentic_path, agentic_payload = discover_agentic_aggregate(
+            results_root,
+            scenario=panel.scenario,
+            model=model_spec.model,
+            run_group=model_spec.agentic_run_group,
+            variant_name=model_spec.agentic_variant,
+            preferred_observation_spec=(
+                model_spec.preferred_observation_spec
+            ),
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    comparison = build_scenario_comparison(
+        scenario=panel.scenario,
+        agentic_path=agentic_path,
+        agentic_payload=agentic_payload,
+        textonly_payload=textonly_payload,
+    )
+    bars = comparison.get(_text_agentic_bars_key(panel.scenario))
+    if not isinstance(bars, list):
+        raise RuntimeError(
+            f"Comparison data for {panel.scenario}/{model_spec.model} "
+            "does not contain plot bars."
+        )
+    grouped = _split_text_agentic_bars(
+        [bar for bar in bars if isinstance(bar, dict)]
+    )
+    text_bars = grouped.get("Text-Only", grouped.get("Text", []))
+    agentic_bars = grouped.get("Agentic", [])
+    if len(text_bars) != 2 or len(agentic_bars) != 2:
+        raise RuntimeError(
+            "Expected two text-only and two agentic bars for "
+            f"{panel.scenario}/{model_spec.model}, got "
+            f"{len(text_bars)} text-only and {len(agentic_bars)} agentic bars."
+        )
+
+    def metrics(
+        metric_bars: Sequence[Mapping[str, Any]],
+        group_label: str,
+    ) -> Dict[str, Any]:
+        try:
+            actual_rate = float(metric_bars[0]["rate"])
+            intended_rate = float(metric_bars[1]["rate"])
+            actual_count = int(metric_bars[0]["count"])
+            intended_count = int(metric_bars[1]["count"])
+            denominator = int(metric_bars[0]["denominator"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"Invalid {group_label} bars for "
+                f"{panel.scenario}/{model_spec.model}."
+            ) from exc
+        if not 0.0 <= actual_rate <= 1.0:
+            raise RuntimeError(
+                f"Invalid actual rate {actual_rate} for "
+                f"{panel.scenario}/{model_spec.model}."
+            )
+        if not 0.0 <= intended_rate <= 1.0:
+            raise RuntimeError(
+                f"Invalid intended rate {intended_rate} for "
+                f"{panel.scenario}/{model_spec.model}."
+            )
+        if denominator <= 0:
+            raise RuntimeError(
+                f"Invalid {group_label} denominator {denominator} for "
+                f"{panel.scenario}/{model_spec.model}."
+            )
+        if not 0 <= actual_count <= denominator:
+            raise RuntimeError(
+                f"Invalid {group_label} actual count {actual_count} for "
+                f"{panel.scenario}/{model_spec.model}."
+            )
+        if not 0 <= intended_count <= denominator:
+            raise RuntimeError(
+                f"Invalid {group_label} intended count {intended_count} for "
+                f"{panel.scenario}/{model_spec.model}."
+            )
+        return {
+            "actual": actual_rate,
+            "intended": intended_rate,
+            "actual_count": actual_count,
+            "intended_count": intended_count,
+            "denominator": denominator,
+        }
+
+    return {
+        "model": model_spec.model,
+        "short_label": model_spec.short_label,
+        "textonly_run_group": model_spec.textonly_run_group,
+        "textonly_root": str(model_textonly_root),
+        "agentic_run_group": model_spec.agentic_run_group,
+        "agentic_variant": model_spec.agentic_variant,
+        "agentic_aggregate_path": str(agentic_path),
+        "textonly": metrics(text_bars, "text-only"),
+        "agentic": metrics(agentic_bars, "agentic"),
+    }
+
+
+def _build_text_agentic_figure_payload(
+    results_root: Path,
+    textonly_root: Path,
+    spec: TextAgenticFigureSpec,
+) -> Dict[str, Any]:
+    return {
+        "output_stem": spec.output_stem,
+        "rows": [
+            [
+                {
+                    "title": panel.title,
+                    "scenario": panel.scenario,
+                    "models": [
+                        _load_text_agentic_model_comparison(
+                            results_root=results_root,
+                            textonly_root=textonly_root,
+                            panel=panel,
+                            model_spec=model_spec,
+                        )
+                        for model_spec in panel.models
+                    ],
+                }
+                for panel in row
+            ]
+            for row in spec.rows
+        ],
+    }
+
+
+def _text_agentic_cluster_positions(
+    model_count: int,
+) -> Tuple[
+    List[Tuple[str, int, float, float]],
+    Dict[str, float],
+    Tuple[float, float],
+]:
+    x = 0.0
+    positions: List[Tuple[str, int, float, float]] = []
+    group_centers: Dict[str, float] = {}
+
+    for group in ("Text", "Agentic"):
+        cluster_centers = []
+        for model_index in range(model_count):
+            actual_x = x
+            intended_x = x + TEXT_AGENTIC_BAR_WIDTH
+            cluster_centers.append(x + TEXT_AGENTIC_BAR_WIDTH / 2.0)
+            positions.append(
+                (group, model_index, actual_x, intended_x)
+            )
+            x += (
+                TEXT_AGENTIC_BAR_WIDTH * 2.0
+                + TEXT_AGENTIC_CLUSTER_GAP
+            )
+        group_centers[group] = (
+            cluster_centers[0] + cluster_centers[-1]
+        ) / 2.0
+        x += TEXT_AGENTIC_GROUP_GAP
+
+    return (
+        positions,
+        group_centers,
+        (-0.28, x - TEXT_AGENTIC_GROUP_GAP + 0.28),
+    )
+
+
+def _annotate_text_agentic_rate(axis: Any, x: float, value: float) -> None:
+    y = 0.014 if value <= 0 else min(1.012, value + 0.025)
+    axis.text(
+        x,
+        y,
+        f"{value:.2f}",
+        ha="center",
+        va="bottom",
+        fontsize=11,
+        fontweight="bold",
+    )
+
+
+def _draw_text_agentic_panel(
+    axis: Any,
+    panel_payload: Mapping[str, Any],
+) -> None:
+    models = panel_payload.get("models")
+    if not isinstance(models, list) or not models:
+        raise RuntimeError("Text/agentic panel contains no model data.")
+    positions, group_centers, xlim = _text_agentic_cluster_positions(
+        len(models)
+    )
+
+    for group, model_index, actual_x, intended_x in positions:
+        model_payload = models[model_index]
+        metric_group = "textonly" if group == "Text" else "agentic"
+        metrics = model_payload[metric_group]
+        actual = float(metrics["actual"])
+        intended = float(metrics["intended"])
+        axis.bar(
+            actual_x,
+            actual,
+            color=ACTUAL_COLOR,
+            width=TEXT_AGENTIC_BAR_WIDTH,
+        )
+        axis.bar(
+            intended_x,
+            intended,
+            color=INTENDED_COLOR,
+            width=TEXT_AGENTIC_BAR_WIDTH,
+        )
+        _annotate_text_agentic_rate(axis, actual_x, actual)
+        _annotate_text_agentic_rate(axis, intended_x, intended)
+
+    cluster_centers = [
+        (actual_x + intended_x) / 2.0
+        for _, _, actual_x, intended_x in positions
+    ]
+    cluster_labels = [
+        str(models[model_index]["short_label"])
+        for _, model_index, _, _ in positions
+    ]
+
+    title = str(panel_payload.get("title", ""))
+    if title:
+        axis.set_title(title, fontsize=22, fontweight="bold", pad=12)
+    axis.set_xlim(*xlim)
+    axis.set_ylim(0.0, 1.08)
+    axis.set_xticks(cluster_centers)
+    axis.set_xticklabels(
+        cluster_labels,
+        fontsize=15,
+        fontweight="bold",
+    )
+    axis.tick_params(axis="x", pad=7, length=0)
+    for group_label in ("Text", "Agentic"):
+        axis.text(
+            group_centers[group_label],
+            -0.15,
+            group_label,
+            transform=axis.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=20,
+            fontweight="bold",
+            clip_on=False,
+        )
+    axis.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    axis.tick_params(axis="y", labelsize=14, width=1.0, pad=8)
+    for label in axis.get_yticklabels():
+        label.set_fontweight("bold")
+    axis.grid(
+        axis="y",
+        color="#b8b8b8",
+        alpha=0.45,
+        linewidth=0.9,
+        linestyle="--",
+    )
+    axis.set_axisbelow(True)
+    axis.spines["top"].set_color("#666666")
+    axis.spines["bottom"].set_color("#666666")
+    axis.spines["left"].set_color("#666666")
+    axis.spines["right"].set_visible(False)
+
+
+def render_text_agentic_figure(
+    payload: Mapping[str, Any],
+    spec: TextAgenticFigureSpec,
+) -> Any:
+    """Render a paper figure comparing text-only and agentic behavior."""
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) != len(spec.rows):
+        raise RuntimeError(
+            f"{spec.output_stem} payload has an unexpected row count."
+        )
+    column_count = len(spec.rows[0])
+    if any(len(row) != column_count for row in spec.rows):
+        raise RuntimeError(
+            f"{spec.output_stem} requires a rectangular panel grid."
+        )
+    if any(not isinstance(row, list) or len(row) != column_count for row in rows):
+        raise RuntimeError(
+            f"{spec.output_stem} payload has an unexpected column count."
+        )
+
+    plt, _ = load_matplotlib()
+    row_count = len(rows)
+    figure, axes = plt.subplots(
+        row_count,
+        column_count,
+        figsize=spec.figure_size,
+        sharey=True,
+        squeeze=False,
+    )
+    for row_index, row in enumerate(rows):
+        for column_index, panel_payload in enumerate(row):
+            axis = axes[row_index][column_index]
+            _draw_text_agentic_panel(axis, panel_payload)
+            if column_index == 0:
+                axis.set_ylabel(
+                    "Misalignment Rate",
+                    fontsize=16,
+                    fontweight="bold",
+                    labelpad=18,
+                )
+            else:
+                axis.tick_params(axis="y", labelleft=False)
+
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, color=ACTUAL_COLOR),
+        plt.Rectangle((0, 0), 1, 1, color=INTENDED_COLOR),
+    ]
+    figure.legend(
+        handles,
+        ["Actual", "Intended"],
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.005 if row_count == 1 else 0.005),
+        ncol=2,
+        frameon=False,
+        handlelength=1.8,
+        handleheight=1.3,
+        columnspacing=3.6,
+        prop={"weight": "bold", "size": 19},
+    )
+    figure.subplots_adjust(
+        left=0.06,
+        right=0.965,
+        top=0.82 if row_count == 1 else 0.96,
+        bottom=0.30 if row_count == 1 else 0.11,
+        hspace=0.48 if row_count > 1 else 0.2,
+        wspace=0.04,
+    )
+    return figure
+
+
+def _generate_text_agentic_figure(
+    spec: TextAgenticFigureSpec,
+    *,
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    textonly_root: Path = DEFAULT_TEXTONLY_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    resolved_results_root = Path(results_root).expanduser().resolve()
+    resolved_textonly_root = Path(textonly_root).expanduser().resolve()
+    resolved_output_dir = Path(output_dir).expanduser().resolve()
+    payload = _build_text_agentic_figure_payload(
+        resolved_results_root,
+        resolved_textonly_root,
+        spec,
+    )
+    figure = render_text_agentic_figure(payload, spec)
+
+    normalized_formats = tuple(dict.fromkeys(fmt.lower() for fmt in formats))
+    unsupported = [
+        fmt for fmt in normalized_formats if fmt not in {"pdf", "png"}
+    ]
+    if unsupported:
+        raise ValueError(
+            f"Unsupported output format(s): {', '.join(unsupported)}"
+        )
+
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
+    output_paths = []
+    try:
+        for fmt in normalized_formats:
+            output_path = resolved_output_dir / f"{spec.output_stem}.{fmt}"
+            save_kwargs: Dict[str, Any] = {
+                "format": fmt,
+                "facecolor": "white",
+                "bbox_inches": "tight",
+                "pad_inches": 0.08,
+            }
+            if fmt == "png":
+                save_kwargs["dpi"] = dpi
+            figure.savefig(output_path, **save_kwargs)
+            output_paths.append(output_path)
+    finally:
+        plt, _ = load_matplotlib()
+        plt.close(figure)
+
+    return tuple(output_paths)
+
+
+def figure_2(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    textonly_root: Path = DEFAULT_TEXTONLY_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the paper's three-panel text-only/agentic comparison."""
+    return _generate_text_agentic_figure(
+        FIGURE_2_SPEC,
+        results_root=results_root,
+        textonly_root=textonly_root,
+        output_dir=output_dir,
+        formats=formats,
+        dpi=dpi,
+    )
+
+
+def figure_8(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    textonly_root: Path = DEFAULT_TEXTONLY_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the paper's full four-model text-only/agentic comparison."""
+    return _generate_text_agentic_figure(
+        FIGURE_8_SPEC,
+        results_root=results_root,
+        textonly_root=textonly_root,
+        output_dir=output_dir,
+        formats=formats,
+        dpi=dpi,
+    )
+
+
+def textonly_agentic_mixed_reasoning(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    textonly_root: Path = DEFAULT_TEXTONLY_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the legacy mixed-reasoning comparison from the old script."""
+    return _generate_text_agentic_figure(
+        MIXED_REASONING_SPEC,
+        results_root=results_root,
+        textonly_root=textonly_root,
+        output_dir=output_dir,
+        formats=formats,
+        dpi=dpi,
+    )
 
 
 def _combined_rates_with_subagents_path(results_root: Path) -> Path:
@@ -1170,7 +1812,13 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         "figure",
         nargs="?",
         default="figure_9",
-        choices=("figure_9", "judge_sensitivity"),
+        choices=(
+            "figure_2",
+            "figure_8",
+            "figure_9",
+            "judge_sensitivity",
+            "textonly_agentic_mixed_reasoning",
+        ),
         help="Figure function to generate (default: figure_9).",
     )
     parser.add_argument(
@@ -1178,6 +1826,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         type=Path,
         default=DEFAULT_RESULTS_ROOT,
         help="Results root containing aggregate ablation summaries.",
+    )
+    parser.add_argument(
+        "--textonly_root",
+        type=Path,
+        default=DEFAULT_TEXTONLY_ROOT,
+        help=(
+            "Text-only results root containing base and "
+            "xhighreasoningeffort run groups."
+        ),
     )
     parser.add_argument(
         "--output_dir",
@@ -1204,7 +1861,23 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        if args.figure == "figure_9":
+        if args.figure == "figure_2":
+            output_paths = figure_2(
+                results_root=args.results_root,
+                textonly_root=args.textonly_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "figure_8":
+            output_paths = figure_8(
+                results_root=args.results_root,
+                textonly_root=args.textonly_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "figure_9":
             output_paths = figure_9(
                 results_root=args.results_root,
                 output_dir=args.output_dir,
@@ -1214,6 +1887,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         elif args.figure == "judge_sensitivity":
             output_paths = figure_judge_sensitivity(
                 results_root=args.results_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "textonly_agentic_mixed_reasoning":
+            output_paths = textonly_agentic_mixed_reasoning(
+                results_root=args.results_root,
+                textonly_root=args.textonly_root,
                 output_dir=args.output_dir,
                 formats=args.formats,
                 dpi=args.dpi,

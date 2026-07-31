@@ -231,6 +231,150 @@ class TestPaperFigureCli(unittest.TestCase):
         args = paper_figures.parse_args(["judge_sensitivity"])
         self.assertEqual(args.figure, "judge_sensitivity")
 
+    def test_text_agentic_figures_are_supported(self):
+        for figure_name in (
+            "figure_2",
+            "figure_8",
+            "textonly_agentic_mixed_reasoning",
+        ):
+            with self.subTest(figure=figure_name):
+                args = paper_figures.parse_args(
+                    [
+                        figure_name,
+                        "--textonly_root",
+                        "custom-text-results",
+                    ]
+                )
+                self.assertEqual(args.figure, figure_name)
+                self.assertEqual(
+                    args.textonly_root,
+                    Path("custom-text-results"),
+                )
+
+
+class TestTextAgenticFigureSpecs(unittest.TestCase):
+    def test_figure_2_is_the_three_panel_xhigh_comparison(self):
+        spec = paper_figures.FIGURE_2_SPEC
+
+        self.assertEqual(spec.output_stem, "figure_2")
+        self.assertEqual(len(spec.rows), 1)
+        self.assertEqual(
+            [panel.scenario for panel in spec.rows[0]],
+            ["override", "rewire", "restrictedaccess"],
+        )
+        self.assertTrue(
+            all(
+                model.textonly_run_group == "xhighreasoningeffort"
+                and model.agentic_run_group == "xhighreasoningeffort"
+                and model.agentic_variant == "xhighreasoningeffort"
+                for panel in spec.rows[0]
+                for model in panel.models
+            )
+        )
+
+    def test_figure_8_covers_every_model_and_scenario(self):
+        spec = paper_figures.FIGURE_8_SPEC
+
+        self.assertEqual(spec.output_stem, "figure_8")
+        self.assertEqual(len(spec.rows), 4)
+        self.assertTrue(all(len(row) == 3 for row in spec.rows))
+        self.assertEqual(
+            [row[0].models[0].model for row in spec.rows],
+            [
+                "gpt-5.4",
+                "gpt-5.5",
+                "claude-opus-4-6",
+                "claude-opus-4-7",
+            ],
+        )
+        for row in spec.rows:
+            self.assertEqual(
+                [panel.scenario for panel in row],
+                ["override", "rewire", "restrictedaccess"],
+            )
+
+    def test_model_comparison_uses_run_group_subdirectories(self):
+        model_spec = paper_figures.TextAgenticModelSpec(
+            model="model-a",
+            short_label="A",
+            textonly_run_group="xhighreasoningeffort",
+            agentic_run_group="agentic-group",
+            agentic_variant="agentic-variant",
+        )
+        panel = paper_figures.TextAgenticPanelSpec(
+            title="Override",
+            scenario="override",
+            models=(model_spec,),
+        )
+        comparison = {
+            "plot_bars": [
+                {
+                    "group": "Text-Only",
+                    "rate": 0.1,
+                    "count": 1,
+                    "denominator": 10,
+                },
+                {
+                    "group": "Text-Only",
+                    "rate": 0.2,
+                    "count": 2,
+                    "denominator": 10,
+                },
+                {
+                    "group": "Agentic",
+                    "rate": 0.3,
+                    "count": 3,
+                    "denominator": 10,
+                },
+                {
+                    "group": "Agentic",
+                    "rate": 0.4,
+                    "count": 4,
+                    "denominator": 10,
+                },
+            ]
+        }
+
+        with (
+            mock.patch.object(
+                paper_figures,
+                "load_textonly_scenario_aggregate",
+                return_value={"text": "payload"},
+            ) as load_text,
+            mock.patch.object(
+                paper_figures,
+                "discover_agentic_aggregate",
+                return_value=(Path("agentic.json"), {"agentic": "payload"}),
+            ) as discover_agentic,
+            mock.patch.object(
+                paper_figures,
+                "build_scenario_comparison",
+                return_value=comparison,
+            ),
+        ):
+            payload = paper_figures._load_text_agentic_model_comparison(
+                results_root=Path("agentic-results"),
+                textonly_root=Path("text-results"),
+                panel=panel,
+                model_spec=model_spec,
+            )
+
+        load_text.assert_called_once_with(
+            Path("text-results/xhighreasoningeffort"),
+            "model-a",
+            "override",
+        )
+        discover_agentic.assert_called_once_with(
+            Path("agentic-results"),
+            scenario="override",
+            model="model-a",
+            run_group="agentic-group",
+            variant_name="agentic-variant",
+            preferred_observation_spec=None,
+        )
+        self.assertEqual(payload["textonly"]["actual"], 0.1)
+        self.assertEqual(payload["agentic"]["intended"], 0.4)
+
 
 if __name__ == "__main__":
     unittest.main()
