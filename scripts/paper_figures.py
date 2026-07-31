@@ -496,6 +496,17 @@ def _summarize_judge_tasks(
     claude_positive_rate = (
         claude_positive_tasks / compared_tasks if compared_tasks else 0.0
     )
+    agreement_rate = agree_tasks / compared_tasks if compared_tasks else 0.0
+    expected_agreement = (
+        gpt_positive_rate * claude_positive_rate
+        + (1.0 - gpt_positive_rate) * (1.0 - claude_positive_rate)
+    )
+    kappa_denominator = 1.0 - expected_agreement
+    cohens_kappa = (
+        (agreement_rate - expected_agreement) / kappa_denominator
+        if compared_tasks and kappa_denominator > 0.0
+        else None
+    )
     return {
         "completed_tasks": completed_tasks,
         "compared_tasks": compared_tasks,
@@ -513,7 +524,9 @@ def _summarize_judge_tasks(
         "both_negative_tasks": both_negative_tasks,
         "agree_tasks": agree_tasks,
         "disagree_tasks": compared_tasks - agree_tasks,
-        "agreement_rate": agree_tasks / compared_tasks if compared_tasks else 0.0,
+        "agreement_rate": agreement_rate,
+        "expected_agreement_rate": expected_agreement,
+        "cohens_kappa": cohens_kappa,
         "claude_minus_gpt_rate": claude_positive_rate - gpt_positive_rate,
         "claude_minus_gpt_percentage_points": (
             claude_positive_rate - gpt_positive_rate
@@ -945,7 +958,7 @@ def render_judge_sensitivity_figure(
         gridspec_kw={"wspace": 0.08},
     )
     figure.subplots_adjust(
-        left=0.225,
+        left=0.30,
         right=0.995,
         top=0.82,
         bottom=0.11,
@@ -982,14 +995,14 @@ def render_judge_sensitivity_figure(
         axis.tick_params(
             axis="x",
             colors="#222222",
-            labelsize=9,
+            labelsize=15,
             width=0,
             pad=5,
         )
         axis.tick_params(axis="y", length=0)
         axis.set_title(
             str(panel["title"]),
-            fontsize=12,
+            fontsize=18,
             fontweight="bold",
             color="#111111",
             pad=13,
@@ -1049,7 +1062,7 @@ def render_judge_sensitivity_figure(
                 textcoords="offset points",
                 ha="center",
                 va="top",
-                fontsize=7,
+                fontsize=11,
                 color="#333333",
                 fontweight="bold",
                 zorder=5,
@@ -1062,7 +1075,7 @@ def render_judge_sensitivity_figure(
         if panel_index == 0:
             axis.set_yticklabels(
                 run_labels,
-                fontsize=9,
+                fontsize=16,
                 color="#222222",
                 fontweight="bold",
             )
@@ -1074,29 +1087,29 @@ def render_judge_sensitivity_figure(
         legend_handles,
         legend_labels,
         loc="upper center",
-        bbox_to_anchor=(0.61, 0.975),
+        bbox_to_anchor=(0.65, 0.975),
         ncol=2,
         frameon=False,
-        fontsize=12,
+        fontsize=18,
         markerscale=1.25,
         handletextpad=0.5,
         columnspacing=2.0,
     )
     figure.supxlabel(
         "Positive judgment rate (%)",
-        x=0.61,
+        x=0.65,
         y=0.035,
-        fontsize=11,
+        fontsize=16,
         fontweight="bold",
         color="#222222",
     )
     figure.text(
-        0.61,
+        0.65,
         0.012,
         "Labels show Claude - GPT percentage-point differences when |delta| >= 10.",
         ha="center",
         va="bottom",
-        fontsize=8.5,
+        fontsize=12.5,
         color="#444444",
     )
     return figure

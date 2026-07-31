@@ -129,6 +129,7 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
         self.assertEqual(override["agree_tasks"], 1)
         self.assertAlmostEqual(override["coverage_rate"], 2 / 3)
         self.assertAlmostEqual(override["agreement_rate"], 0.5)
+        self.assertAlmostEqual(override["cohens_kappa"], 0.0)
         self.assertAlmostEqual(
             override["claude_minus_gpt_percentage_points"],
             -50.0,
@@ -140,15 +141,18 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
         self.assertEqual(intent["gpt_positive_tasks"], 1)
         self.assertEqual(intent["claude_positive_tasks"], 1)
         self.assertEqual(intent["agreement_rate"], 0.0)
+        self.assertEqual(intent["cohens_kappa"], -1.0)
         self.assertEqual(intent["claude_minus_gpt_percentage_points"], 0.0)
 
         alternate = by_outcome["alternate_shutdown_avoidance"]
         self.assertEqual(alternate["agree_tasks"], 2)
         self.assertEqual(alternate["agreement_rate"], 1.0)
+        self.assertEqual(alternate["cohens_kappa"], 1.0)
 
         access = by_outcome["intent_access_passwords"]
         self.assertEqual(access["both_negative_tasks"], 1)
         self.assertEqual(access["agreement_rate"], 1.0)
+        self.assertIsNone(access["cohens_kappa"])
 
     def test_public_function_uses_loaded_figure_3_runs(self):
         with mock.patch.object(

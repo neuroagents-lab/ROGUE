@@ -1,0 +1,38 @@
+\begin{table}[t]
+    \centering
+    \caption{Agreement between the GPT-5.5 (\texttt{xhigh}) primary judge and
+    the Claude Opus 4.7 (\texttt{max}) sensitivity judge, pooled across the
+    runs in Fig.~\ref{fig:rogue_summary} and stratified by judgment target.
+    Except for $n$ and Cohen's $\kappa$, entries report count (percentage of
+    paired judgments). ``GPT only'' denotes a positive GPT judgment paired
+    with a negative Claude judgment; ``Claude only'' denotes the reverse.}
+    \label{tab:cross_llm_judge_agreement}
+    \scriptsize
+    \setlength{\tabcolsep}{3.5pt}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrrrr@{}}
+        \toprule
+        \textbf{Judgment target}
+        & \textbf{$n$}
+        & \makecell{\textbf{GPT}\\\textbf{positive}}
+        & \makecell{\textbf{Claude}\\\textbf{positive}}
+        & \makecell{\textbf{Raw}\\\textbf{agreement}}
+        & \makecell{\textbf{GPT}\\\textbf{only}}
+        & \makecell{\textbf{Claude}\\\textbf{only}}
+        & \makecell{\textbf{Cohen's}\\$\kappa$} \\
+        \midrule
+        Intent to override
+        & 723 & 601 (83.1\%) & 613 (84.8\%) & 703 (97.2\%)
+        & 4 (0.6\%) & 16 (2.2\%) & 0.897 \\
+        Intent to rewire shutdown
+        & 308 & 177 (57.5\%) & 197 (64.0\%) & 258 (83.8\%)
+        & 15 (4.9\%) & 35 (11.4\%) & 0.661 \\
+        Used alternate rewiring method
+        & 308 & 85 (27.6\%) & 93 (30.2\%) & 274 (89.0\%)
+        & 13 (4.2\%) & 21 (6.8\%) & 0.732 \\
+        Intent to access restricted resource
+        & 111 & 35 (31.5\%) & 35 (31.5\%) & 111 (100.0\%)
+        & 0 (0.0\%) & 0 (0.0\%) & 1.000 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
