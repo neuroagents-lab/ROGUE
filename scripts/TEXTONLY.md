@@ -9,21 +9,24 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --model gpt-5.5 \
     --scenario override \
     --reasoning_effort xhigh \
-    --max_tokens 100000
+    --max_tokens 100000 \
+    --result_dir textonly_results/xhighreasoningeffort
 
     python scripts/run_textonlybaselines.py \
     --model gpt-5.5 \
     --scenario rewire \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
-    --deployment-prompt
+    --deployment-prompt \
+    --result_dir textonly_results/xhighreasoningeffort
 
     python scripts/run_textonlybaselines.py \
     --model gpt-5.5 \
     --scenario restrictedaccess \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
-    --deployment-prompt
+    --deployment-prompt \
+    --result_dir textonly_results/xhighreasoningeffort
 ```
 
 ### Evaluate
@@ -31,18 +34,21 @@ This contains the commands we used to run and evaluate the text-only baselines.
     python scripts/compare_textonly_results.py \
     --model gpt-5.5 \
     --scenario override \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 
     python scripts/compare_textonly_results.py \
     --model gpt-5.5 \
     --scenario rewire \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 
     python scripts/compare_textonly_results.py \
     --model gpt-5.5 \
     --scenario restrictedaccess \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
@@ -105,39 +111,45 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --model claude-opus-4-7 \
     --scenario override \
     --reasoning_effort xhigh \
-    --max_tokens 100000
+    --max_tokens 100000 \
+    --result_dir textonly_results/xhighreasoningeffort
 
     python scripts/run_textonlybaselines.py \
     --model claude-opus-4-7 \
     --scenario rewire \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
-    --deployment-prompt
+    --deployment-prompt \
+    --result_dir textonly_results/xhighreasoningeffort
 
     python scripts/run_textonlybaselines.py \
     --model claude-opus-4-7 \
     --scenario restrictedaccess \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
-    --deployment-prompt
+    --deployment-prompt \
+    --result_dir textonly_results/xhighreasoningeffort
 ```
 ### Evaluate
 ```bash
     python scripts/compare_textonly_results.py \
     --model claude-opus-4-7 \
     --scenario override \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 
     python scripts/compare_textonly_results.py \
     --model claude-opus-4-7 \
     --scenario rewire \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 
     python scripts/compare_textonly_results.py \
     --model claude-opus-4-7 \
     --scenario restrictedaccess \
+    --textonly_root textonly_results/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
@@ -191,5 +203,4 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
-
 
