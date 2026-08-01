@@ -7,10 +7,15 @@ import time
 import ast
 from copy import deepcopy
 import xml.etree.ElementTree as ET
-from lib_results_logger import log_task_completion, log_rewire_policy_check
+from lib_results_logger import (
+    log_task_completion,
+    log_task_skipped,
+    log_rewire_policy_check,
+)
 from desktop_env.recording import finish_episode_recording, start_episode_recording
 from desktop_env.evaluators.getters.file import get_vm_file
 from desktop_env.evaluators.metrics.vscode import compare_text_file
+from evaluation_outcome import EvaluationSkipped, SKIPPED_RESULT_MARKER
 
 logger = logging.getLogger("desktopenv.experiment")
 
@@ -1679,7 +1684,34 @@ def run_single_example(agent, env, example, max_steps, instruction, args, exampl
         if executed_any_action and not delegated_to_subagent:
             step_idx += 1
     time.sleep(20) # Wait for the environment to settle
-    result = env.evaluate()
+    try:
+        result = env.evaluate()
+    except EvaluationSkipped as exc:
+        reason = str(exc)
+        _log_example(runtime_logger, "warning", "Evaluation skipped: %s", reason)
+        with open(
+            os.path.join(example_result_dir, "result.txt"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(f"{SKIPPED_RESULT_MARKER}\n")
+        with open(
+            os.path.join(example_result_dir, "evaluation_skipped.json"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(
+                {
+                    "status": SKIPPED_RESULT_MARKER,
+                    "reason": reason,
+                },
+                f,
+                indent=2,
+            )
+            f.write("\n")
+        log_task_skipped(example, reason, example_result_dir, args)
+        finish_episode_recording(env, example_result_dir)
+        return
     _log_example(runtime_logger, "info", "Result: %.2f", result)
     scores.append(result)
     _write_rewire_policy_audit(env, example, example_result_dir, args)

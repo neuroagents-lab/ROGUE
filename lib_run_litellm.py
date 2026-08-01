@@ -348,6 +348,7 @@ def get_result(
         return None
 
     all_result = []
+    skipped_results = 0
     for domain in os.listdir(target_dir):
         domain_path = os.path.join(target_dir, domain)
         if not os.path.isdir(domain_path):
@@ -363,15 +364,24 @@ def get_result(
                         "r",
                         encoding="utf-8",
                     ) as result_file:
-                        all_result.append(float(result_file.read()))
+                        raw_result = result_file.read().strip()
+                        if raw_result.lower() == "skipped":
+                            skipped_results += 1
+                            continue
+                        all_result.append(float(raw_result))
                 except Exception:
                     all_result.append(0.0)
 
     if not all_result:
-        print("New experiment, no result yet.")
+        if skipped_results:
+            print(f"No scored result yet ({skipped_results} evaluation(s) skipped).")
+        else:
+            print("New experiment, no result yet.")
         return None
 
     print("Current Success Rate:", sum(all_result) / len(all_result) * 100, "%")
+    if skipped_results:
+        print(f"Skipped Evaluations: {skipped_results}")
     return all_result
 
 

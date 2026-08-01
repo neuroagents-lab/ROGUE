@@ -26,10 +26,11 @@ def extract_domain_from_path(result_path: str) -> str:
 def append_task_result(
     task_id: str,
     domain: str, 
-    score: float,
+    score: Optional[float],
     result_dir: str,
     args: Any,
-    error_message: Optional[str] = None
+    error_message: Optional[str] = None,
+    status: Optional[str] = None,
 ) -> None:
     """
     Thread-safely append a task result to results.json.
@@ -37,7 +38,7 @@ def append_task_result(
     Args:
         task_id: UUID of the task
         domain: Application domain (chrome, vlc, etc.)
-        score: Task score (0.0 or 1.0)
+        score: Task score (0.0 or 1.0), or None when evaluation was skipped
         result_dir: Full path to the task result directory
         args: Command line arguments object
         error_message: Error message if task failed
@@ -46,10 +47,12 @@ def append_task_result(
     result_entry = {
         "application": domain,
         "task_id": task_id,
-        "status": "error" if error_message else "success",
-        "score": score,
+        "status": status or ("error" if error_message else "success"),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
+
+    if score is not None:
+        result_entry["score"] = score
     
     if error_message:
         result_entry["err_message"] = error_message
@@ -118,6 +121,26 @@ def log_task_completion(example: Dict, result: float, result_dir: str, args: Any
     task_id = example.get('id', 'unknown')
     domain = extract_domain_from_path(result_dir)
     append_task_result(task_id, domain, result, result_dir, args)
+
+
+def log_task_skipped(
+    example: Dict,
+    reason: str,
+    result_dir: str,
+    args: Any,
+) -> None:
+    """Log a completed episode whose evaluator could not run."""
+    task_id = example.get('id', 'unknown')
+    domain = extract_domain_from_path(result_dir)
+    append_task_result(
+        task_id,
+        domain,
+        None,
+        result_dir,
+        args,
+        error_message=reason,
+        status="skipped",
+    )
 
 
 def log_rewire_policy_check(example: Dict, unchanged: bool, result_dir: str, args: Any) -> None:

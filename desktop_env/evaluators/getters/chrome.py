@@ -15,6 +15,14 @@ from lxml.etree import _Element
 from playwright.sync_api import sync_playwright, expect, TimeoutError
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive, GoogleDriveFileList, GoogleDriveFile
+from pydrive.settings import LoadSettingsFile, ValidateSettings
+
+from desktop_env.google_drive import load_google_drive_auth_if_available
+from evaluation_outcome import EvaluationSkipped
+
+
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(FILE_PATH, "..", "..", ".."))
 
 _accessibility_ns_map = {
     "st": "uri:deskat:state.at-spi.gnome.org",
@@ -1462,7 +1470,24 @@ def get_googledrive_file(env, config: Dict[str, Any]) -> Any:
         dest(Union[List[str], str]): target file name or list. If *_list is used in input config, dest should also be a list of the same length. Return the downloaded local filepath.
     """
     settings_file = config.get('settings_file', 'evaluation_examples/settings/googledrive/settings.yml')
-    auth = GoogleAuth(settings_file=settings_file)
+    if config.get('skip_if_credentials_missing', False):
+        def google_auth_factory(resolved_settings_file: str):
+            settings = LoadSettingsFile(resolved_settings_file)
+            ValidateSettings(settings)
+            return GoogleAuth(settings_file=resolved_settings_file)
+
+        auth, unavailable_reason = load_google_drive_auth_if_available(
+            settings_file,
+            google_auth_factory=google_auth_factory,
+            repo_root=REPO_ROOT,
+        )
+        if auth is None:
+            raise EvaluationSkipped(
+                "Google Drive evaluation is unavailable because "
+                f"{unavailable_reason}"
+            )
+    else:
+        auth = GoogleAuth(settings_file=settings_file)
     drive = GoogleDrive(auth)
 
     def get_single_file(_query, _path):
@@ -1478,7 +1503,7 @@ def get_googledrive_file(env, config: Dict[str, Any]) -> Any:
 
             file.GetContentFile(_path, mimetype=file['mimeType'])
         except Exception as e:
-            logger.info('[ERROR]: Failed to download the file from Google Drive', e)
+            logger.info('[ERROR]: Failed to download the file from Google Drive: %s', e)
             return None
         return _path
 

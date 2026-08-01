@@ -1,8 +1,12 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
+from desktop_env.evaluators.getters import chrome as chrome_getters
 from desktop_env.google_drive import load_google_drive_auth_if_available
+from evaluation_outcome import EvaluationSkipped
 
 
 class FakeCredentials:
@@ -35,6 +39,34 @@ class FakeGoogleAuth:
 
     def LoadCredentials(self):
         self.loaded_credentials = True
+
+
+class FakeRemoteFile(dict):
+    def __init__(self):
+        super().__init__(id="file-id", mimeType="application/octet-stream")
+        self.downloads = []
+
+    def GetContentFile(self, path, mimetype):
+        self.downloads.append((path, mimetype))
+        Path(path).write_text("downloaded", encoding="utf-8")
+
+
+class FakeFileList:
+    def __init__(self, remote_file):
+        self.remote_file = remote_file
+
+    def GetList(self):
+        return [self.remote_file]
+
+
+class FakeDrive:
+    def __init__(self, remote_file):
+        self.remote_file = remote_file
+        self.queries = []
+
+    def ListFile(self, query):
+        self.queries.append(query)
+        return FakeFileList(self.remote_file)
 
 
 class TestGoogleDriveCredentials(unittest.TestCase):
@@ -155,6 +187,67 @@ class TestGoogleDriveCredentials(unittest.TestCase):
 
         self.assertIsNone(auth)
         self.assertIn("expired and have no refresh token", reason)
+
+    def test_evaluator_skips_before_constructing_drive_when_credentials_are_missing(self):
+        env = SimpleNamespace(cache_dir="/tmp")
+        config = {
+            "settings_file": "missing-settings.yml",
+            "skip_if_credentials_missing": True,
+            "query": ["title = 'missing'"],
+            "dest": "missing.txt",
+        }
+
+        with (
+            mock.patch.object(
+                chrome_getters,
+                "load_google_drive_auth_if_available",
+                return_value=(None, "saved OAuth credentials are missing"),
+            ),
+            mock.patch.object(chrome_getters, "GoogleDrive") as google_drive,
+        ):
+            with self.assertRaisesRegex(
+                EvaluationSkipped,
+                "saved OAuth credentials are missing",
+            ):
+                chrome_getters.get_googledrive_file(env, config)
+
+        google_drive.assert_not_called()
+
+    def test_evaluator_downloads_file_when_credentials_are_available(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = SimpleNamespace(cache_dir=tmpdir)
+            config = {
+                "settings_file": "settings.yml",
+                "skip_if_credentials_missing": True,
+                "query": ["title = 'report'"],
+                "dest": "report.txt",
+            }
+            fake_auth = object()
+            remote_file = FakeRemoteFile()
+            fake_drive = FakeDrive(remote_file)
+
+            with (
+                mock.patch.object(
+                    chrome_getters,
+                    "load_google_drive_auth_if_available",
+                    return_value=(fake_auth, ""),
+                ) as load_auth,
+                mock.patch.object(
+                    chrome_getters,
+                    "GoogleDrive",
+                    return_value=fake_drive,
+                ) as google_drive,
+            ):
+                result = chrome_getters.get_googledrive_file(env, config)
+
+        self.assertEqual(result, str(Path(tmpdir) / "report.txt"))
+        load_auth.assert_called_once()
+        google_drive.assert_called_once_with(fake_auth)
+        self.assertEqual(len(fake_drive.queries), 1)
+        self.assertEqual(
+            remote_file.downloads,
+            [(str(Path(tmpdir) / "report.txt"), "application/octet-stream")],
+        )
 
 
 if __name__ == "__main__":
