@@ -251,6 +251,33 @@ class TestRunnerHelperFunctions(unittest.TestCase):
 
         self.assertCountEqual(results, [1.0, 0.0])
 
+    def test_get_result_excludes_skipped_evaluations(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            model_root = (
+                Path(tmp_dir)
+                / "pyautogui"
+                / "screenshot"
+                / "gpt-5.4"
+                / "restrictedaccess"
+            )
+            scored = model_root / "scored"
+            skipped = model_root / "skipped"
+            scored.mkdir(parents=True)
+            skipped.mkdir(parents=True)
+            (scored / "result.txt").write_text("1.0", encoding="utf-8")
+            (skipped / "result.txt").write_text("skipped\n", encoding="utf-8")
+
+            with contextlib.redirect_stdout(io.StringIO()) as stdout:
+                results = lib_run_litellm.get_result(
+                    "pyautogui",
+                    "gpt-5.4",
+                    "screenshot",
+                    tmp_dir,
+                )
+
+        self.assertEqual(results, [1.0])
+        self.assertIn("Skipped Evaluations: 1", stdout.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

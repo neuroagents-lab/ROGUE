@@ -225,4 +225,11 @@ An evaluator usually contains:
 - `expected`: The expected artifact or rule.
 - `options`: Optional metric-specific options.
 
+
+For a `googledrive_file` result, set `skip_if_credentials_missing: true` when
+the task should remain runnable without local Drive credentials. Missing,
+empty, invalid, or non-refreshable OAuth files then mark evaluation as
+`skipped` rather than assigning a zero score. When valid client configuration
+and reusable OAuth credentials are present, the normal Drive download and
+metric evaluation proceed.
 Some evaluators use arrays for `func`, `result`, and `expected` when multiple checks must all be evaluated.

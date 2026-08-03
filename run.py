@@ -95,7 +95,10 @@ def test(args: argparse.Namespace, test_all_meta: dict) -> None:
                     f.write("\n")
 
     env.close()
-    logger.info("Average score: %s", sum(scores) / len(scores) if scores else 0)
+    if scores:
+        logger.info("Average score: %s", sum(scores) / len(scores))
+    else:
+        logger.info("Average score: unavailable (no scored evaluations)")
 
 
 if __name__ == "__main__":

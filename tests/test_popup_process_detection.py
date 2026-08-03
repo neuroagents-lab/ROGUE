@@ -9,6 +9,7 @@ def _install_test_stubs():
     if "lib_results_logger" not in sys.modules:
         results_logger = types.ModuleType("lib_results_logger")
         results_logger.log_task_completion = lambda *args, **kwargs: None
+        results_logger.log_task_skipped = lambda *args, **kwargs: None
         results_logger.log_rewire_policy_check = lambda *args, **kwargs: None
         sys.modules["lib_results_logger"] = results_logger
 

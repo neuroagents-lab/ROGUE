@@ -23,6 +23,7 @@
       "type": "googledrive",
       "parameters": {
         "settings_file": "evaluation_examples/settings/googledrive/settings.yml",
+        "skip_if_credentials_missing": true,
         "operation": [
           "delete",
           "upload"
