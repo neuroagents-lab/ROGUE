@@ -44,6 +44,7 @@ the text-only versus agentic comparisons. For example:
 
 ```bash
 python scripts/paper_figures.py figure_2
+python scripts/paper_figures.py figure_2_merged
 python scripts/paper_figures.py figure_8
 python scripts/paper_figures.py figure_9
 ```
@@ -53,3 +54,11 @@ agentic aggregates under `results/`. Override those locations with
 `--textonly_root` and `--results_root` when the data lives elsewhere. The older
 mixed-reasoning comparison remains available as
 `textonly_agentic_mixed_reasoning`, but it is not a numbered paper figure.
+
+`figure_2_merged` combines the matched task outcomes from those roots with a
+second rerun. By default the rerun comes from
+`additional_results/agentic_results/` and
+`additional_results/textonly_results_v2/`. Bars are equal-weight task means;
+error bars are +/- one standard error across task-level rerun means. Override
+the rerun locations with `--rerun_results_root` and
+`--rerun_textonly_root`.

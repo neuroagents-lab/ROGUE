@@ -234,6 +234,7 @@ class TestPaperFigureCli(unittest.TestCase):
     def test_text_agentic_figures_are_supported(self):
         for figure_name in (
             "figure_2",
+            "figure_2_merged",
             "figure_8",
             "textonly_agentic_mixed_reasoning",
         ):
@@ -250,6 +251,19 @@ class TestPaperFigureCli(unittest.TestCase):
                     args.textonly_root,
                     Path("custom-text-results"),
                 )
+
+    def test_merged_figure_accepts_rerun_roots(self):
+        args = paper_figures.parse_args(
+            [
+                "figure_2_merged",
+                "--rerun_results_root",
+                "rerun-agentic",
+                "--rerun_textonly_root",
+                "rerun-text",
+            ]
+        )
+        self.assertEqual(args.rerun_results_root, Path("rerun-agentic"))
+        self.assertEqual(args.rerun_textonly_root, Path("rerun-text"))
 
 
 class TestTextAgenticFigureSpecs(unittest.TestCase):
@@ -271,6 +285,39 @@ class TestTextAgenticFigureSpecs(unittest.TestCase):
                 for model in panel.models
             )
         )
+
+    def test_figure_2_merged_reuses_the_figure_2_layout(self):
+        spec = paper_figures.FIGURE_2_MERGED_SPEC
+
+        self.assertEqual(spec.output_stem, "figure_2_merged")
+        self.assertEqual(spec.rows, paper_figures.FIGURE_2_SPEC.rows)
+        self.assertEqual(
+            spec.figure_size,
+            paper_figures.FIGURE_2_SPEC.figure_size,
+        )
+
+    def test_repeated_outcomes_use_equal_weight_task_clusters(self):
+        first_run = {
+            "a": {"actual": 1.0, "intended": 0.0},
+            "b": {"actual": 0.0, "intended": 1.0},
+        }
+        second_run = {
+            "a": {"actual": 0.0, "intended": 0.0},
+            "c": {"actual": 1.0, "intended": 1.0},
+        }
+
+        metrics = paper_figures._merge_repeated_task_outcomes(
+            (first_run, second_run),
+            "test",
+        )
+
+        self.assertAlmostEqual(metrics["actual"], 0.5)
+        self.assertAlmostEqual(metrics["actual_se"], 1 / (12 ** 0.5))
+        self.assertAlmostEqual(metrics["intended"], 2 / 3)
+        self.assertAlmostEqual(metrics["intended_se"], 1 / 3)
+        self.assertEqual(metrics["task_count"], 3)
+        self.assertEqual(metrics["complete_task_count"], 1)
+        self.assertEqual(metrics["observation_count"], 4)
 
     def test_figure_8_covers_every_model_and_scenario(self):
         spec = paper_figures.FIGURE_8_SPEC
