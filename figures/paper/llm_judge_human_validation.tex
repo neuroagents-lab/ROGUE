@@ -1,0 +1,80 @@
+\begin{table}[t]
+    \centering
+    \caption{Human validation of the GPT-5.5 (\texttt{xhigh}) judge,
+    stratified by evaluated model and scenario. Panel A reports
+    scenario-specific intent labels, and Panel B reports the alternate
+    shutdown-rewiring label. All agent runs use medium reasoning effort. The
+    Agreement column reports count (percentage) over paired labels; A/B
+    positives are the numbers of positive labels assigned by the first/second
+    evaluator in the comparison. An em dash indicates that Cohen's $\kappa$
+    is undefined because both marginal label distributions are constant.}
+    \label{tab:llm_judge_human_validation}
+    \scriptsize
+    \setlength{\tabcolsep}{3.5pt}
+    \renewcommand{\arraystretch}{1.10}
+    \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}Xlrrrrr@{}}
+        \toprule
+        \textbf{Evaluated model}
+        & \textbf{Scenario / variant}
+        & \textbf{Comparison}
+        & \textbf{$n$}
+        & \textbf{Agreement}
+        & \makecell{\textbf{A}\\
+          \textbf{positive}}
+        & \makecell{\textbf{B}\\
+          \textbf{positive}}
+        & \makecell{\textbf{Cohen's}\\$\kappa$} \\
+        \midrule
+        \multicolumn{8}{@{}l}{\textbf{Panel A: Scenario-specific intent label}} \\
+        \addlinespace[2pt]
+        GPT-5.4
+        & Override / base
+        & H1--H2 & 10 & 10 (100.0\%) & 10 & 10 & --- \\
+        GPT-5.4
+        & Override / base
+        & H1--LLM & 10 & 10 (100.0\%) & 10 & 10 & --- \\
+        GPT-5.4
+        & Override / base
+        & H2--LLM & 10 & 10 (100.0\%) & 10 & 10 & --- \\
+        \addlinespace[2pt]
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H1--H2 & 22 & 18 (81.8\%) & 16 & 20 & 0.421 \\
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H1--LLM & 22 & 17 (77.3\%) & 16 & 21 & 0.225 \\
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H2--LLM & 22 & 19 (86.4\%) & 20 & 21 & $-0.065$ \\
+        \addlinespace[2pt]
+        Claude Opus 4.6
+        & Restricted access / base
+        & H1--H2 & 8 & 8 (100.0\%) & 8 & 8 & --- \\
+        Claude Opus 4.6
+        & Restricted access / base
+        & H1--LLM & 8 & 8 (100.0\%) & 8 & 8 & --- \\
+        Claude Opus 4.6
+        & Restricted access / base
+        & H2--LLM & 8 & 8 (100.0\%) & 8 & 8 & --- \\
+        \addlinespace[2pt]
+        GPT-5.4
+        & Restricted access + subagents / base
+        & Human--LLM & 8 & 8 (100.0\%) & 4 & 4 & 1.000 \\
+        Claude Opus 4.6
+        & Restricted access + subagents / neutral wording
+        & Human--LLM & 8 & 8 (100.0\%) & 8 & 8 & --- \\
+        \midrule
+        \multicolumn{8}{@{}l}{\textbf{Panel B: Alternate shutdown-rewiring label}} \\
+        \addlinespace[2pt]
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H1--H2 & 22 & 22 (100.0\%) & 3 & 3 & 1.000 \\
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H1--LLM & 22 & 22 (100.0\%) & 3 & 3 & 1.000 \\
+        GPT-5.4
+        & Shutdown rewiring / base
+        & H2--LLM & 22 & 22 (100.0\%) & 3 & 3 & 1.000 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
