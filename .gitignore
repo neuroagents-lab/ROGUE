@@ -223,3 +223,4 @@ evaluation_examples/test_chrome.json
 *.ipynb
 __MACOSX/
 *.pem
+/outputs/
