@@ -18,6 +18,7 @@ def payload(
     actual_count,
     total_tasks=10,
     run_group="base",
+    reasoning_effort=None,
 ):
     canonical_model = aggregate_results.canonical_model_name(model)
     tasks = []
@@ -32,7 +33,7 @@ def payload(
         else:
             actual["accessed_passwords_txt"] = is_misaligned
         tasks.append({"actual": actual, "judge": judge})
-    return {
+    result = {
         "scenario": scenario,
         "run_group": run_group,
         "variant_name": run_group,
@@ -51,6 +52,9 @@ def payload(
         },
         "tasks": tasks,
     }
+    if reasoning_effort is not None:
+        result["reasoning_effort"] = reasoning_effort
+    return result
 
 
 class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
@@ -69,6 +73,20 @@ class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
             ]["success_rate"],
             0.762,
         )
+
+    def test_osworld_outputs_are_reasoning_matched_only(self):
+        for config in aggregate_results.OSWORLD_SCATTER_PLOT_CONFIG.values():
+            self.assertNotIn("plot_filename", config)
+            self.assertNotIn("summary_filename", config)
+            self.assertNotIn("xhigh_plot_filename", config)
+            self.assertNotIn("xhigh_summary_filename", config)
+            self.assertIn("reasoning_matched_plot_filename", config)
+            self.assertIn("reasoning_matched_summary_filename", config)
+            self.assertIn("reasoning_matched_zoomed_plot_filename", config)
+            self.assertIn("reasoning_matched_zoomed_summary_filename", config)
+        for config in aggregate_results.SCATTER_PLOT_CONFIG.values():
+            self.assertIn("xhigh_plot_filename", config)
+            self.assertIn("xhigh_summary_filename", config)
 
     def test_builds_restricted_access_figure_data(self):
         summary = aggregate_results.build_osworld_verified_misalignment_summary(
@@ -131,6 +149,116 @@ class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
         self.assertEqual(
             [run["misalignment_rate"] for run in summary["runs"]],
             [0.2, 0.4],
+        )
+
+    def test_reasoning_matched_plot_accepts_exact_tiers_and_enabled_modes(self):
+        summary = aggregate_results.build_osworld_verified_misalignment_summary(
+            "override",
+            [
+                payload(
+                    "override",
+                    "gpt-5.5",
+                    actual_count=1,
+                    reasoning_effort="medium",
+                ),
+                payload(
+                    "override",
+                    "gpt-5.5",
+                    actual_count=2,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="xhigh",
+                ),
+                payload(
+                    "override",
+                    "gpt-5.4",
+                    actual_count=3,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="xhigh",
+                ),
+                payload(
+                    "override",
+                    "gpt-5.4-mini",
+                    actual_count=4,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="xhigh",
+                ),
+                payload(
+                    "override",
+                    "claude-opus-4-6",
+                    actual_count=5,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="max",
+                ),
+                payload(
+                    "override",
+                    "claude-opus-4-7",
+                    actual_count=6,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="xhigh",
+                ),
+                payload(
+                    "override",
+                    "gemini__gemini-3.1-pro-preview",
+                    actual_count=7,
+                    run_group="xhighreasoningeffort",
+                    reasoning_effort="high",
+                ),
+                payload(
+                    "override",
+                    "dashscope__qwen3.6-plus",
+                    actual_count=8,
+                    reasoning_effort="medium",
+                ),
+                payload(
+                    "override",
+                    "moonshot__kimi-k2.6",
+                    actual_count=9,
+                    reasoning_effort="medium",
+                ),
+            ],
+            include_xhigh_reasoning_effort=True,
+            match_public_reasoning_configuration=True,
+        )
+
+        self.assertTrue(summary["matches_public_reasoning_configuration"])
+        self.assertEqual(summary["marker_style"], "filled_circle")
+        self.assertEqual(
+            [run["model"] for run in summary["runs"]],
+            [
+                "gpt-5.5",
+                "gpt-5.4",
+                "gpt-5.4-mini",
+                "claude-opus-4-6",
+                "gemini/gemini-3.1-pro-preview",
+                "dashscope/qwen3.6-plus",
+                "moonshot/kimi-k2.6",
+            ],
+        )
+        self.assertEqual(
+            [run["reasoning_effort"] for run in summary["runs"]],
+            ["xhigh", "xhigh", "xhigh", "max", "high", "medium", "medium"],
+        )
+        self.assertEqual(
+            {entry["model"] for entry in summary["omitted_runs"]},
+            {"gpt-5.5", "claude-opus-4-7"},
+        )
+        self.assertEqual(
+            [
+                run["published_reasoning_mode"]
+                for run in summary["runs"]
+                if run["model"]
+                in {"dashscope/qwen3.6-plus", "moonshot/kimi-k2.6"}
+            ],
+            ["enabled", "enabled"],
+        )
+        self.assertEqual(
+            [
+                run["model_display_name"]
+                for run in summary["runs"]
+                if run["model"]
+                in {"dashscope/qwen3.6-plus", "moonshot/kimi-k2.6"}
+            ],
+            ["Qwen 3.6 Plus (thinking enabled)", "Kimi K2.6 (thinking enabled)"],
         )
 
     def test_canonicalizes_provider_directory_names(self):

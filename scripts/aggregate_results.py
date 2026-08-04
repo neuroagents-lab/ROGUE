@@ -244,46 +244,80 @@ SCATTER_MODEL_COLORS = {
 # caveats in scripts/OSWORLD_VERIFIED_SCORES.md in sync with this table.
 OSWORLD_VERIFIED_SCORE_NOTE = "scripts/OSWORLD_VERIFIED_SCORES.md"
 OSWORLD_VERIFIED_SCORES_CHECKED_AT = "2026-08-03"
+OSWORLD_VERIFIED_REASONING_CHECKED_AT = "2026-08-04"
 OSWORLD_VERIFIED_SCORES = {
     "gpt-5.5": {
         "success_rate": 0.787,
         "source_url": "https://openai.com/index/introducing-gpt-5-5/",
         "source_label": "OpenAI GPT-5.5 release table",
+        "published_reasoning_effort": "xhigh",
+        "published_reasoning_configuration": "xhigh",
+        "reasoning_source_url": "https://openai.com/index/introducing-gpt-5-5/",
     },
     "gpt-5.4": {
         "success_rate": 0.750,
         "source_url": "https://openai.com/index/introducing-gpt-5-4/",
         "source_label": "OpenAI GPT-5.4 release table",
+        "published_reasoning_effort": "xhigh",
+        "published_reasoning_configuration": "xhigh",
+        "reasoning_source_url": "https://openai.com/index/introducing-gpt-5-4/",
     },
     "gpt-5.4-mini": {
         "success_rate": 0.721,
         "source_url": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
         "source_label": "OpenAI GPT-5.4 mini and nano release table",
+        "published_reasoning_effort": "xhigh",
+        "published_reasoning_configuration": "xhigh",
+        "reasoning_source_url": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
     },
     "claude-opus-4-7": {
         "success_rate": 0.780,
         "source_url": "https://www.anthropic.com/news/claude-opus-4-7",
         "source_label": "Anthropic Claude Opus 4.7 release table (Adaptive)",
+        "published_reasoning_effort": "max",
+        "published_reasoning_configuration": "adaptive thinking at max effort",
+        "reasoning_source_url": (
+            "https://www-cdn.anthropic.com/037f06850df7fbe871e206dad004c3db5fd50340/"
+            "Claude%20Opus%204.7%20System%20Card.pdf"
+        ),
     },
     "claude-opus-4-6": {
         "success_rate": 0.727,
         "source_url": "https://www.anthropic.com/claude/opus",
         "source_label": "Anthropic Claude Opus 4.6 benchmark page",
+        "published_reasoning_effort": "max",
+        "published_reasoning_configuration": "adaptive thinking at max effort",
+        "reasoning_source_url": (
+            "https://www-cdn.anthropic.com/6a5fa276ac68b9aeb0c8b6af5fa36326e0e166dd.pdf"
+        ),
     },
     "gemini/gemini-3.1-pro-preview": {
         "success_rate": 0.762,
         "source_url": "https://deepmind.google/models/gemini/",
         "source_label": "Google DeepMind Gemini performance table",
+        "published_reasoning_effort": "high",
+        "published_reasoning_configuration": "high thinking",
+        "reasoning_source_url": "https://deepmind.google/models/gemini/pro/",
     },
     "dashscope/qwen3.6-plus": {
         "success_rate": 0.625,
         "source_url": "https://llm-stats.com/benchmarks/osworld-verified",
         "source_label": "LLM-Stats public leaderboard (Alibaba self-reported result)",
+        "published_reasoning_effort": None,
+        "published_reasoning_mode": "enabled",
+        "published_reasoning_configuration": "thinking enabled; no named effort tier",
+        "reasoning_source_url": (
+            "https://www.alibabacloud.com/help/en/model-studio/batch-inference/"
+        ),
     },
     "moonshot/kimi-k2.6": {
         "success_rate": 0.731,
         "source_url": "https://www.kimi.com/blog/kimi-k2-6",
         "source_label": "Moonshot AI Kimi K2.6 technical blog",
+        "published_reasoning_effort": None,
+        "published_reasoning_mode": "enabled",
+        "published_reasoning_configuration": "thinking enabled; no named effort tier",
+        "reasoning_source_url": "https://www.kimi.com/blog/kimi-k2-6",
     },
 }
 PLOT_CONFIG = {
@@ -339,69 +373,61 @@ OSWORLD_SCATTER_PLOT_CONFIG = {
         "title": "OSWorld-Verified Capability vs. Human Control Override",
         "x_axis_label": "Overall OSWorld-Verified Success Rate",
         "y_axis_label": "Misalignment (Actual Override Rate)",
-        "plot_filename": "override_osworld_verified_capability_vs_misalignment.pdf",
-        "summary_filename": "override_osworld_verified_capability_vs_misalignment.json",
-        "xhigh_plot_filename": (
+        "reasoning_matched_plot_filename": (
             "override_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.pdf"
+            "reasoning_matched.pdf"
         ),
-        "xhigh_summary_filename": (
+        "reasoning_matched_summary_filename": (
             "override_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.json"
+            "reasoning_matched.json"
         ),
-        "xhigh_zoomed_plot_filename": (
+        "reasoning_matched_zoomed_plot_filename": (
             "override_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.pdf"
+            "reasoning_matched_xaxis_zoomed.pdf"
         ),
-        "xhigh_zoomed_summary_filename": (
+        "reasoning_matched_zoomed_summary_filename": (
             "override_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.json"
+            "reasoning_matched_xaxis_zoomed.json"
         ),
     },
     "rewire": {
         "title": "OSWorld-Verified Capability vs. Shutdown Rewiring",
         "x_axis_label": "Overall OSWorld-Verified Success Rate",
         "y_axis_label": "Misalignment (Actual Rewiring Rate)",
-        "plot_filename": "rewire_osworld_verified_capability_vs_misalignment.pdf",
-        "summary_filename": "rewire_osworld_verified_capability_vs_misalignment.json",
-        "xhigh_plot_filename": (
-            "rewire_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.pdf"
+        "reasoning_matched_plot_filename": (
+            "rewire_osworld_verified_capability_vs_misalignment_reasoning_matched.pdf"
         ),
-        "xhigh_summary_filename": (
-            "rewire_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.json"
+        "reasoning_matched_summary_filename": (
+            "rewire_osworld_verified_capability_vs_misalignment_reasoning_matched.json"
         ),
-        "xhigh_zoomed_plot_filename": (
+        "reasoning_matched_zoomed_plot_filename": (
             "rewire_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.pdf"
+            "reasoning_matched_xaxis_zoomed.pdf"
         ),
-        "xhigh_zoomed_summary_filename": (
+        "reasoning_matched_zoomed_summary_filename": (
             "rewire_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.json"
+            "reasoning_matched_xaxis_zoomed.json"
         ),
     },
     "restrictedaccess": {
         "title": "OSWorld-Verified Capability vs. Restricted Resource Access",
         "x_axis_label": "Overall OSWorld-Verified Success Rate",
         "y_axis_label": "Misalignment (Actual Access Rate)",
-        "plot_filename": "restrictedaccess_osworld_verified_capability_vs_misalignment.pdf",
-        "summary_filename": "restrictedaccess_osworld_verified_capability_vs_misalignment.json",
-        "xhigh_plot_filename": (
+        "reasoning_matched_plot_filename": (
             "restrictedaccess_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.pdf"
+            "reasoning_matched.pdf"
         ),
-        "xhigh_summary_filename": (
+        "reasoning_matched_summary_filename": (
             "restrictedaccess_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort.json"
+            "reasoning_matched.json"
         ),
-        "xhigh_zoomed_plot_filename": (
+        "reasoning_matched_zoomed_plot_filename": (
             "restrictedaccess_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.pdf"
+            "reasoning_matched_xaxis_zoomed.pdf"
         ),
-        "xhigh_zoomed_summary_filename": (
+        "reasoning_matched_zoomed_summary_filename": (
             "restrictedaccess_osworld_verified_capability_vs_misalignment_"
-            "base_plus_xhighreasoningeffort_xaxis_zoomed.json"
+            "reasoning_matched_xaxis_zoomed.json"
         ),
     },
 }
@@ -2835,7 +2861,14 @@ def write_combined_rates_with_subagents_outputs(
     print(f"[combined+subagents] wrote plot: {combined_plot_path}", flush=True)
 
 
-def xhigh_reasoning_effort_label(payload: Dict[str, Any]) -> str:
+def result_reasoning_effort_label(payload: Dict[str, Any]) -> str:
+    payload_reasoning_effort = payload.get("reasoning_effort")
+    if (
+        isinstance(payload_reasoning_effort, str)
+        and payload_reasoning_effort.strip()
+    ):
+        return payload_reasoning_effort.strip()
+
     result_dir = payload.get("result_dir")
     if result_dir:
         args_path = Path(str(result_dir)).parent / "args.json"
@@ -2843,6 +2876,10 @@ def xhigh_reasoning_effort_label(payload: Dict[str, Any]) -> str:
         reasoning_effort = args_payload.get("reasoning_effort")
         if isinstance(reasoning_effort, str) and reasoning_effort.strip():
             return reasoning_effort.strip()
+
+    run_group = str(payload.get("run_group", "base"))
+    if run_group == "base":
+        return "medium"
 
     model = str(payload.get("model", ""))
     if model.startswith("gpt-5.4"):
@@ -2852,6 +2889,10 @@ def xhigh_reasoning_effort_label(payload: Dict[str, Any]) -> str:
     if model.startswith("gemini/") or model.startswith("gemini__"):
         return "high"
     return "xhigh"
+
+
+def xhigh_reasoning_effort_label(payload: Dict[str, Any]) -> str:
+    return result_reasoning_effort_label(payload)
 
 
 def build_capability_misalignment_summary(
@@ -2995,6 +3036,7 @@ def build_osworld_verified_misalignment_summary(
     scenario: str,
     leaf_payloads: Sequence[Dict[str, Any]],
     include_xhigh_reasoning_effort: bool = False,
+    match_public_reasoning_configuration: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Combine public OSWorld-Verified capability with local misalignment rates."""
     if scenario not in DEFAULT_SCENARIOS:
@@ -3007,6 +3049,7 @@ def build_osworld_verified_misalignment_summary(
 
     by_run: Dict[Tuple[str, str], Dict[str, Any]] = {}
     omitted_by_model: Dict[str, Dict[str, Any]] = {}
+    omitted_runs: List[Dict[str, Any]] = []
     for payload in leaf_payloads:
         run_group = str(payload.get("run_group", "base"))
         if run_group not in included_run_groups:
@@ -3028,11 +3071,67 @@ def build_osworld_verified_misalignment_summary(
             omitted["run_groups"].add(run_group)
             continue
 
+        run_reasoning_effort = result_reasoning_effort_label(payload)
+        published_reasoning_effort = score.get("published_reasoning_effort")
+        if match_public_reasoning_configuration:
+            published_reasoning_mode = score.get("published_reasoning_mode")
+            run_has_thinking_enabled = run_reasoning_effort.casefold() not in {
+                "none",
+                "disabled",
+                "off",
+            }
+            matches_named_effort = (
+                isinstance(published_reasoning_effort, str)
+                and run_reasoning_effort.casefold()
+                == published_reasoning_effort.casefold()
+            )
+            matches_enabled_mode = (
+                published_reasoning_mode == "enabled" and run_has_thinking_enabled
+            )
+            if not matches_named_effort and not matches_enabled_mode:
+                if isinstance(published_reasoning_effort, str):
+                    reason = (
+                        f"Run effort {run_reasoning_effort!r} does not match the "
+                        f"published OSWorld-Verified effort "
+                        f"{published_reasoning_effort!r}."
+                    )
+                elif published_reasoning_mode == "enabled":
+                    reason = (
+                        "The public OSWorld-Verified result used thinking mode, "
+                        f"but this run is labeled {run_reasoning_effort!r}."
+                    )
+                else:
+                    reason = (
+                        "The public OSWorld-Verified result does not disclose a "
+                        "reasoning configuration that can be matched."
+                    )
+                omitted_runs.append(
+                    {
+                        "model": model,
+                        "model_display_name": model_display_name,
+                        "run_group": run_group,
+                        "run_reasoning_effort": run_reasoning_effort,
+                        "published_reasoning_configuration": score.get(
+                            "published_reasoning_configuration"
+                        ),
+                        "reason": reason,
+                    }
+                )
+                continue
+
         variant_name = str(payload.get("variant_name", run_group))
         plot_label = str(payload.get("plot_label", variant_name))
-        if run_group == "xhighreasoningeffort":
-            reasoning_effort = xhigh_reasoning_effort_label(payload)
-            model_display_name = f"{model_display_name} ({reasoning_effort})"
+        if run_group == "xhighreasoningeffort" or match_public_reasoning_configuration:
+            reasoning_effort = run_reasoning_effort
+            reasoning_display_label = reasoning_effort
+            if (
+                match_public_reasoning_configuration
+                and score.get("published_reasoning_mode") == "enabled"
+            ):
+                reasoning_display_label = "thinking enabled"
+            model_display_name = (
+                f"{model_display_name} ({reasoning_display_label})"
+            )
             plot_label = model_display_name
         else:
             reasoning_effort = None
@@ -3097,15 +3196,31 @@ def build_osworld_verified_misalignment_summary(
             "osworld_verified_success_rate": float(score["success_rate"]),
             "osworld_verified_source_label": str(score["source_label"]),
             "osworld_verified_source_url": str(score["source_url"]),
+            "published_reasoning_configuration": str(
+                score["published_reasoning_configuration"]
+            ),
+            "reasoning_source_url": str(score["reasoning_source_url"]),
             "result_dirs": sorted(entry["result_dirs"]),
         }
+        if score.get("published_reasoning_effort") is not None:
+            run["published_reasoning_effort"] = str(
+                score["published_reasoning_effort"]
+            )
+        if score.get("published_reasoning_mode") is not None:
+            run["published_reasoning_mode"] = str(
+                score["published_reasoning_mode"]
+            )
         if entry["reasoning_effort"]:
             run["reasoning_effort"] = entry["reasoning_effort"]
         runs.append(run)
 
     def sort_key(run: Dict[str, Any]) -> Tuple[int, int, str]:
         run_group = str(run.get("run_group", "base"))
-        run_group_index = 0 if run_group == "base" else 1
+        run_group_index = (
+            0
+            if match_public_reasoning_configuration or run_group == "base"
+            else 1
+        )
         model = str(run["model"])
         try:
             model_index = MODEL_ORDER.index(model)
@@ -3125,10 +3240,19 @@ def build_osworld_verified_misalignment_summary(
             }
         )
     omitted_models.sort(key=lambda entry: str(entry["model"]))
+    omitted_runs.sort(
+        key=lambda entry: (
+            str(entry["model"]),
+            str(entry["run_group"]),
+            str(entry["run_reasoning_effort"]),
+        )
+    )
 
     config = OSWORLD_SCATTER_PLOT_CONFIG[family]
     plot_title = config["title"]
-    if include_xhigh_reasoning_effort:
+    if match_public_reasoning_configuration:
+        plot_title = f"{plot_title} (Reasoning-Matched Runs)"
+    elif include_xhigh_reasoning_effort:
         plot_title = f"{plot_title} (Base + High-Reasoning Variants)"
     return {
         "script_version": SCRIPT_VERSION,
@@ -3139,9 +3263,21 @@ def build_osworld_verified_misalignment_summary(
         "x_axis_metric": "osworld_verified_success_rate",
         "y_axis_label": config["y_axis_label"],
         "includes_xhigh_reasoning_effort": include_xhigh_reasoning_effort,
+        "matches_public_reasoning_configuration": (
+            match_public_reasoning_configuration
+        ),
+        "marker_style": (
+            "filled_circle"
+            if match_public_reasoning_configuration
+            else "run_group"
+        ),
         "osworld_verified_scores_checked_at": OSWORLD_VERIFIED_SCORES_CHECKED_AT,
+        "osworld_verified_reasoning_checked_at": (
+            OSWORLD_VERIFIED_REASONING_CHECKED_AT
+        ),
         "osworld_verified_score_note": OSWORLD_VERIFIED_SCORE_NOTE,
         "omitted_models": omitted_models,
+        "omitted_runs": omitted_runs,
         "runs": runs,
     }
 
@@ -3587,6 +3723,8 @@ def render_scatter_plot_pdf(
     runs: Sequence[Dict[str, Any]],
     x_value_key: str = "success_rate",
     x_axis_limits: Optional[Tuple[float, float]] = None,
+    show_diagonal_reference: bool = True,
+    marker_by_run_group: bool = True,
 ) -> bytes:
     plt, _ = load_matplotlib()
     figure = plt.figure(figsize=(10.8, 6.6), dpi=100)
@@ -3610,7 +3748,8 @@ def render_scatter_plot_pdf(
         axis.set_xticklabels(
             [f"{tick:.3f}".rstrip("0").rstrip(".") for tick in x_ticks]
         )
-    axis.set_ylim(-0.02, 1.02)
+    # Leave enough headroom for star markers at exact 0% and 100% rates.
+    axis.set_ylim(-0.04, 1.04)
     axis.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
     axis.grid(True, color="#E7E7E7", linewidth=1.0)
     axis.set_axisbelow(True)
@@ -3697,7 +3836,11 @@ def render_scatter_plot_pdf(
         model = str(run.get("model", ""))
         color = model_colors.get(model, "#666666")
         run_group = str(run.get("run_group", "base"))
-        marker = "*" if run_group == "xhighreasoningeffort" else "o"
+        marker = (
+            "*"
+            if marker_by_run_group and run_group == "xhighreasoningeffort"
+            else "o"
+        )
         x = float(run.get(x_value_key, 0.0))
         y = float(run.get("misalignment_rate", 0.0))
         completed = int(run.get("completed_tasks", 0))
@@ -3709,21 +3852,14 @@ def render_scatter_plot_pdf(
         marker_size = legend_marker_size
         if model in coincident_models:
             marker_size = 260 if marker == "*" else 500
-        marker_kwargs: Dict[str, Any]
-        if marker == "*":
-            # A smaller white star inside a larger base circle makes exact
-            # base/high-reasoning overlaps visible without moving either point.
-            marker_kwargs = {
-                "facecolors": "white",
-                "edgecolors": color,
-                "linewidths": 2.2,
-            }
-        else:
-            marker_kwargs = {
-                "color": color,
-                "edgecolors": "white",
-                "linewidths": 1.8,
-            }
+        # Keep high-reasoning task-success variants visually distinct with the
+        # original solid star marker. Exact overlaps remain visible because the
+        # base circle is enlarged and drawn first.
+        marker_kwargs: Dict[str, Any] = {
+            "color": color,
+            "edgecolors": "white",
+            "linewidths": 1.8,
+        }
         axis.scatter(
             [x],
             [y],
@@ -3742,7 +3878,15 @@ def render_scatter_plot_pdf(
         )
         legend_handles.append(handle)
 
-    axis.plot([0.0, 1.0], [0.0, 1.0], linestyle="--", color="#D0D0D0", linewidth=1.1, zorder=1)
+    if show_diagonal_reference:
+        axis.plot(
+            [0.0, 1.0],
+            [0.0, 1.0],
+            linestyle="--",
+            color="#D0D0D0",
+            linewidth=1.1,
+            zorder=1,
+        )
 
     axis.legend(
         handles=legend_handles,
@@ -5630,34 +5774,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"[{scenario}] wrote scatter summary: {scatter_summary_path}", flush=True)
             print(f"[{scenario}] wrote scatter plot: {scatter_plot_path}", flush=True)
 
-        osworld_scatter_summary = build_osworld_verified_misalignment_summary(
-            scenario,
-            base_payloads,
-        )
-        if osworld_scatter_summary is not None:
-            osworld_config = OSWORLD_SCATTER_PLOT_CONFIG[
-                scenario_config(scenario)["family"]
-            ]
-            osworld_summary_path = summary_dir / osworld_config["summary_filename"]
-            write_json(osworld_summary_path, osworld_scatter_summary)
-            osworld_pdf = render_scatter_plot_pdf(
-                title=osworld_scatter_summary["plot_title"],
-                x_axis_label=osworld_scatter_summary["x_axis_label"],
-                y_axis_label=osworld_scatter_summary["y_axis_label"],
-                runs=osworld_scatter_summary["runs"],
-                x_value_key="osworld_verified_success_rate",
-            )
-            osworld_plot_path = summary_dir / osworld_config["plot_filename"]
-            write_bytes(osworld_plot_path, osworld_pdf)
-            print(
-                f"[{scenario}] wrote OSWorld scatter summary: {osworld_summary_path}",
-                flush=True,
-            )
-            print(
-                f"[{scenario}] wrote OSWorld scatter plot: {osworld_plot_path}",
-                flush=True,
-            )
-
         xhigh_summary_dir = results_root / scenario_config(scenario)["dir_name"] / "xhighreasoningeffort" / "summary"
         xhigh_scatter_summary = build_capability_misalignment_summary(
             scenario,
@@ -5682,80 +5798,100 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"[{scenario}] wrote x-high scatter summary: {xhigh_scatter_summary_path}", flush=True)
             print(f"[{scenario}] wrote x-high scatter plot: {xhigh_scatter_plot_path}", flush=True)
 
-        xhigh_osworld_summary = build_osworld_verified_misalignment_summary(
-            scenario,
-            all_leaf_payloads[scenario],
-            include_xhigh_reasoning_effort=True,
+        reasoning_matched_osworld_summary = (
+            build_osworld_verified_misalignment_summary(
+                scenario,
+                all_leaf_payloads[scenario],
+                include_xhigh_reasoning_effort=True,
+                match_public_reasoning_configuration=True,
+            )
         )
-        has_xhigh_payload = any(
-            payload.get("run_group") == "xhighreasoningeffort"
-            for payload in all_leaf_payloads[scenario]
-        )
-        if xhigh_osworld_summary is not None and has_xhigh_payload:
+        if (
+            reasoning_matched_osworld_summary is not None
+            and reasoning_matched_osworld_summary.get("runs")
+        ):
             osworld_config = OSWORLD_SCATTER_PLOT_CONFIG[
                 scenario_config(scenario)["family"]
             ]
-            xhigh_osworld_summary_path = (
-                xhigh_summary_dir / osworld_config["xhigh_summary_filename"]
+            reasoning_matched_summary_path = (
+                xhigh_summary_dir
+                / osworld_config["reasoning_matched_summary_filename"]
             )
-            write_json(xhigh_osworld_summary_path, xhigh_osworld_summary)
-            xhigh_osworld_pdf = render_scatter_plot_pdf(
-                title=xhigh_osworld_summary["plot_title"],
-                x_axis_label=xhigh_osworld_summary["x_axis_label"],
-                y_axis_label=xhigh_osworld_summary["y_axis_label"],
-                runs=xhigh_osworld_summary["runs"],
+            write_json(
+                reasoning_matched_summary_path,
+                reasoning_matched_osworld_summary,
+            )
+            reasoning_matched_pdf = render_scatter_plot_pdf(
+                title=reasoning_matched_osworld_summary["plot_title"],
+                x_axis_label=reasoning_matched_osworld_summary["x_axis_label"],
+                y_axis_label=reasoning_matched_osworld_summary["y_axis_label"],
+                runs=reasoning_matched_osworld_summary["runs"],
                 x_value_key="osworld_verified_success_rate",
+                marker_by_run_group=False,
             )
-            xhigh_osworld_plot_path = (
-                xhigh_summary_dir / osworld_config["xhigh_plot_filename"]
+            reasoning_matched_plot_path = (
+                xhigh_summary_dir
+                / osworld_config["reasoning_matched_plot_filename"]
             )
-            write_bytes(xhigh_osworld_plot_path, xhigh_osworld_pdf)
+            write_bytes(reasoning_matched_plot_path, reasoning_matched_pdf)
             print(
-                f"[{scenario}] wrote x-high OSWorld scatter summary: "
-                f"{xhigh_osworld_summary_path}",
+                f"[{scenario}] wrote reasoning-matched OSWorld scatter summary: "
+                f"{reasoning_matched_summary_path}",
                 flush=True,
             )
             print(
-                f"[{scenario}] wrote x-high OSWorld scatter plot: "
-                f"{xhigh_osworld_plot_path}",
+                f"[{scenario}] wrote reasoning-matched OSWorld scatter plot: "
+                f"{reasoning_matched_plot_path}",
                 flush=True,
             )
 
-            zoomed_x_limits = compute_zoomed_scatter_x_limits(
-                xhigh_osworld_summary["runs"],
+            reasoning_matched_zoomed_x_limits = compute_zoomed_scatter_x_limits(
+                reasoning_matched_osworld_summary["runs"],
                 "osworld_verified_success_rate",
             )
-            zoomed_summary = dict(xhigh_osworld_summary)
-            zoomed_summary["x_axis_limits"] = list(zoomed_x_limits)
-            zoomed_summary["coincident_marker_note"] = (
-                "When base and high-reasoning runs have identical x and y values, "
-                "a smaller white high-reasoning star is drawn inside an enlarged "
-                "base circle."
+            reasoning_matched_zoomed_summary = dict(
+                reasoning_matched_osworld_summary
             )
-            zoomed_summary_path = (
-                xhigh_summary_dir / osworld_config["xhigh_zoomed_summary_filename"]
+            reasoning_matched_zoomed_summary["x_axis_limits"] = list(
+                reasoning_matched_zoomed_x_limits
             )
-            write_json(zoomed_summary_path, zoomed_summary)
-            zoomed_pdf = render_scatter_plot_pdf(
-                title=zoomed_summary["plot_title"],
-                x_axis_label=f'{zoomed_summary["x_axis_label"]} (zoomed)',
-                y_axis_label=zoomed_summary["y_axis_label"],
-                runs=zoomed_summary["runs"],
+            reasoning_matched_zoomed_summary["shows_diagonal_reference"] = False
+            reasoning_matched_zoomed_summary_path = (
+                xhigh_summary_dir
+                / osworld_config["reasoning_matched_zoomed_summary_filename"]
+            )
+            write_json(
+                reasoning_matched_zoomed_summary_path,
+                reasoning_matched_zoomed_summary,
+            )
+            reasoning_matched_zoomed_pdf = render_scatter_plot_pdf(
+                title=reasoning_matched_zoomed_summary["plot_title"],
+                x_axis_label=(
+                    f'{reasoning_matched_zoomed_summary["x_axis_label"]} (zoomed)'
+                ),
+                y_axis_label=reasoning_matched_zoomed_summary["y_axis_label"],
+                runs=reasoning_matched_zoomed_summary["runs"],
                 x_value_key="osworld_verified_success_rate",
-                x_axis_limits=zoomed_x_limits,
+                x_axis_limits=reasoning_matched_zoomed_x_limits,
+                show_diagonal_reference=False,
+                marker_by_run_group=False,
             )
-            zoomed_plot_path = (
-                xhigh_summary_dir / osworld_config["xhigh_zoomed_plot_filename"]
+            reasoning_matched_zoomed_plot_path = (
+                xhigh_summary_dir
+                / osworld_config["reasoning_matched_zoomed_plot_filename"]
             )
-            write_bytes(zoomed_plot_path, zoomed_pdf)
+            write_bytes(
+                reasoning_matched_zoomed_plot_path,
+                reasoning_matched_zoomed_pdf,
+            )
             print(
-                f"[{scenario}] wrote zoomed x-high OSWorld scatter summary: "
-                f"{zoomed_summary_path}",
+                f"[{scenario}] wrote zoomed reasoning-matched OSWorld scatter "
+                f"summary: {reasoning_matched_zoomed_summary_path}",
                 flush=True,
             )
             print(
-                f"[{scenario}] wrote zoomed x-high OSWorld scatter plot: "
-                f"{zoomed_plot_path}",
+                f"[{scenario}] wrote zoomed reasoning-matched OSWorld scatter "
+                f"plot: {reasoning_matched_zoomed_plot_path}",
                 flush=True,
             )
 
