@@ -227,6 +227,15 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
 
 
 class TestPaperFigureCli(unittest.TestCase):
+    def test_capability_osworld_is_a_supported_figure(self):
+        args = paper_figures.parse_args(
+            ["capability_osworld_vs_misalignment"]
+        )
+        self.assertEqual(
+            args.figure,
+            "capability_osworld_vs_misalignment",
+        )
+
     def test_judge_sensitivity_is_a_supported_figure(self):
         args = paper_figures.parse_args(["judge_sensitivity"])
         self.assertEqual(args.figure, "judge_sensitivity")
@@ -264,6 +273,59 @@ class TestPaperFigureCli(unittest.TestCase):
         )
         self.assertEqual(args.rerun_results_root, Path("rerun-agentic"))
         self.assertEqual(args.rerun_textonly_root, Path("rerun-text"))
+
+
+class TestCapabilityOSWorldFigure(unittest.TestCase):
+    def test_summary_paths_use_reasoning_matched_zoomed_outputs(self):
+        for scenario in paper_figures.CAPABILITY_OSWORLD_SCENARIOS:
+            path = paper_figures._capability_osworld_summary_path(
+                Path("results"),
+                scenario,
+            )
+            self.assertEqual(
+                path.parts[:3],
+                ("results", scenario, "xhighreasoningeffort"),
+            )
+            self.assertEqual(path.parts[3], "summary")
+            self.assertTrue(
+                path.name.endswith(
+                    "reasoning_matched_xaxis_zoomed.json"
+                )
+            )
+
+    def test_legend_models_follow_the_paper_model_order(self):
+        summaries = (
+            {
+                "runs": [
+                    {"model": "moonshot/kimi-k2.6"},
+                    {"model": "gpt-5.4"},
+                ]
+            },
+            {"runs": [{"model": "gpt-5.5"}]},
+            {"runs": [{"model": "claude-opus-4-6"}]},
+        )
+
+        models = paper_figures._capability_osworld_models(summaries)
+
+        self.assertEqual(
+            models,
+            (
+                "gpt-5.5",
+                "gpt-5.4",
+                "claude-opus-4-6",
+                "moonshot/kimi-k2.6",
+            ),
+        )
+
+    def test_zoomed_ticks_are_thinned_to_four_readable_labels(self):
+        ticks = paper_figures._capability_osworld_x_ticks((0.61, 0.8))
+
+        self.assertEqual(len(ticks), 4)
+        for actual, expected in zip(
+            ticks,
+            (0.625, 0.675, 0.725, 0.775),
+        ):
+            self.assertAlmostEqual(actual, expected)
 
 
 class TestTextAgenticFigureSpecs(unittest.TestCase):

@@ -30,6 +30,8 @@ from aggregate_results import (  # noqa: E402
     INTENDED_COLOR,
     MODEL_ORDER,
     OPENAI_JUDGE_TARGET,
+    OSWORLD_SCATTER_PLOT_CONFIG,
+    SCATTER_MODEL_COLORS,
     SUCCESS_COLOR,
     binomial_standard_error,
     build_judge_profiles,
@@ -61,6 +63,27 @@ DELTA_ANNOTATION_THRESHOLD_PP = 10.0
 TEXT_AGENTIC_BAR_WIDTH = 0.60
 TEXT_AGENTIC_CLUSTER_GAP = 0.18
 TEXT_AGENTIC_GROUP_GAP = 1.0
+CAPABILITY_OSWORLD_OUTPUT_STEM = "capability-osworld_vs_misalignment"
+CAPABILITY_OSWORLD_SCENARIOS = (
+    "override",
+    "rewire",
+    "restrictedaccess",
+)
+CAPABILITY_OSWORLD_PANEL_TITLES = {
+    "override": "(a) Override",
+    "rewire": "(b) Rewire",
+    "restrictedaccess": "(c) Restricted access",
+}
+CAPABILITY_OSWORLD_MODEL_LABELS = {
+    "gpt-5.5": "GPT-5.5 (xhigh)",
+    "gpt-5.4": "GPT-5.4 (xhigh)",
+    "gpt-5.4-mini": "GPT-5.4 Mini (xhigh)",
+    "claude-opus-4-6": "Claude Opus 4.6 (max)",
+    "gemini/gemini-3.1-pro-preview": "Gemini 3.1 Pro (high)",
+    "dashscope/qwen3.6-plus": "Qwen 3.6 Plus (thinking)",
+    "moonshot/kimi-k2.6": "Kimi K2.6 (thinking)",
+}
+CAPABILITY_OSWORLD_FIGURE_SIZE = (5.5, 2.72)
 
 
 @dataclass(frozen=True)
@@ -2215,6 +2238,302 @@ def figure_judge_sensitivity(
     return tuple(output_paths)
 
 
+def _capability_osworld_summary_path(
+    results_root: Path,
+    scenario: str,
+) -> Path:
+    if scenario not in CAPABILITY_OSWORLD_SCENARIOS:
+        raise ValueError(f"Unsupported OSWorld capability scenario: {scenario}")
+    filename = OSWORLD_SCATTER_PLOT_CONFIG[scenario][
+        "reasoning_matched_zoomed_summary_filename"
+    ]
+    return (
+        results_root
+        / scenario
+        / "xhighreasoningeffort"
+        / "summary"
+        / filename
+    )
+
+
+def _load_capability_osworld_summaries(
+    results_root: Path,
+) -> Tuple[Dict[str, Any], ...]:
+    resolved_results_root = Path(results_root).expanduser().resolve()
+    summaries = []
+    for scenario in CAPABILITY_OSWORLD_SCENARIOS:
+        summary_path = _capability_osworld_summary_path(
+            resolved_results_root,
+            scenario,
+        )
+        summary = _read_json(summary_path)
+        if summary.get("scenario") != scenario:
+            raise RuntimeError(
+                f"Expected {scenario!r} summary at {summary_path}, got "
+                f"{summary.get('scenario')!r}."
+            )
+        runs = summary.get("runs")
+        if not isinstance(runs, list) or not runs:
+            raise RuntimeError(
+                f"OSWorld capability summary has no runs: {summary_path}"
+            )
+        x_axis_limits = summary.get("x_axis_limits")
+        if (
+            not isinstance(x_axis_limits, list)
+            or len(x_axis_limits) != 2
+            or not all(
+                isinstance(limit, (int, float)) for limit in x_axis_limits
+            )
+            or float(x_axis_limits[0]) >= float(x_axis_limits[1])
+        ):
+            raise RuntimeError(
+                f"OSWorld capability summary has invalid x-axis limits: "
+                f"{summary_path}"
+            )
+        summaries.append(summary)
+    return tuple(summaries)
+
+
+def _capability_osworld_models(
+    summaries: Sequence[Mapping[str, Any]],
+) -> Tuple[str, ...]:
+    models = {
+        str(run.get("model", ""))
+        for summary in summaries
+        for run in summary.get("runs", [])
+        if isinstance(run, dict) and run.get("model")
+    }
+    ordered_models = [model for model in MODEL_ORDER if model in models]
+    ordered_models.extend(sorted(models - set(ordered_models)))
+    return tuple(ordered_models)
+
+
+def _capability_osworld_x_ticks(
+    x_axis_limits: Tuple[float, float],
+) -> Tuple[float, ...]:
+    x_min, x_max = x_axis_limits
+    if x_min >= x_max:
+        raise ValueError("x_axis_limits must be an increasing pair")
+    base_step = 0.025 if x_max - x_min <= 0.25 else 0.05
+    first_tick = math.ceil((x_min - 1e-12) / base_step) * base_step
+    tick_count = (
+        int(math.floor((x_max - first_tick + 1e-12) / base_step)) + 1
+    )
+    if tick_count <= 0:
+        return (x_min, x_max)
+    all_ticks = [
+        first_tick + index * base_step for index in range(tick_count)
+    ]
+    stride = max(1, math.ceil(len(all_ticks) / 4))
+    return tuple(all_ticks[::stride])
+
+
+def render_capability_osworld_vs_misalignment(
+    summaries: Sequence[Mapping[str, Any]],
+) -> Any:
+    """Render the three reasoning-matched OSWorld scatter panels."""
+    if len(summaries) != len(CAPABILITY_OSWORLD_SCENARIOS):
+        raise RuntimeError(
+            "OSWorld capability figure requires exactly three summaries."
+        )
+    summaries_by_scenario = {
+        str(summary.get("scenario", "")): summary for summary in summaries
+    }
+    if set(summaries_by_scenario) != set(CAPABILITY_OSWORLD_SCENARIOS):
+        raise RuntimeError(
+            "OSWorld capability figure summaries do not match the expected "
+            "scenarios."
+        )
+
+    plt, _ = load_matplotlib()
+    figure, axes = plt.subplots(
+        1,
+        3,
+        figsize=CAPABILITY_OSWORLD_FIGURE_SIZE,
+        sharex=True,
+        sharey=True,
+        squeeze=False,
+    )
+    axes_row = axes[0]
+    fallback_palette = (
+        "#5B8DEF",
+        "#F2B134",
+        "#22A884",
+        "#7C3AED",
+        "#E15759",
+        "#8C6D31",
+    )
+    ordered_models = _capability_osworld_models(summaries)
+    model_colors = {
+        model: SCATTER_MODEL_COLORS.get(
+            model,
+            fallback_palette[index % len(fallback_palette)],
+        )
+        for index, model in enumerate(ordered_models)
+    }
+    x_axis_limits = (
+        min(float(summary["x_axis_limits"][0]) for summary in summaries),
+        max(float(summary["x_axis_limits"][1]) for summary in summaries),
+    )
+    x_ticks = _capability_osworld_x_ticks(x_axis_limits)
+
+    for panel_index, scenario in enumerate(CAPABILITY_OSWORLD_SCENARIOS):
+        axis = axes_row[panel_index]
+        summary = summaries_by_scenario[scenario]
+        axis.set_xlim(*x_axis_limits)
+        axis.set_ylim(-0.04, 1.04)
+        axis.set_xticks(x_ticks)
+        axis.set_xticklabels(
+            [
+                f"{tick:.3f}".rstrip("0").rstrip(".")
+                for tick in x_ticks
+            ]
+        )
+        axis.set_yticks((0.0, 0.25, 0.5, 0.75, 1.0))
+        axis.set_yticklabels(("0.00", "0.25", "0.50", "0.75", "1.00"))
+        axis.tick_params(
+            axis="both",
+            labelsize=7.0,
+            length=2.2,
+            width=0.65,
+            pad=1.7,
+            colors="#222222",
+        )
+        axis.grid(True, color="#E1E1E1", linewidth=0.65)
+        axis.set_axisbelow(True)
+        axis.set_title(
+            CAPABILITY_OSWORLD_PANEL_TITLES[scenario],
+            fontsize=9.2,
+            fontweight="bold",
+            color="#222222",
+            pad=4.0,
+        )
+        axis.spines["top"].set_visible(False)
+        axis.spines["right"].set_visible(False)
+        axis.spines["left"].set_color("#333333")
+        axis.spines["bottom"].set_color("#333333")
+        axis.spines["left"].set_linewidth(0.8)
+        axis.spines["bottom"].set_linewidth(0.8)
+
+        for run in summary["runs"]:
+            if not isinstance(run, dict):
+                continue
+            model = str(run.get("model", ""))
+            axis.scatter(
+                [float(run.get("osworld_verified_success_rate", 0.0))],
+                [float(run.get("misalignment_rate", 0.0))],
+                s=64,
+                marker="o",
+                color=model_colors.get(model, "#666666"),
+                edgecolors="white",
+                linewidths=0.8,
+                zorder=3,
+            )
+
+    legend_handles = [
+        axes_row[0].scatter(
+            [],
+            [],
+            s=46,
+            marker="o",
+            color=model_colors[model],
+            edgecolors="white",
+            linewidths=0.7,
+        )
+        for model in ordered_models
+    ]
+    legend_labels = [
+        CAPABILITY_OSWORLD_MODEL_LABELS.get(model, model)
+        for model in ordered_models
+    ]
+    figure.legend(
+        legend_handles,
+        legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.045),
+        ncol=4,
+        frameon=False,
+        fontsize=7.0,
+        handlelength=0.8,
+        handletextpad=0.35,
+        columnspacing=0.9,
+        labelspacing=0.5,
+        borderaxespad=0.0,
+        scatterpoints=1,
+    )
+    figure.text(
+        0.5,
+        0.265,
+        "OSWorld-Verified success rate (zoomed)",
+        ha="center",
+        va="center",
+        fontsize=8.6,
+        fontweight="bold",
+        color="#222222",
+    )
+    figure.text(
+        0.018,
+        0.63,
+        "Actual misalignment rate",
+        ha="center",
+        va="center",
+        rotation="vertical",
+        fontsize=8.6,
+        fontweight="bold",
+        color="#222222",
+    )
+    figure.subplots_adjust(
+        left=0.105,
+        right=0.99,
+        top=0.90,
+        bottom=0.36,
+        wspace=0.12,
+    )
+    return figure
+
+
+def capability_osworld_vs_misalignment(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the paper's combined OSWorld capability scatter figure."""
+    summaries = _load_capability_osworld_summaries(results_root)
+    figure = render_capability_osworld_vs_misalignment(summaries)
+    resolved_output_dir = Path(output_dir).expanduser().resolve()
+    normalized_formats = tuple(dict.fromkeys(fmt.lower() for fmt in formats))
+    unsupported = [
+        fmt for fmt in normalized_formats if fmt not in {"pdf", "png"}
+    ]
+    if unsupported:
+        raise ValueError(
+            f"Unsupported output format(s): {', '.join(unsupported)}"
+        )
+
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
+    output_paths = []
+    try:
+        for fmt in normalized_formats:
+            output_path = (
+                resolved_output_dir
+                / f"{CAPABILITY_OSWORLD_OUTPUT_STEM}.{fmt}"
+            )
+            save_kwargs: Dict[str, Any] = {
+                "format": fmt,
+                "facecolor": "white",
+            }
+            if fmt == "png":
+                save_kwargs["dpi"] = dpi
+            figure.savefig(output_path, **save_kwargs)
+            output_paths.append(output_path)
+    finally:
+        plt, _ = load_matplotlib()
+        plt.close(figure)
+
+    return tuple(output_paths)
+
+
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate publication-ready ROGUE paper figures."
@@ -2224,6 +2543,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         nargs="?",
         default="figure_9",
         choices=(
+            "capability_osworld_vs_misalignment",
             "figure_2",
             "figure_2_merged",
             "figure_8",
@@ -2285,7 +2605,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        if args.figure == "figure_2":
+        if args.figure == "capability_osworld_vs_misalignment":
+            output_paths = capability_osworld_vs_misalignment(
+                results_root=args.results_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "figure_2":
             output_paths = figure_2(
                 results_root=args.results_root,
                 textonly_root=args.textonly_root,
