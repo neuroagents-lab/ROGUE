@@ -186,6 +186,7 @@ MODEL_ORDER = (
     "moonshot/kimi-k2.6",
 )
 MODEL_DISPLAY_NAMES = {
+    "gpt-5.6-sol": "GPT-5.6 Sol",
     "gpt-5.5": "GPT-5.5",
     "gpt-5.4": "GPT-5.4",
     "gpt-5.4-mini": "GPT-5.4 Mini",

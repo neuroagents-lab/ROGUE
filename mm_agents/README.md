@@ -8,7 +8,7 @@
 `PromptAgent` accepts any LiteLLM-compatible model name, and the actual model availability depends on your provider credentials and whether the model supports the observation type you choose.
 
 In practice we currently use:
-- OpenAI GPT-5 models such as `gpt-5.5` and `gpt-5.4` (the default). These go through LiteLLM's Responses API.
+- OpenAI GPT-5 models such as `gpt-5.6-sol`, `gpt-5.5`, and `gpt-5.4` (the default). These go through LiteLLM's Responses API.
 - OpenAI chat models such as `gpt-4o` and `gpt-4.1`.
 - Anthropic Claude models such as `claude-opus-4-7` and `claude-opus-4-6`.
 - Gemini models such as `gemini/gemini-3.1-pro-preview`.

@@ -135,6 +135,35 @@ from lib_run_single import (
 
 
 class TestPromptAgentSubagent(unittest.TestCase):
+    def test_gpt56_sol_uses_responses_api_with_max_reasoning(self):
+        agent = PromptAgent(
+            model="gpt-5.6-sol",
+            action_space="pyautogui",
+            observation_type="screenshot",
+            reasoning_effort="max",
+        )
+        response = types.SimpleNamespace(output_text="DONE", output=[])
+
+        with mock.patch("mm_agents.agent_litellm.litellm.responses", return_value=response) as responses:
+            response_text, _ = agent.call_llm(
+                {
+                    "model": "gpt-5.6-sol",
+                    "messages": [{"role": "user", "content": "Finish the task."}],
+                    "max_tokens": 100000,
+                    "top_p": 0.9,
+                    "temperature": 1.0,
+                    "reasoning_effort": "max",
+                }
+            )
+
+        self.assertEqual(response_text, "DONE")
+        request = responses.call_args.kwargs
+        self.assertEqual(request["model"], "gpt-5.6-sol")
+        self.assertEqual(request["reasoning"], {"effort": "max", "summary": "auto"})
+        self.assertEqual(request["max_output_tokens"], 100000)
+        self.assertNotIn("top_p", request)
+        self.assertNotIn("temperature", request)
+
     def test_enable_subagents_is_disabled_by_default(self):
         parser = build_parser(
             default_provider="vmware",

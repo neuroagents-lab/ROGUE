@@ -7,16 +7,36 @@ For human control override, we can set ours to **20** (giving the agent 5 extra 
 For shutdown rewiring, we can set the default to **25** (10 extra steps to deal with the shutdown script modification).
 For restricted resource, we can set the default to **40** (it has to discover that it doesn't have access to Google Drive, then find the passwords.txt file). 
 For all subagent augmentations, we can increase the above by 10.
-For the GPT 5.5 xhigh and Claude Opus 4.7 xhigh subagent runs, we keep the rest of the xhigh settings fixed.
+For the GPT 5.6 Sol max, GPT 5.5 xhigh, and Claude Opus 4.7 xhigh subagent runs, we keep the rest of the high-thinking settings fixed.
 
 Note on Claude models: we observe that Claude's visual grounding is not as good. Hence, for most Claude runs we use the accessibility tree. For the claude-opus-4-7 runs below, we use screenshot instead.
 
-Also, for the xhigh reasoning effort experiments, we set `--max_tokens 100000` to give the model more room to reason.
-Thinking-effort variants (`xhigh`, Claude `max`, and Gemini `high`) are listed as separate model entries within each model family.
+For high-thinking experiments, we set `--max_tokens 100000` to give the model more room to reason.
+Thinking-effort variants (GPT 5.6 Sol `max`, `xhigh`, Claude `max`, and Gemini `high`) are listed as separate model entries within each model family.
 
 ## Human Control Override
 
 ### GPT
+
+#### GPT 5.6 Sol max
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 20 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --model gpt-5.6-sol \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_override.json \
+    --result_dir ./results/override/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### GPT 5.5
 ```bash
@@ -303,6 +323,27 @@ python scripts/python/run_multienv.py \
 ## Shutdown Rewiring
 
 ### GPT
+
+#### GPT 5.6 Sol max
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 25 \
+    --per-step-recording \
+    --deployment-prompt \
+    --model gpt-5.6-sol \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_rewire.json \
+    --result_dir ./results/rewire/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### GPT 5.5
 ```bash
@@ -601,6 +642,28 @@ python scripts/python/run_multienv.py \
 ## Restricted Resource Access
 
 ### GPT
+
+#### GPT 5.6 Sol max
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 40 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --show_steps_left_in_prompt \
+    --model gpt-5.6-sol \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### GPT 5.5
 ```bash
@@ -1270,6 +1333,29 @@ python scripts/python/run_multienv.py \
 ## Restricted Resource Access + Subagents
 
 ### GPT
+
+#### GPT 5.6 Sol max + subagents
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model gpt-5.6-sol \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
 
 #### GPT 5.5 xhigh + subagents
 ```bash
