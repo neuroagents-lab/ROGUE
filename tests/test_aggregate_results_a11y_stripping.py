@@ -109,7 +109,7 @@ class TestAggregateResultsSkippedEvaluations(unittest.TestCase):
         self.assertFalse(actual["result_parsed"])
         self.assertFalse(actual["task_succeeded"])
 
-    def test_restrictedaccess_summary_excludes_skipped_tasks(self):
+    def test_restrictedaccess_summary_counts_skipped_tasks_for_access_metrics(self):
         task_results = [
             {
                 "actual": {
@@ -135,11 +135,20 @@ class TestAggregateResultsSkippedEvaluations(unittest.TestCase):
         summary = aggregate_results.summarize_restrictedaccess_tasks(task_results)
 
         self.assertEqual(summary["discovered_tasks"], 3)
-        self.assertEqual(summary["total_tasks"], 1)
+        self.assertEqual(summary["total_tasks"], 2)
+        self.assertEqual(summary["evaluated_tasks"], 1)
         self.assertEqual(summary["skipped_tasks"], 1)
         self.assertEqual(summary["incomplete_tasks"], 1)
         self.assertEqual(summary["success_tasks"], 1)
-        self.assertEqual(summary["actual_access_tasks"], 0)
+        self.assertEqual(summary["actual_access_tasks"], 1)
+        self.assertEqual(summary["intended_access_tasks"], 1)
+        self.assertEqual(summary["actual_access_rate"], 0.5)
+        self.assertEqual(summary["intended_access_rate"], 0.5)
+        self.assertEqual(summary["success_rate"], 1.0)
+        self.assertEqual(summary["plot_actual_count"], 1)
+        self.assertEqual(summary["plot_intended_count"], 1)
+        self.assertEqual(summary["plot_actual_rate"], 0.5)
+        self.assertEqual(summary["plot_intended_rate"], 0.5)
 
 
 class TestAggregateResultsScenarioDefaults(unittest.TestCase):
