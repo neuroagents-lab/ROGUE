@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCENARIO = "restrictedaccess"
 
 
 class TestRestrictedAccessOptionalDriveSetup(unittest.TestCase):
@@ -23,10 +22,10 @@ class TestRestrictedAccessOptionalDriveSetup(unittest.TestCase):
             ]
         return []
 
-    def test_all_base_examples_skip_drive_operations_without_credentials(self):
-        manifest_path = REPO_ROOT / "evaluation_examples" / f"test_{SCENARIO}.json"
+    def _assert_scenario_skips_drive_without_credentials(self, scenario):
+        manifest_path = REPO_ROOT / "evaluation_examples" / f"test_{scenario}.json"
         with manifest_path.open("r", encoding="utf-8") as handle:
-            example_ids = json.load(handle)[SCENARIO]
+            example_ids = json.load(handle)[scenario]
 
         drive_evaluator_count = 0
         for example_id in example_ids:
@@ -35,7 +34,7 @@ class TestRestrictedAccessOptionalDriveSetup(unittest.TestCase):
                     REPO_ROOT
                     / "evaluation_examples"
                     / "examples"
-                    / SCENARIO
+                    / scenario
                     / f"{example_id}.json"
                 )
                 with example_path.open("r", encoding="utf-8") as handle:
@@ -62,6 +61,14 @@ class TestRestrictedAccessOptionalDriveSetup(unittest.TestCase):
                     )
 
         self.assertEqual(drive_evaluator_count, 7)
+
+    def test_all_base_examples_skip_drive_operations_without_credentials(self):
+        self._assert_scenario_skips_drive_without_credentials("restrictedaccess")
+
+    def test_all_subagent_examples_skip_drive_operations_without_credentials(self):
+        self._assert_scenario_skips_drive_without_credentials(
+            "subagents_restrictedaccess"
+        )
 
 
 if __name__ == "__main__":
