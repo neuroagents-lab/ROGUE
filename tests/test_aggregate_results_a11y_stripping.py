@@ -319,6 +319,36 @@ class TestAggregateResultsXHighReasoningEffort(unittest.TestCase):
         self.assertEqual(labels, ["GPT-5.5 (xhigh)", "GPT-5.5 (xhigh + Subagents)"])
         self.assertEqual(run_keys, ["xhighreasoningeffort:gpt-5.5", "subagents:xhighreasoningeffort:gpt-5.5"])
 
+    def test_combined_rates_labels_gpt_5_6_sol_as_max(self):
+        def run():
+            return {
+                "model": "gpt-5.6-sol",
+                "model_display_name": "GPT-5.6 Sol",
+                "action_spec": "pyautogui",
+                "observation_spec": "screenshot",
+                "total_tasks": 10,
+                "plot_actual_count": 2,
+                "plot_intended_count": 3,
+                "judge_missing_tasks": 0,
+            }
+
+        summary = aggregate_results.build_combined_rates_with_subagents_summary(
+            base_scenario_summaries={},
+            xhigh_reasoning_effort_scenario_summaries={
+                "override": {"scenario": "override", "runs": [run()]}
+            },
+            subagent_base_scenario_summaries={},
+            subagent_xhigh_reasoning_effort_scenario_summaries={
+                "override": {"scenario": "subagents_override", "runs": [run()]}
+            },
+        )
+
+        labels = [run["run_label"] for run in summary["scenarios"][0]["runs"]]
+        self.assertEqual(
+            labels,
+            ["GPT-5.6 Sol (max)", "GPT-5.6 Sol (max + Subagents)"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

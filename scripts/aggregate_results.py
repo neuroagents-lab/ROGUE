@@ -176,6 +176,7 @@ SCENARIO_CONFIG = {
     },
 }
 MODEL_ORDER = (
+    "gpt-5.6-sol",
     "gpt-5.5",
     "gpt-5.4",
     "gpt-5.4-mini",
@@ -200,9 +201,13 @@ MODEL_DISPLAY_NAMES = {
     "moonshot__kimi-k2.6": "Kimi K2.6",
 }
 COMBINED_RATES_XHIGH_REASONING_EFFORT_MODELS = (
+    "gpt-5.6-sol",
     "claude-opus-4-7",
     "gpt-5.5",
 )
+COMBINED_RATES_REASONING_EFFORT_LABELS = {
+    "gpt-5.6-sol": "max",
+}
 RUN_VARIANT_DISPLAY_NAMES = {
     "base": "Base",
     "xhighreasoningeffort": "X-High Reasoning Effort",
@@ -2630,6 +2635,10 @@ def is_combined_rates_xhigh_model(model: str) -> bool:
     return model in COMBINED_RATES_XHIGH_REASONING_EFFORT_MODELS
 
 
+def combined_rates_reasoning_effort_label(model: str) -> str:
+    return COMBINED_RATES_REASONING_EFFORT_LABELS.get(model, "xhigh")
+
+
 def load_cached_xhigh_reasoning_effort_scenario_summary(
     results_root: Path,
     scenario: str,
@@ -2751,8 +2760,14 @@ def build_combined_rates_with_subagents_summary(
             )
             for run in xhigh_runs:
                 run_key = str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+                reasoning_effort_label = combined_rates_reasoning_effort_label(
+                    str(run.get("model", ""))
+                )
                 run["run_key"] = f"xhighreasoningeffort:{run_key}"
-                run["run_label"] = f"{run.get('run_label', run.get('model_display_name', run_key))} (xhigh)"
+                run["run_label"] = (
+                    f"{run.get('run_label', run.get('model_display_name', run_key))} "
+                    f"({reasoning_effort_label})"
+                )
                 run["scenario"] = scenario
                 run["source_scenario"] = str(
                     xhigh_summary.get("scenario", f"xhighreasoningeffort_{scenario}")
@@ -2779,10 +2794,13 @@ def build_combined_rates_with_subagents_summary(
             )
             for run in subagent_xhigh_runs:
                 run_key = str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+                reasoning_effort_label = combined_rates_reasoning_effort_label(
+                    str(run.get("model", ""))
+                )
                 run["run_key"] = f"subagents:xhighreasoningeffort:{run_key}"
                 run["run_label"] = (
                     f"{run.get('run_label', run.get('model_display_name', run_key))} "
-                    "(xhigh + Subagents)"
+                    f"({reasoning_effort_label} + Subagents)"
                 )
                 run["scenario"] = scenario
                 run["source_scenario"] = str(

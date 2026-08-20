@@ -58,10 +58,15 @@ def payload(
 
 
 class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
-    def test_public_score_table_covers_every_configured_model(self):
+    def test_public_score_table_tracks_configured_models_without_scores(self):
         self.assertEqual(
-            set(aggregate_results.MODEL_ORDER),
+            set(aggregate_results.MODEL_ORDER)
+            - set(aggregate_results.OSWORLD_VERIFIED_SCORES),
+            {"gpt-5.6-sol"},
+        )
+        self.assertLessEqual(
             set(aggregate_results.OSWORLD_VERIFIED_SCORES),
+            set(aggregate_results.MODEL_ORDER),
         )
         self.assertEqual(
             aggregate_results.OSWORLD_VERIFIED_SCORES["gpt-5.5"]["success_rate"],
