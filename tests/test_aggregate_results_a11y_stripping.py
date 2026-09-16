@@ -13,6 +13,18 @@ if str(SCRIPTS_DIR) not in sys.path:
 import aggregate_results
 
 
+class TestCombinedPlotJudgeCoverage(unittest.TestCase):
+    def test_missing_judgments_cannot_be_plotted_as_zero_intent(self):
+        summary = {
+            "scenarios": [{
+                "scenario": "override",
+                "runs": [{"model": "gpt-6-astra", "judge_missing_tasks": 48}],
+            }]
+        }
+        with self.assertRaisesRegex(ValueError, "48 completed tasks lack primary judge"):
+            aggregate_results.render_combined_rates_plot_pdf(summary)
+
+
 SAMPLE_RUNTIME_LOG = """\
 Generating content with model: claude-opus-4-6
 LINEAR AT:
@@ -328,11 +340,11 @@ class TestAggregateResultsXHighReasoningEffort(unittest.TestCase):
         self.assertEqual(labels, ["GPT-5.5 (xhigh)", "GPT-5.5 (xhigh + Subagents)"])
         self.assertEqual(run_keys, ["xhighreasoningeffort:gpt-5.5", "subagents:xhighreasoningeffort:gpt-5.5"])
 
-    def test_combined_rates_labels_gpt_5_6_sol_as_max(self):
-        def run():
+    def test_combined_rates_labels_astra_and_sol_as_max(self):
+        def run(model, display_name):
             return {
-                "model": "gpt-5.6-sol",
-                "model_display_name": "GPT-5.6 Sol",
+                "model": model,
+                "model_display_name": display_name,
                 "action_spec": "pyautogui",
                 "observation_spec": "screenshot",
                 "total_tasks": 10,
@@ -341,22 +353,40 @@ class TestAggregateResultsXHighReasoningEffort(unittest.TestCase):
                 "judge_missing_tasks": 0,
             }
 
-        summary = aggregate_results.build_combined_rates_with_subagents_summary(
-            base_scenario_summaries={},
-            xhigh_reasoning_effort_scenario_summaries={
-                "override": {"scenario": "override", "runs": [run()]}
-            },
-            subagent_base_scenario_summaries={},
-            subagent_xhigh_reasoning_effort_scenario_summaries={
-                "override": {"scenario": "subagents_override", "runs": [run()]}
-            },
-        )
+        for model, display_name in (
+            ("gpt-6-astra", "GPT-6 Astra"),
+            ("gpt-5.6-sol", "GPT-5.6 Sol"),
+        ):
+            with self.subTest(model=model):
+                summary = aggregate_results.build_combined_rates_with_subagents_summary(
+                    base_scenario_summaries={},
+                    xhigh_reasoning_effort_scenario_summaries={
+                        "override": {
+                            "scenario": "override",
+                            "runs": [run(model, display_name)],
+                        }
+                    },
+                    subagent_base_scenario_summaries={},
+                    subagent_xhigh_reasoning_effort_scenario_summaries={
+                        "override": {
+                            "scenario": "subagents_override",
+                            "runs": [run(model, display_name)],
+                        }
+                    },
+                )
 
-        labels = [run["run_label"] for run in summary["scenarios"][0]["runs"]]
-        self.assertEqual(
-            labels,
-            ["GPT-5.6 Sol (max)", "GPT-5.6 Sol (max + Subagents)"],
-        )
+                runs = summary["scenarios"][0]["runs"]
+                self.assertEqual(
+                    [run["run_label"] for run in runs],
+                    [f"{display_name} (max)", f"{display_name} (max + Subagents)"],
+                )
+                self.assertEqual(
+                    [run["run_key"] for run in runs],
+                    [
+                        f"xhighreasoningeffort:{model}",
+                        f"subagents:xhighreasoningeffort:{model}",
+                    ],
+                )
 
 
 if __name__ == "__main__":

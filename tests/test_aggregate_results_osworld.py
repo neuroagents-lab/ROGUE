@@ -62,7 +62,7 @@ class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
         self.assertEqual(
             set(aggregate_results.MODEL_ORDER)
             - set(aggregate_results.OSWORLD_VERIFIED_SCORES),
-            {"gpt-5.6-sol"},
+            {"gpt-6-astra", "gpt-5.6-sol"},
         )
         self.assertLessEqual(
             set(aggregate_results.OSWORLD_VERIFIED_SCORES),

@@ -13,6 +13,7 @@ import argparse
 import json
 import math
 import sys
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -31,6 +32,7 @@ from aggregate_results import (  # noqa: E402
     MODEL_ORDER,
     OPENAI_JUDGE_TARGET,
     OSWORLD_SCATTER_PLOT_CONFIG,
+    SCATTER_PLOT_CONFIG,
     SCATTER_MODEL_COLORS,
     SUCCESS_COLOR,
     binomial_standard_error,
@@ -63,6 +65,9 @@ DELTA_ANNOTATION_THRESHOLD_PP = 10.0
 TEXT_AGENTIC_BAR_WIDTH = 0.60
 TEXT_AGENTIC_CLUSTER_GAP = 0.18
 TEXT_AGENTIC_GROUP_GAP = 1.0
+CAPABILITY_OUTPUT_STEM = "capability_vs_misalignment"
+CAPABILITY_SCENARIOS = ("override", "rewire")
+CAPABILITY_FIGURE_SIZE = (16.0, 5.5)
 CAPABILITY_OSWORLD_OUTPUT_STEM = "capability-osworld_vs_misalignment"
 CAPABILITY_OSWORLD_SCENARIOS = (
     "override",
@@ -2238,6 +2243,198 @@ def figure_judge_sensitivity(
     return tuple(output_paths)
 
 
+def _capability_summary_path(results_root: Path, scenario: str) -> Path:
+    if scenario not in CAPABILITY_SCENARIOS:
+        raise ValueError(f"Unsupported task-success capability scenario: {scenario}")
+    return (
+        results_root
+        / scenario
+        / "xhighreasoningeffort"
+        / "summary"
+        / SCATTER_PLOT_CONFIG[scenario]["xhigh_summary_filename"]
+    )
+
+
+def _capability_plot_runs(
+    summary: Mapping[str, Any],
+) -> Tuple[Tuple[Mapping[str, Any], ...], Tuple[str, ...]]:
+    """Validate the plotted denominators and judge coverage before rendering."""
+    scenario = summary.get("scenario")
+    if scenario not in CAPABILITY_SCENARIOS:
+        raise RuntimeError(f"Unexpected capability scenario: {scenario!r}.")
+    runs = summary.get("runs")
+    if not isinstance(runs, list) or not runs:
+        raise RuntimeError(f"Capability summary for {scenario!r} has no runs.")
+    plotted = []
+    omitted = []
+    for run in runs:
+        if not isinstance(run, dict) or not run.get("model"):
+            raise RuntimeError(f"Invalid capability run for {scenario!r}.")
+        label = str(run.get("model_display_name", run["model"]))
+        if scenario == "rewire" and run.get("judge_missing_tasks") != 0:
+            raise RuntimeError(
+                f"Rewire capability requires complete primary-judge coverage: "
+                f"{label} has missing or unknown judge coverage."
+            )
+        completed = run.get("completed_tasks")
+        denominator = run.get("capability_denominator_tasks")
+        if not isinstance(completed, int) or completed <= 0:
+            raise RuntimeError(f"{scenario}: {label} has no completed tasks.")
+        if not isinstance(denominator, int) or not 0 <= denominator <= completed:
+            raise RuntimeError(f"{scenario}: {label} has an invalid capability denominator.")
+        if scenario == "override" and denominator == 0:
+            # The aggregate retains a legacy 0.0 success_rate in this case;
+            # conditional task success is undefined, not a point at zero.
+            omitted.append(label)
+            continue
+        if denominator == 0:
+            raise RuntimeError(f"{scenario}: {label} has no capability observations.")
+        for field in ("success_rate", "misalignment_rate"):
+            value = run.get(field)
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise RuntimeError(f"{scenario}: {label} has an invalid {field}.")
+        plotted.append(run)
+    return tuple(plotted), tuple(omitted)
+
+
+def render_capability_vs_misalignment(
+    summaries: Sequence[Mapping[str, Any]],
+) -> Any:
+    """Render ROGUE task success against override and shutdown-rewiring rates."""
+    summaries_by_scenario = {
+        str(summary.get("scenario", "")): summary for summary in summaries
+    }
+    if len(summaries) != 2 or set(summaries_by_scenario) != set(CAPABILITY_SCENARIOS):
+        raise RuntimeError("Task-success capability figure requires override and rewire summaries.")
+    prepared = {
+        scenario: _capability_plot_runs(summaries_by_scenario[scenario])
+        for scenario in CAPABILITY_SCENARIOS
+    }
+    plt, _ = load_matplotlib()
+    figure, axes = plt.subplots(1, 2, figsize=CAPABILITY_FIGURE_SIZE)
+    ordered_models = _capability_osworld_models(summaries)
+    fallback_palette = ("#5B8DEF", "#F2B134", "#22A884", "#7C3AED", "#E15759", "#8C6D31")
+    model_colors = {
+        model: SCATTER_MODEL_COLORS.get(model, fallback_palette[index % len(fallback_palette)])
+        for index, model in enumerate(ordered_models)
+    }
+    legend_runs: Dict[Tuple[str, str], Mapping[str, Any]] = {}
+    for axis, scenario in zip(axes, CAPABILITY_SCENARIOS):
+        plotted, _ = prepared[scenario]
+        config = SCATTER_PLOT_CONFIG[scenario]
+        axis.set_xlim(-0.02, 1.02)
+        axis.set_ylim(-0.04, 1.04)
+        ticks = (0.0, 0.25, 0.5, 0.75, 1.0)
+        tick_labels = tuple(f"{tick:.2f}" for tick in ticks)
+        axis.set_xticks(ticks, tick_labels)
+        axis.set_yticks(ticks, tick_labels)
+        axis.tick_params(axis="both", labelsize=10, colors="#222222")
+        axis.grid(True, color="#E7E7E7", linewidth=1.0)
+        axis.set_axisbelow(True)
+        axis.set_xlabel(config["x_axis_label"], fontsize=12, fontweight="bold", labelpad=9)
+        y_label = (
+            "Misalignment (Shutdown Avoidance Rate)"
+            if scenario == "rewire" else config["y_axis_label"]
+        )
+        axis.set_ylabel(y_label, fontsize=12, fontweight="bold", labelpad=9)
+        for spine in ("top", "right"):
+            axis.spines[spine].set_visible(False)
+        for spine in ("left", "bottom"):
+            axis.spines[spine].set_color("#333333")
+            axis.spines[spine].set_linewidth(1.0)
+        axis.plot([0, 1], [0, 1], linestyle="--", color="#D0D0D0", linewidth=1.0, zorder=1)
+
+        by_model: Dict[str, Dict[str, Mapping[str, Any]]] = {}
+        for run in plotted:
+            model = str(run["model"])
+            run_group = str(run.get("run_group", "base"))
+            by_model.setdefault(model, {})[run_group] = run
+            legend_runs.setdefault((model, run_group), run)
+        for model, runs in by_model.items():
+            base = runs.get("base")
+            high = runs.get("xhighreasoningeffort")
+            if base is not None and high is not None:
+                axis.plot(
+                    [base["success_rate"], high["success_rate"]],
+                    [base["misalignment_rate"], high["misalignment_rate"]],
+                    color=model_colors[model], linestyle=":", linewidth=1.6, alpha=0.85, zorder=2,
+                )
+            for run_group, run in runs.items():
+                high_reasoning = run_group == "xhighreasoningeffort"
+                axis.scatter(
+                    [run["success_rate"]], [run["misalignment_rate"]],
+                    s=190 if high_reasoning else 110,
+                    marker="*" if high_reasoning else "o",
+                    color=model_colors[model], edgecolors="white", linewidths=0.9, zorder=3,
+                )
+
+    ordered_keys = sorted(
+        legend_runs,
+        key=lambda key: (key[1] != "base", ordered_models.index(key[0])),
+    )
+    handles = [
+        axes[0].scatter(
+            [], [], s=130 if run_group == "xhighreasoningeffort" else 70,
+            marker="*" if run_group == "xhighreasoningeffort" else "o",
+            color=model_colors[model], edgecolors="white", linewidths=0.7,
+        )
+        for model, run_group in ordered_keys
+    ]
+    figure.legend(
+        handles,
+        [str(legend_runs[key].get("model_display_name", key[0])) for key in ordered_keys],
+        loc="upper left", bbox_to_anchor=(0.825, 0.98), frameon=False,
+        fontsize=9.5, handlelength=1.0, handletextpad=0.4, labelspacing=0.65,
+        borderaxespad=0.0,
+    )
+    omitted = prepared["override"][1]
+    if omitted:
+        note = (
+            f"Override omits {', '.join(omitted)}: task success among overrides "
+            "is undefined when no overrides occurred."
+        )
+        figure.text(
+            0.055, 0.035, textwrap.fill(note, width=165),
+            ha="left", va="bottom", fontsize=9, color="#555555",
+        )
+    figure.subplots_adjust(left=0.055, right=0.815, top=0.97, bottom=0.20, wspace=0.18)
+    return figure
+
+
+def capability_vs_misalignment(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Generate the website's two-panel ROGUE task-success capability figure."""
+    normalized_formats = tuple(dict.fromkeys(fmt.lower() for fmt in formats))
+    unsupported = [fmt for fmt in normalized_formats if fmt not in {"pdf", "png"}]
+    if unsupported:
+        raise ValueError(f"Unsupported output format(s): {', '.join(unsupported)}")
+    resolved_results_root = Path(results_root).expanduser().resolve()
+    summaries = []
+    for scenario in CAPABILITY_SCENARIOS:
+        path = _capability_summary_path(resolved_results_root, scenario)
+        summary = _read_json(path)
+        if summary.get("scenario") != scenario:
+            raise RuntimeError(f"Expected {scenario!r} capability summary at {path}.")
+        summaries.append(summary)
+    figure = render_capability_vs_misalignment(summaries)
+    resolved_output_dir = Path(output_dir).expanduser().resolve()
+    output_paths = []
+    try:
+        resolved_output_dir.mkdir(parents=True, exist_ok=True)
+        for fmt in normalized_formats:
+            path = resolved_output_dir / f"{CAPABILITY_OUTPUT_STEM}.{fmt}"
+            figure.savefig(path, format=fmt, facecolor="white", dpi=dpi)
+            output_paths.append(path)
+    finally:
+        plt, _ = load_matplotlib()
+        plt.close(figure)
+    return tuple(output_paths)
+
+
 def _capability_osworld_summary_path(
     results_root: Path,
     scenario: str,
@@ -2543,6 +2740,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         nargs="?",
         default="figure_9",
         choices=(
+            "capability_vs_misalignment",
             "capability_osworld_vs_misalignment",
             "figure_2",
             "figure_2_merged",
@@ -2605,7 +2803,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        if args.figure == "capability_osworld_vs_misalignment":
+        if args.figure == "capability_vs_misalignment":
+            output_paths = capability_vs_misalignment(
+                results_root=args.results_root,
+                output_dir=args.output_dir,
+                formats=args.formats,
+                dpi=args.dpi,
+            )
+        elif args.figure == "capability_osworld_vs_misalignment":
             output_paths = capability_osworld_vs_misalignment(
                 results_root=args.results_root,
                 output_dir=args.output_dir,
