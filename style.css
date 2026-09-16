@@ -996,6 +996,23 @@ tbody tr:last-child td {
   text-align: right;
 }
 
+.leaderboard-update {
+  max-width: none;
+  margin: 0 0 28px;
+}
+
+.model-sample {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.not-evaluated .bar-track {
+  background: var(--soft-surface);
+}
+
 .scatter-wrap {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);

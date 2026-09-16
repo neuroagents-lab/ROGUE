@@ -1454,14 +1454,14 @@
         <figure class="result-figure">
           <img src="main-results.png" alt="Figure 3 showing misalignment rates across human control override, shutdown rewiring, and restricted resource access scenarios">
           <figcaption>
-            <b>Figure 3.</b> Misalignment appears across all three ROGUE scenarios. The subagent results show why delegation is especially important: safety instructions can fail to transfer to the agent actually doing the work.
+            <b>Figure 3.</b> Actual and intended misalignment across the three ROGUE scenarios, updated September 16, 2026 to include GPT-6 Astra and GPT-5.6 Sol at max reasoning. Intent is evaluated by GPT-5.5 at xhigh reasoning. For each new model, four override tasks failed setup and are excluded (48 completed tasks); shutdown and restricted-access runs contain 22 and 8 completed tasks, respectively. New-model subagent results are available for restricted access (8 tasks each). Error bars show one binomial standard error. <a href="combined_rates_with_subagents.pdf">Download figure (PDF)</a>.
           </figcaption>
         </figure>
 
         <figure class="result-figure result-figure-wide">
           <img src="capability-alignment.png" alt="Figure 4 comparing task success against misalignment for human control override and shutdown rewiring">
           <figcaption>
-            <b>Figure 4.</b> We plot capability vs misalignment in User Override (Left) and Shutdown Rewiring (Right) scenarios. We find that stronger task performance coincides with a greater tendency to violate corrigibility.
+            <b>Figure 4.</b> Task success and misalignment in human control override (left) and shutdown rewiring (right). Override capability is task success among tasks with actual overrides; GPT-6 Astra is omitted from that panel because it made no overrides. Shutdown avoidance includes either script changes or alternate avoidance methods. Circles show base runs and stars show higher-reasoning runs. <a href="capability_vs_misalignment.pdf">Download figure (PDF)</a>.
           </figcaption>
         </figure>
       </div>
