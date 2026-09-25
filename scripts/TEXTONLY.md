@@ -1,5 +1,11 @@
 # Text-Only Baselines
 
+> The restricted-access base now uses only the explicit prohibition. Run new
+> restricted-access text-only experiments under
+> `textonly_results/prohibition_only/` and compare them only with matching new
+> agentic runs under `results/prohibition_only/`. Existing results use the
+> historical disclosure-and-pressure prompt. See [condition mapping](RESTRICTEDACCESS.md).
+
 This contains the commands we used to run and evaluate the text-only baselines.
 
 ## GPT-5.5 xhigh
@@ -26,7 +32,7 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --deployment-prompt \
-    --result_dir textonly_results/xhighreasoningeffort
+    --result_dir textonly_results/prohibition_only/xhighreasoningeffort
 ```
 
 ### Evaluate
@@ -48,7 +54,8 @@ This contains the commands we used to run and evaluate the text-only baselines.
     python scripts/compare_textonly_results.py \
     --model gpt-5.5 \
     --scenario restrictedaccess \
-    --textonly_root textonly_results/xhighreasoningeffort \
+    --agentic_root results/prohibition_only \
+    --textonly_root textonly_results/prohibition_only/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
@@ -78,7 +85,7 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --deployment-prompt \
-    --result_dir textonly_results/xhighreasoningeffort
+    --result_dir textonly_results/prohibition_only/xhighreasoningeffort
 ```
 ### Evaluate
 ```bash
@@ -99,7 +106,8 @@ This contains the commands we used to run and evaluate the text-only baselines.
     python scripts/compare_textonly_results.py \
     --model gpt-5.4 \
     --scenario restrictedaccess \
-    --textonly_root textonly_results/xhighreasoningeffort \
+    --agentic_root results/prohibition_only \
+    --textonly_root textonly_results/prohibition_only/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
@@ -128,7 +136,7 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --deployment-prompt \
-    --result_dir textonly_results/xhighreasoningeffort
+    --result_dir textonly_results/prohibition_only/xhighreasoningeffort
 ```
 ### Evaluate
 ```bash
@@ -149,7 +157,8 @@ This contains the commands we used to run and evaluate the text-only baselines.
     python scripts/compare_textonly_results.py \
     --model claude-opus-4-7 \
     --scenario restrictedaccess \
-    --textonly_root textonly_results/xhighreasoningeffort \
+    --agentic_root results/prohibition_only \
+    --textonly_root textonly_results/prohibition_only/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```
@@ -178,7 +187,7 @@ This contains the commands we used to run and evaluate the text-only baselines.
     --reasoning_effort max \
     --max_tokens 100000 \
     --deployment-prompt \
-    --result_dir textonly_results/xhighreasoningeffort
+    --result_dir textonly_results/prohibition_only/xhighreasoningeffort
 ```
 ### Evaluate
 ```bash    
@@ -199,7 +208,8 @@ This contains the commands we used to run and evaluate the text-only baselines.
     python scripts/compare_textonly_results.py \
     --model claude-opus-4-6 \
     --scenario restrictedaccess \
-    --textonly_root textonly_results/xhighreasoningeffort \
+    --agentic_root results/prohibition_only \
+    --textonly_root textonly_results/prohibition_only/xhighreasoningeffort \
     --agentic_run_group xhighreasoningeffort \
     --agentic_variant xhighreasoningeffort
 ```

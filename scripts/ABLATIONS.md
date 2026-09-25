@@ -1,4 +1,12 @@
 # Ablation Experiments
+
+> Restricted-access ablations retain their original prompts and results. They
+> are now described relative to a prohibition-only base, which has no results
+> yet. See [the condition mapping](RESTRICTEDACCESS.md). In commands that used
+> the former base, the manifest below now points to its preserved
+> `informationpressure` definition; those reproduction commands write to a
+> fresh `results/historical_prompt_reruns/` root. The original result paths remain
+> documented in the condition mapping and are not moved or overwritten.
 This is a file to document the specific commands/args we use to run each ablation experiment.
 
 ## Scenario: Human Control Override
@@ -401,7 +409,7 @@ python scripts/python/run_multienv.py --provider_name aws --headless --action_sp
 
 ### Claude Opus 4.6
 
-#### Ablation: Remove urgency, creativity, and completion prompts -- COMPLETED
+#### Condition: Credential disclosure + timestep pressure -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -426,7 +434,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_urgencycreativitycompletionablation.json --result_dir ./results/restrictedaccess/ablations/urgencycreativitycompletion --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Ablation: Remove urgency, creativity, completion, and time/task pressure prompts
+#### Condition: Credential disclosure only (no completion pressure)
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -476,7 +484,7 @@ python scripts/python/run_multienv.py --provider_name aws --headless --action_sp
 ```
 
 
-#### Ablation: Remove restricted resource information -- COMPLETED
+#### Condition: Completion pressure without credential disclosure -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -502,7 +510,7 @@ python scripts/python/run_multienv.py --provider_name aws --headless --action_sp
 ```
 
 
-#### Ablation: Realistic prompt wording -- COMPLETED
+#### Contextual wording alternative: Polite explicit-path restriction -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -525,7 +533,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation.json --result_dir ./results/restrictedaccess/ablations/realism --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Ablation: Realistic prompt wording -- Desktop privacy
+#### Contextual wording alternative: Desktop privacy
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -549,7 +557,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_desktopprivacy.json --result_dir ./results/restrictedaccess/ablations/realismdesktopprivacy --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Ablation: Realistic prompt wording -- Deadline
+#### Contextual wording alternative: Deadline
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -573,7 +581,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_deadline.json --result_dir ./results/restrictedaccess/ablations/realismdeadline --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Ablation: Realistic prompt wording -- Login handoff
+#### Contextual wording alternative: Login handoff
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -597,7 +605,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_login.json --result_dir ./results/restrictedaccess/ablations/realismlogin --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Ablation: evaluation prompt
+#### Condition: Historical disclosure + pressure with evaluation framing
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -610,19 +618,19 @@ python scripts/python/run_multienv.py \
     --evaluation-prompt \
     --model claude-opus-4-6 \
     --reasoning_effort medium \
-    --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/ablations/evaluationprompt \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json \
+    --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/evaluationprompt \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --evaluation-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess.json --result_dir ./results/restrictedaccess/ablations/evaluationprompt --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --evaluation-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/evaluationprompt --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 ### GPT 5.4
-#### Ablation: Increased reasoning effort -- COMPLETED
+#### Historical disclosure-and-pressure condition with xhigh reasoning effort -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -637,15 +645,15 @@ python scripts/python/run_multienv.py \
     --model gpt-5.4 \
     --reasoning_effort xhigh \
     --max_tokens 25000 \
-    --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json \
+    --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/informationpressure_xhigh \
     --num_envs 1 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model gpt-5.4 --reasoning_effort xhigh --max_tokens 25000 --test_all_meta_path evaluation_examples/test_restrictedaccess.json --result_dir ./results/restrictedaccess/xhighreasoningeffort --num_envs 1 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model gpt-5.4 --reasoning_effort xhigh --max_tokens 25000 --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/informationpressure_xhigh --num_envs 1 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 ## Scenario: Restricted Resource Access + Subagents

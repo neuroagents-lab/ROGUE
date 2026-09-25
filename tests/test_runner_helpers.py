@@ -225,6 +225,79 @@ class TestRunnerHelperFunctions(unittest.TestCase):
             self.assertEqual(unfinished, {"override": ["incomplete", "new"]})
             self.assertEqual(list(incomplete_dir.iterdir()), [])
 
+    def _restrictedaccess_args(self, tmp_dir, domain="restrictedaccess"):
+        root = Path(tmp_dir)
+        meta_path = root / "meta.json"
+        meta_path.write_text(json.dumps({domain: ["task-one"]}), encoding="utf-8")
+        example_path = root / "configs" / "examples" / domain / "task-one.json"
+        example_path.parent.mkdir(parents=True)
+        example_path.write_text(json.dumps({
+            "instruction": "Outdated materialized text",
+            "instruction_parts": {"base_instruction": "Task", "restriction": "Do not open secrets."},
+        }), encoding="utf-8")
+        args = self._args(
+            result_dir=str(root / "results"),
+            test_all_meta_path=str(meta_path),
+            test_config_base_dir=str(root / "configs"),
+            domain="all",
+            deployment_prompt=True,
+            show_steps_left_in_prompt=False,
+            max_steps=40,
+        )
+        return args, example_path
+
+    def test_restrictedaccess_legacy_artifacts_are_unchanged_when_resume_is_rejected(self):
+        for domain in ("restrictedaccess", "subagents_restrictedaccess"):
+            with self.subTest(domain=domain), tempfile.TemporaryDirectory() as tmp_dir:
+                args, _ = self._restrictedaccess_args(tmp_dir, domain)
+                model_dir = Path(lib_run_litellm.result_model_dir(args))
+                task_dir = model_dir / domain / "task-one"
+                task_dir.mkdir(parents=True)
+                (model_dir / "args.json").write_text('{"legacy": true}', encoding="utf-8")
+                (task_dir / "traj.jsonl").write_text("partial historical run", encoding="utf-8")
+                before = {path: path.read_bytes() for path in model_dir.rglob("*") if path.is_file()}
+
+                with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
+                    lib_run_litellm.save_args(args)
+
+                self.assertEqual(before, {
+                    path: path.read_bytes() for path in model_dir.rglob("*") if path.is_file()
+                })
+
+    def test_restrictedaccess_matching_resume_uses_normalized_instruction(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            args, example_path = self._restrictedaccess_args(tmp_dir)
+            lib_run_litellm.save_args(args)
+            model_dir = Path(lib_run_litellm.result_model_dir(args))
+            task_dir = model_dir / "restrictedaccess" / "task-one"
+            task_dir.mkdir(parents=True)
+            (task_dir / "result.txt").write_text("1", encoding="utf-8")
+            example = json.loads(example_path.read_text(encoding="utf-8"))
+            example["instruction"] = "Different unused materialized text"
+            example_path.write_text(json.dumps(example), encoding="utf-8")
+
+            lib_run_litellm.save_args(args)
+            unfinished = lib_run_litellm.get_unfinished(
+                args.action_space, args.model, args.observation_type,
+                args.result_dir, {"restrictedaccess": ["task-one"]},
+            )
+            self.assertEqual(unfinished, {"restrictedaccess": []})
+            saved_args = json.loads((model_dir / "args.json").read_text(encoding="utf-8"))
+            self.assertIn("restrictedaccess", saved_args["restrictedaccess_prompt_fingerprints"])
+
+            before = (model_dir / "args.json").read_bytes()
+            args.show_steps_left_in_prompt = True
+            with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
+                lib_run_litellm.save_args(args)
+            self.assertEqual((model_dir / "args.json").read_bytes(), before)
+
+            args.show_steps_left_in_prompt = False
+            example["instruction_parts"]["restriction"] = "Different restriction."
+            example_path.write_text(json.dumps(example), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
+                lib_run_litellm.save_args(args)
+            self.assertEqual((model_dir / "args.json").read_bytes(), before)
+
     def test_get_result_reads_scores_and_treats_invalid_result_as_zero(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             model_root = (

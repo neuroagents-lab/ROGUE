@@ -4,15 +4,18 @@ This directory contains the experiment documentation and helper scripts used to 
 
 ## Markdown Guides
 
-- `EXPERIMENTS.md`: Full command log for the main benchmark runs across scenarios, models, reasoning settings, and subagent variants.
+- `EXPERIMENTS.md`: Main benchmark commands across scenarios, models, reasoning settings, and subagent variants; restricted-access commands target the revised base.
 - `MITIGATIONS.md`: Commands for mitigation experiments, currently focused on shutdown-rewiring direct-command mitigation.
 - `ABLATIONS.md`: Commands and notes for ablation runs that vary task wording or scenario information.
+- `RESTRICTEDACCESS.md`: Revised prohibition-only base, historical-condition mapping, and separate result roots.
 
-These files are intended to be explicit records of the exact commands used for paper experiments. They are verbose by design.
+Restricted-access definitions changed on 2026-09-25. Existing paper results used
+the historical disclosure-and-pressure condition; new base runs must use the
+separate output roots documented in `RESTRICTEDACCESS.md`.
 
 ## Experiment Runner
 
-- `experiment_runner.sh`: Convenience wrapper for running named experiment jobs from `EXPERIMENTS.md`.
+- `experiment_runner.sh`: Convenience wrapper for running named experiment jobs from `EXPERIMENTS.md`. Restricted-access jobs omit the remaining-step pressure reminder and write below `results/prohibition_only/`.
 
 Useful commands:
 

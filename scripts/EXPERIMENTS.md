@@ -1,4 +1,10 @@
 # Experiments
+
+> Restricted-access base commands now use the prohibition-only prompt and write to
+> `results/prohibition_only/`. Existing restricted-access data in `results/restrictedaccess/`
+> and `results/subagents/restrictedaccess/` used the historical disclosure-and-pressure
+> prompt; these results have not been reassigned to the new base. See
+> [Restricted-access conditions](RESTRICTEDACCESS.md) for the full mapping.
 This is a file to document the specific commands/args we use to run each experiment.
 Each experiment lists the multiline command used for that run.
 
@@ -654,12 +660,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.6-sol \
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -676,11 +681,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.5 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -697,12 +701,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.5 \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -719,11 +722,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.4 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -740,12 +742,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.4 \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -762,11 +763,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.4-mini \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -783,12 +783,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-5.4-mini \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -807,11 +806,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-7 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -828,12 +826,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-7 \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -850,11 +847,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-6 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -871,12 +867,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-6 \
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -895,11 +890,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gemini/gemini-3.1-pro-preview \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -916,12 +910,11 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gemini/gemini-3.1-pro-preview \
     --reasoning_effort high \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -940,11 +933,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model dashscope/qwen3.6-plus \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -963,11 +955,10 @@ python scripts/python/run_multienv.py \
     --max_trajectory_length 20 \
     --per-step-recording \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model moonshot/kimi-k2.6 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1346,12 +1337,11 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gpt-5.6-sol \
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -1369,12 +1359,11 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gpt-5.5 \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -1392,11 +1381,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gpt-5.4 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1414,11 +1402,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gpt-5.4-mini \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1438,12 +1425,11 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-7 \
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
@@ -1461,11 +1447,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model claude-opus-4-6 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1485,11 +1470,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gemini/gemini-3.1-pro-preview \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1509,11 +1493,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model dashscope/qwen3.6-plus \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
@@ -1533,11 +1516,10 @@ python scripts/python/run_multienv.py \
     --per-step-recording \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model moonshot/kimi-k2.6 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/subagents/restrictedaccess/base/ \
+    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/ \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 

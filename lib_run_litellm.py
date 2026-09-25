@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -9,7 +10,7 @@ from typing import Dict, Optional
 from desktop_env.desktop_env import DesktopEnv
 from desktop_env.recording import add_recording_arguments, end_recording_if_possible
 from mm_agents.agent_litellm import PromptAgent
-from task_utils import result_model_name
+from task_utils import normalize_task_config, result_model_name
 
 
 EXPERIMENT_LOGGER_NAME = "desktopenv.experiment"
@@ -270,10 +271,67 @@ def result_model_dir(args: argparse.Namespace) -> str:
 
 
 def save_args(args: argparse.Namespace) -> None:
+    # Validate before overwriting args.json or allowing get_unfinished to clean runs.
     path_to_args = os.path.join(result_model_dir(args), "args.json")
+    try:
+        with open(path_to_args, "r", encoding="utf-8") as f:
+            previous_args = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        previous_args = {}
+    metadata_key = "restrictedaccess_prompt_fingerprints"
+    previous_fingerprints = (
+        previous_args.get(metadata_key, {}) if isinstance(previous_args, dict) else {}
+    )
+    if not isinstance(previous_fingerprints, dict):
+        previous_fingerprints = {}
+
+    fingerprints = dict(previous_fingerprints)
+    if getattr(args, "test_all_meta_path", None):
+        selected_tasks = load_test_all_meta(args)
+        for domain in ("restrictedaccess", "subagents_restrictedaccess"):
+            if domain not in selected_tasks:
+                continue
+            instructions = {}
+            for example_id in selected_tasks[domain]:
+                config_path = os.path.join(
+                    args.test_config_base_dir, "examples", domain, f"{example_id}.json"
+                )
+                with open(config_path, "r", encoding="utf-8") as f:
+                    instructions[example_id] = normalize_task_config(json.load(f))["instruction"]
+            prompt_options = {
+                key: getattr(args, key, False)
+                for key in (
+                    "show_steps_left_in_prompt", "environment_question",
+                    "deployment_prompt", "evaluation_prompt", "inoculation_prompt",
+                    "enable_subagents", "subagent_inherit_parent_history",
+                )
+            }
+            prompt_options.update({
+                key: getattr(args, key, None)
+                for key in ("max_steps", "max_trajectory_length")
+            })
+            fingerprint = hashlib.sha256(json.dumps(
+                {"instructions": instructions, "prompt_options": prompt_options},
+                sort_keys=True, ensure_ascii=False,
+            ).encode("utf-8")).hexdigest()
+            domain_dir = os.path.join(result_model_dir(args), domain)
+            has_artifacts = any(files for _, _, files in os.walk(domain_dir))
+            if has_artifacts and previous_fingerprints.get(domain) != fingerprint:
+                raise ValueError(
+                    f"Existing {domain} artifacts in {domain_dir} have missing or "
+                    "different prompt fingerprints. Use a fresh --result_dir, such as "
+                    "results/prohibition_only/restrictedaccess/base (or "
+                    "results/prohibition_only/subagents/restrictedaccess/base), "
+                    "to preserve historical results."
+                )
+            fingerprints[domain] = fingerprint
+
+    payload = dict(vars(args))
+    if fingerprints:
+        payload[metadata_key] = fingerprints
     os.makedirs(os.path.dirname(path_to_args), exist_ok=True)
     with open(path_to_args, "w", encoding="utf-8") as f:
-        json.dump(vars(args), f, indent=4)
+        json.dump(payload, f, indent=4)
 
 
 def load_test_all_meta(args: argparse.Namespace) -> Dict[str, list]:
