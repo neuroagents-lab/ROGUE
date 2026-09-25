@@ -714,6 +714,23 @@ def existing_result_is_complete(example_dir: Path) -> bool:
     return isinstance(result, dict) and result.get("status") == "completed"
 
 
+def validate_restrictedaccess_resume(
+    args: argparse.Namespace, example_path: Path, output_dir: Path
+) -> None:
+    """Reject historical responses whose saved prompt does not match this run."""
+    example = load_example(example_path)
+    messages = build_messages(
+        args, scenario="restrictedaccess", instruction=example["instruction"]
+    )
+    saved_request = read_json(output_dir / "request.json")
+    if saved_request is None or saved_request.get("messages") != messages:
+        raise ValueError(
+            f"Existing restrictedaccess response in {output_dir} has a missing or "
+            "different saved prompt. Use a fresh --result_dir, such as "
+            "textonly_results/prohibition_only/base, to preserve historical results."
+        )
+
+
 def run_single_example(
     args: argparse.Namespace,
     *,
@@ -864,6 +881,8 @@ def main() -> None:
         example_id = example_path.stem
         output_dir = example_result_dir(args, scenario, example_id)
         if not args.overwrite and existing_result_is_complete(output_dir):
+            if scenario == "restrictedaccess":
+                validate_restrictedaccess_resume(args, example_path, output_dir)
             logger.info("Skipping completed example %s/%s", scenario, example_id)
             continue
 

@@ -227,6 +227,10 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
 
 
 class TestPaperFigureCli(unittest.TestCase):
+    def test_task_success_capability_is_a_supported_figure(self):
+        args = paper_figures.parse_args(["capability_vs_misalignment"])
+        self.assertEqual(args.figure, "capability_vs_misalignment")
+
     def test_capability_osworld_is_a_supported_figure(self):
         args = paper_figures.parse_args(
             ["capability_osworld_vs_misalignment"]
@@ -273,6 +277,67 @@ class TestPaperFigureCli(unittest.TestCase):
         )
         self.assertEqual(args.rerun_results_root, Path("rerun-agentic"))
         self.assertEqual(args.rerun_textonly_root, Path("rerun-text"))
+
+
+class TestTaskSuccessCapabilityFigure(unittest.TestCase):
+    def run_data(self, denominator=10, **changes):
+        run = {
+            "model": "gpt-6-astra",
+            "model_display_name": "GPT-6 Astra (max)",
+            "run_group": "xhighreasoningeffort",
+            "completed_tasks": 10,
+            "capability_denominator_tasks": denominator,
+            "success_rate": 0.0,
+            "misalignment_rate": 0.0,
+            "judge_missing_tasks": 0,
+        }
+        run.update(changes)
+        return run
+
+    def test_zero_override_denominator_is_omitted_but_observed_zero_success_is_kept(self):
+        undefined = self.run_data(denominator=0)
+        observed_zero = self.run_data(
+            model="gpt-5.6-sol", model_display_name="GPT-5.6 Sol (max)",
+            denominator=4, misalignment_rate=0.4,
+        )
+        plotted, omitted = paper_figures._capability_plot_runs({
+            "scenario": "override", "runs": [undefined, observed_zero],
+        })
+        self.assertEqual(plotted, (observed_zero,))
+        self.assertEqual(omitted, ("GPT-6 Astra (max)",))
+        self.assertEqual(undefined["success_rate"], 0.0)
+
+    def test_rewire_requires_complete_known_primary_judge_coverage(self):
+        for missing in (1, None):
+            with self.subTest(missing=missing):
+                run = self.run_data(judge_missing_tasks=missing)
+                if missing is None:
+                    del run["judge_missing_tasks"]
+                summaries = (
+                    {"scenario": "override", "runs": [self.run_data()]},
+                    {"scenario": "rewire", "runs": [run]},
+                )
+                with mock.patch.object(paper_figures, "load_matplotlib") as load:
+                    with self.assertRaisesRegex(RuntimeError, "complete primary-judge coverage"):
+                        paper_figures.render_capability_vs_misalignment(summaries)
+                load.assert_not_called()
+
+    def test_zero_rewiring_rate_with_judged_tasks_is_a_valid_point(self):
+        run = self.run_data(success_rate=0.8)
+        plotted, omitted = paper_figures._capability_plot_runs({
+            "scenario": "rewire", "runs": [run],
+        })
+        self.assertEqual(plotted, (run,))
+        self.assertEqual(omitted, ())
+
+    def test_uses_task_success_summaries_including_high_reasoning_runs(self):
+        for scenario in paper_figures.CAPABILITY_SCENARIOS:
+            with self.subTest(scenario=scenario):
+                self.assertEqual(
+                    paper_figures._capability_summary_path(Path("results"), scenario),
+                    Path("results") / scenario / "xhighreasoningeffort" / "summary"
+                    / f"{scenario}_capability_vs_misalignment_base_plus_xhighreasoningeffort.json",
+                )
 
 
 class TestCapabilityOSWorldFigure(unittest.TestCase):

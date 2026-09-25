@@ -240,6 +240,8 @@ ALTERNATE_COLOR = "#9B1B5A"
 SUCCESS_COLOR = "#4C78A8"
 SELF_SHUTDOWN_COLOR = "#6C757D"
 SCATTER_MODEL_COLORS = {
+    "gpt-6-astra": "#B23A85",
+    "gpt-5.6-sol": "#007A78",
     "gpt-5.4": "#2E86AB",
     "gpt-5.4-mini": "#F18F01",
     "claude-opus-4-6": "#2A9D4B",
@@ -3937,9 +3939,16 @@ def render_scatter_plot_pdf(
 
 
 def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
-    plt, Patch = load_matplotlib()
-
     scenarios = summary.get("scenarios", [])
+    for scenario in scenarios:
+        for run in scenario.get("runs", []):
+            missing = int(run.get("judge_missing_tasks", 0))
+            if missing:
+                raise ValueError(
+                    f"Cannot plot {scenario.get('scenario')}/{run.get('model')}: "
+                    f"{missing} completed tasks lack primary judge results."
+                )
+    plt, Patch = load_matplotlib()
     all_runs: Dict[str, Dict[str, Any]] = {}
     for scenario in scenarios:
         for run in scenario.get("runs", []):
@@ -3972,7 +3981,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     column_count = max(len(scenarios), 1)
     row_count = max(len(ordered_runs), 1)
     figure_width = max(13.5, 5.25 * column_count)
-    figure_height = max(7.8, 3.5 + 0.72 * row_count)
+    figure_height = max(7.8, 3.0 + 0.57 * row_count)
     figure, axes = plt.subplots(
         1,
         column_count,
@@ -3986,7 +3995,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     axes_left = 0.17
     axes_right = 0.985
     content_center = (axes_left + axes_right) / 2
-    figure.subplots_adjust(left=axes_left, right=axes_right, top=0.745, bottom=0.135, wspace=0.10)
+    figure.subplots_adjust(left=axes_left, right=axes_right, top=0.83, bottom=0.085, wspace=0.10)
     figure.suptitle(
         str(summary.get("plot_title", COMBINED_RATES_PLOT_CONFIG["title"])),
         x=content_center,
@@ -3997,8 +4006,8 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     )
     figure.text(
         content_center,
-        0.922,
-        "Share of completed base-scenario tasks in which each model violated the constraint.\n"
+        0.935,
+        "Share of completed tasks with actual or intended constraint violations.\n"
         "Error bars show +/- 1 binomial standard error.",
         ha="center",
         va="center",
@@ -4087,6 +4096,13 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
                 str(run.get("run_key") or run.get("model") or run.get("model_display_name", "")): run
                 for run in scenario_runs
             }
+            for run_key in run_keys:
+                if run_key not in runs_by_key or not runs_by_key[run_key].get("total_tasks"):
+                    axis.text(
+                        50, y_positions[run_key], "Not evaluated",
+                        ha="center", va="center", fontsize=9,
+                        color="#6B7280", style="italic",
+                    )
             has_alternate = any("plot_alternate_rate" in run for run in scenario_runs)
             has_self_shutdown = any("plot_self_shutdown_rate" in run for run in scenario_runs)
             series_order = ["actual"]
@@ -4113,6 +4129,8 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
                         continue
 
                     total_tasks = int(run.get("total_tasks", 0))
+                    if not total_tasks:
+                        continue
                     count = int(run.get(style["count_key"], 0))
                     rate = min(max(float(run.get(style["rate_key"], 0.0)), 0.0), 1.0)
                     y_values.append(y_positions[run_key] + offset)
@@ -4194,7 +4212,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     figure.legend(
         handles=legend_handles,
         loc="upper center",
-        bbox_to_anchor=(content_center, 0.875),
+        bbox_to_anchor=(content_center, 0.89),
         ncol=len(legend_handles),
         frameon=False,
         fontsize=12.5,
@@ -4203,7 +4221,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     )
     figure.text(
         content_center,
-        0.045,
+        0.018,
         "Higher percentages indicate more frequent misalignment.",
         ha="center",
         va="center",

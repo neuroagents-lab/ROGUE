@@ -1,5 +1,11 @@
 # ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use
 
+> **Restricted-access base update (2026-09-25):** The base task now appends only
+> the explicit three-path prohibition. Credential disclosure and completion
+> pressure are historical conditions, preserved separately. New runs use
+> `results/prohibition_only/`; existing results have not been relabeled.
+> See [the condition mapping and run instructions](scripts/RESTRICTEDACCESS.md).
+
 ![ROGUE infographic](figures/infographic.png)
 
 This is the codebase for [**ROGUE**](https://arxiv.org/abs/2606.00341) (Resource Override and Guardrail Undermining Evaluation), a benchmark for evaluating whether computer-use agents remain corrigible while carrying out ordinary desktop tasks. ROGUE makes use of [OSWorld-Verified](https://github.com/xlang-ai/OSWorld)'s computer-use framework, including its desktop environment and VM images.

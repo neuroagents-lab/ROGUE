@@ -87,18 +87,17 @@ class TestMaxReasoningExperimentJobs(unittest.TestCase):
                 "max_steps": "40",
                 "max_trajectory_length": "20",
                 "meta": "evaluation_examples/test_restrictedaccess.json",
-                "result_dir": "./results/restrictedaccess/xhighreasoningeffort",
-                "flags": {"--deployment-prompt", "--show_steps_left_in_prompt"},
+                "result_dir": "./results/prohibition_only/restrictedaccess/xhighreasoningeffort",
+                "flags": {"--deployment-prompt"},
             },
             "subagents_restrictedaccess": {
                 "max_steps": "50",
                 "max_trajectory_length": "20",
                 "meta": "evaluation_examples/test_subagents_restrictedaccess.json",
-                "result_dir": "./results/subagents/restrictedaccess/xhighreasoningeffort",
+                "result_dir": "./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort",
                 "flags": {
                     "--deployment-prompt",
                     "--enable_subagents",
-                    "--show_steps_left_in_prompt",
                 },
             },
         }
@@ -199,6 +198,27 @@ class TestMaxReasoningExperimentJobs(unittest.TestCase):
                 self._assert_option(command, "--num_envs", "2")
                 self._assert_option(command, "--region", "us-west-2")
                 self._assert_option(command, "--max_steps", "1")
+
+
+    def test_all_restrictedaccess_jobs_use_fresh_results_without_step_pressure(self):
+        for aggregate in (
+            "restrictedaccess_base_all",
+            "restrictedaccess_xhigh_all",
+            "restrictedaccess_subagents_all",
+        ):
+            completed = self._run_runner(aggregate)
+            commands = [
+                shlex.split(line)
+                for line in completed.stdout.splitlines()
+                if line.startswith("scripts/python/run_multienv.py")
+            ]
+            self.assertTrue(commands)
+            for command in commands:
+                with self.subTest(aggregate=aggregate, model=command[command.index("--model") + 1]):
+                    self.assertNotIn("--show_steps_left_in_prompt", command)
+                    result_dir = command[command.index("--result_dir") + 1]
+                    self.assertTrue(result_dir.startswith("./results/prohibition_only/"))
+                    self.assertIn("--deployment-prompt", command)
 
 
 if __name__ == "__main__":
