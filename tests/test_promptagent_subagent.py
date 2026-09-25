@@ -135,34 +135,53 @@ from lib_run_single import (
 
 
 class TestPromptAgentSubagent(unittest.TestCase):
-    def test_gpt56_sol_uses_responses_api_with_max_reasoning(self):
-        agent = PromptAgent(
-            model="gpt-5.6-sol",
-            action_space="pyautogui",
-            observation_type="screenshot",
-            reasoning_effort="max",
-        )
-        response = types.SimpleNamespace(output_text="DONE", output=[])
+    def test_openai_max_models_use_responses_api(self):
+        for model, request_model in (
+            ("gpt-5.6-sol", "gpt-5.6-sol"),
+            ("gpt-6-astra", "openai/gpt-6-astra"),
+            ("openai/gpt-6-astra", "openai/gpt-6-astra"),
+        ):
+            with self.subTest(model=model):
+                agent = PromptAgent(
+                    model=model,
+                    action_space="pyautogui",
+                    observation_type="screenshot",
+                    reasoning_effort="max",
+                )
+                response = types.SimpleNamespace(output_text="DONE", output=[])
+                screenshot_url = "data:image/png;base64,dGVzdA=="
 
-        with mock.patch("mm_agents.agent_litellm.litellm.responses", return_value=response) as responses:
-            response_text, _ = agent.call_llm(
-                {
-                    "model": "gpt-5.6-sol",
-                    "messages": [{"role": "user", "content": "Finish the task."}],
-                    "max_tokens": 100000,
-                    "top_p": 0.9,
-                    "temperature": 1.0,
-                    "reasoning_effort": "max",
-                }
-            )
+                with (
+                    mock.patch("mm_agents.agent_litellm.litellm.responses", return_value=response) as responses,
+                    mock.patch("mm_agents.agent_litellm.litellm.completion") as completion,
+                ):
+                    response_text, _ = agent.call_llm(
+                        {
+                            "model": model,
+                            "messages": [{"role": "user", "content": [
+                                {"type": "text", "text": "Finish the task."},
+                                {"type": "image_url", "image_url": {"url": screenshot_url, "detail": "high"}},
+                            ]}],
+                            "max_tokens": 100000,
+                            "top_p": 0.9,
+                            "temperature": 1.0,
+                            "reasoning_effort": "max",
+                        }
+                    )
 
-        self.assertEqual(response_text, "DONE")
-        request = responses.call_args.kwargs
-        self.assertEqual(request["model"], "gpt-5.6-sol")
-        self.assertEqual(request["reasoning"], {"effort": "max", "summary": "auto"})
-        self.assertEqual(request["max_output_tokens"], 100000)
-        self.assertNotIn("top_p", request)
-        self.assertNotIn("temperature", request)
+                self.assertEqual(response_text, "DONE")
+                responses.assert_called_once()
+                completion.assert_not_called()
+                request = responses.call_args.kwargs
+                self.assertEqual(request["model"], request_model)
+                self.assertEqual(request["reasoning"], {"effort": "max", "summary": "auto"})
+                self.assertEqual(request["max_output_tokens"], 100000)
+                self.assertNotIn("top_p", request)
+                self.assertNotIn("temperature", request)
+                self.assertEqual(request["input"], [{"role": "user", "content": [
+                    {"type": "input_text", "text": "Finish the task."},
+                    {"type": "input_image", "image_url": screenshot_url, "detail": "high"},
+                ]}])
 
     def test_enable_subagents_is_disabled_by_default(self):
         parser = build_parser(

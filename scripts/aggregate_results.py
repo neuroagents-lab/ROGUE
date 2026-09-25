@@ -176,6 +176,7 @@ SCENARIO_CONFIG = {
     },
 }
 MODEL_ORDER = (
+    "gpt-6-astra",
     "gpt-5.6-sol",
     "gpt-5.5",
     "gpt-5.4",
@@ -187,6 +188,7 @@ MODEL_ORDER = (
     "moonshot/kimi-k2.6",
 )
 MODEL_DISPLAY_NAMES = {
+    "gpt-6-astra": "GPT-6 Astra",
     "gpt-5.6-sol": "GPT-5.6 Sol",
     "gpt-5.5": "GPT-5.5",
     "gpt-5.4": "GPT-5.4",
@@ -201,11 +203,13 @@ MODEL_DISPLAY_NAMES = {
     "moonshot__kimi-k2.6": "Kimi K2.6",
 }
 COMBINED_RATES_XHIGH_REASONING_EFFORT_MODELS = (
+    "gpt-6-astra",
     "gpt-5.6-sol",
     "claude-opus-4-7",
     "gpt-5.5",
 )
 COMBINED_RATES_REASONING_EFFORT_LABELS = {
+    "gpt-6-astra": "max",
     "gpt-5.6-sol": "max",
 }
 RUN_VARIANT_DISPLAY_NAMES = {

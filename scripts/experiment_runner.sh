@@ -97,6 +97,10 @@ Jobs:
     kimi_base
 
   High-thinking model jobs:
+    gpt6astramax_override
+    gpt6astramax_rewire
+    gpt6astramax_restrictedaccess
+    gpt6astramax
     gpt56solmax_override
     gpt56solmax_rewire
     gpt56solmax_restrictedaccess
@@ -127,6 +131,8 @@ Jobs:
     geminihigh
 
   Subagent jobs:
+    gpt6astramax_subagents_restrictedaccess
+    gpt6astramax_subagents
     gpt56solmax_subagents_restrictedaccess
     gpt56solmax_subagents
     gpt55xhigh_subagents_override
@@ -167,6 +173,7 @@ Jobs:
     gpt_family_xhigh
     gpt_family_subagents
     gpt_family_all
+    gpt6astramax_all
     gpt56solmax_all
     gpt55_all
     gpt54_all
@@ -996,6 +1003,7 @@ restrictedaccess_base_all() {
 }
 
 override_xhigh_all() {
+  gpt6astramax_override
   gpt56solmax_override
   gpt55xhigh_override
   gptxhigh_override
@@ -1006,6 +1014,7 @@ override_xhigh_all() {
 }
 
 rewire_xhigh_all() {
+  gpt6astramax_rewire
   gpt56solmax_rewire
   gpt55xhigh_rewire
   gptxhigh_rewire
@@ -1016,6 +1025,7 @@ rewire_xhigh_all() {
 }
 
 restrictedaccess_xhigh_all() {
+  gpt6astramax_restrictedaccess
   gpt56solmax_restrictedaccess
   gpt55xhigh_restrictedaccess
   gptxhigh_restrictedaccess
@@ -1048,6 +1058,7 @@ rewire_subagents_all() {
 }
 
 restrictedaccess_subagents_all() {
+  gpt6astramax_subagents_restrictedaccess
   gpt56solmax_subagents_restrictedaccess
   gpt55xhigh_subagents_restrictedaccess
   gpt_subagents_restrictedaccess
@@ -1147,6 +1158,70 @@ gpt54xhigh_restrictedaccess() {
 
 gpt54xhigh() {
   gptxhigh
+}
+
+gpt6astramax_override() {
+  run_job "gpt6astramax_override" 5 \
+    --observation_type screenshot \
+    --max_steps 20 \
+    --max_trajectory_length 20 \
+    --model gpt-6-astra \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_override.json \
+    --result_dir ./results/override/xhighreasoningeffort
+}
+
+gpt6astramax_rewire() {
+  run_job "gpt6astramax_rewire" 5 \
+    --observation_type screenshot \
+    --max_steps 25 \
+    --max_trajectory_length 25 \
+    --deployment-prompt \
+    --model gpt-6-astra \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_rewire.json \
+    --result_dir ./results/rewire/xhighreasoningeffort
+}
+
+gpt6astramax_restrictedaccess() {
+  run_job "gpt6astramax_restrictedaccess" 5 \
+    --observation_type screenshot \
+    --max_steps 40 \
+    --max_trajectory_length 20 \
+    --deployment-prompt \
+    --show_steps_left_in_prompt \
+    --model gpt-6-astra \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
+}
+
+gpt6astramax() {
+  gpt6astramax_override
+  gpt6astramax_rewire
+  gpt6astramax_restrictedaccess
+}
+
+gpt6astramax_subagents_restrictedaccess() {
+  run_job "gpt6astramax_subagents_restrictedaccess" 5 \
+    --observation_type screenshot \
+    --max_steps 50 \
+    --max_trajectory_length 20 \
+    --deployment-prompt \
+    --enable_subagents \
+    --show_steps_left_in_prompt \
+    --model gpt-6-astra \
+    --reasoning_effort max \
+    --max_tokens 100000 \
+    --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
+}
+
+gpt6astramax_subagents() {
+  gpt6astramax_subagents_restrictedaccess
 }
 
 gpt56solmax_override() {
@@ -1440,6 +1515,7 @@ gpt_family_base() {
 }
 
 gpt_family_xhigh() {
+  gpt6astramax
   gpt56solmax
   gpt55xhigh
   gpt54xhigh
@@ -1447,6 +1523,7 @@ gpt_family_xhigh() {
 }
 
 gpt_family_subagents() {
+  gpt6astramax_subagents
   gpt56solmax_subagents
   gpt55xhigh_subagents
   gpt54_subagents
@@ -1463,6 +1540,11 @@ gptmini_all() {
   gptmini_base
   gptminixhigh
   gptmini_subagents
+}
+
+gpt6astramax_all() {
+  gpt6astramax
+  gpt6astramax_subagents
 }
 
 gpt56solmax_all() {
@@ -1623,6 +1705,12 @@ dispatch_job() {
     gpt54xhigh_rewire) gpt54xhigh_rewire ;;
     gpt54xhigh_restrictedaccess) gpt54xhigh_restrictedaccess ;;
     gpt54xhigh) gpt54xhigh ;;
+    gpt6astramax_override) gpt6astramax_override ;;
+    gpt6astramax_rewire) gpt6astramax_rewire ;;
+    gpt6astramax_restrictedaccess) gpt6astramax_restrictedaccess ;;
+    gpt6astramax) gpt6astramax ;;
+    gpt6astramax_subagents_restrictedaccess) gpt6astramax_subagents_restrictedaccess ;;
+    gpt6astramax_subagents) gpt6astramax_subagents ;;
     gpt56solmax_override) gpt56solmax_override ;;
     gpt56solmax_rewire) gpt56solmax_rewire ;;
     gpt56solmax_restrictedaccess) gpt56solmax_restrictedaccess ;;
@@ -1706,6 +1794,7 @@ dispatch_job() {
     geminihigh) geminihigh ;;
     xhighreasoningeffort_all) xhighreasoningeffort_all ;;
     gpt54_all) gpt54_all ;;
+    gpt6astramax_all) gpt6astramax_all ;;
     gpt56solmax_all) gpt56solmax_all ;;
     gpt55_all) gpt55_all ;;
     gptmini_all) gptmini_all ;;

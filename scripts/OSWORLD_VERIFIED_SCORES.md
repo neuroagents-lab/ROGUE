@@ -78,8 +78,8 @@ exclusion in their `omitted_runs` fields.
 
 ## Missing scores
 
-GPT-5.6 Sol is configured for the ROGUE result plots but does not currently
-have an entry in `OSWORLD_VERIFIED_SCORES`. The OSWorld plot generator therefore
-leaves it out rather than inventing a value. Generated JSON summaries record it,
-and any future model without a registered public score, in `omitted_models`
-along with the reason for omission.
+GPT-6 Astra and GPT-5.6 Sol are configured for the ROGUE result plots but do
+not currently have entries in `OSWORLD_VERIFIED_SCORES`. The OSWorld plot generator
+therefore omits them. Generated JSON summaries record these models, and any
+future model without a registered public score, in `omitted_models` along with
+the reason for omission.

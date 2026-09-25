@@ -413,7 +413,7 @@ class PromptAgent:
 
     def _uses_openai_responses_api(self, model: str) -> bool:
         base_model = model.split("/")[-1]
-        return base_model.startswith("gpt-5")
+        return base_model.startswith(("gpt-5", "gpt-6-astra"))
 
     def _is_anthropic_model(self, model: str) -> bool:
         base_model = model.split("/")[-1]
@@ -473,6 +473,9 @@ class PromptAgent:
             return f"azure/{os.getenv('AZURE_OPENAI_DEPLOYMENT', model)}"
         if self._is_anthropic_model(model) and not model.startswith("anthropic/"):
             return f"anthropic/{model}"
+        if model.startswith("gpt-6-astra"):
+            # Older LiteLLM model catalogs need an explicit provider for Astra.
+            return f"openai/{model}"
         return model
 
     def _normalize_responses_content_part(self, part: Dict[str, Any], role: str) -> Dict[str, Any]:

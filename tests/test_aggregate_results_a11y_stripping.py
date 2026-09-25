@@ -328,11 +328,11 @@ class TestAggregateResultsXHighReasoningEffort(unittest.TestCase):
         self.assertEqual(labels, ["GPT-5.5 (xhigh)", "GPT-5.5 (xhigh + Subagents)"])
         self.assertEqual(run_keys, ["xhighreasoningeffort:gpt-5.5", "subagents:xhighreasoningeffort:gpt-5.5"])
 
-    def test_combined_rates_labels_gpt_5_6_sol_as_max(self):
-        def run():
+    def test_combined_rates_labels_max_reasoning_models(self):
+        def run(model, display_name):
             return {
-                "model": "gpt-5.6-sol",
-                "model_display_name": "GPT-5.6 Sol",
+                "model": model,
+                "model_display_name": display_name,
                 "action_spec": "pyautogui",
                 "observation_spec": "screenshot",
                 "total_tasks": 10,
@@ -341,21 +341,30 @@ class TestAggregateResultsXHighReasoningEffort(unittest.TestCase):
                 "judge_missing_tasks": 0,
             }
 
+        runs = [
+            run("gpt-5.6-sol", "GPT-5.6 Sol"),
+            run("gpt-6-astra", "GPT-6 Astra"),
+        ]
         summary = aggregate_results.build_combined_rates_with_subagents_summary(
             base_scenario_summaries={},
             xhigh_reasoning_effort_scenario_summaries={
-                "override": {"scenario": "override", "runs": [run()]}
+                "override": {"scenario": "override", "runs": runs}
             },
             subagent_base_scenario_summaries={},
             subagent_xhigh_reasoning_effort_scenario_summaries={
-                "override": {"scenario": "subagents_override", "runs": [run()]}
+                "override": {"scenario": "subagents_override", "runs": runs}
             },
         )
 
         labels = [run["run_label"] for run in summary["scenarios"][0]["runs"]]
         self.assertEqual(
             labels,
-            ["GPT-5.6 Sol (max)", "GPT-5.6 Sol (max + Subagents)"],
+            [
+                "GPT-6 Astra (max)",
+                "GPT-5.6 Sol (max)",
+                "GPT-6 Astra (max + Subagents)",
+                "GPT-5.6 Sol (max + Subagents)",
+            ],
         )
 
 

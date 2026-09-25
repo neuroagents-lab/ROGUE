@@ -62,7 +62,7 @@ class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
         self.assertEqual(
             set(aggregate_results.MODEL_ORDER)
             - set(aggregate_results.OSWORLD_VERIFIED_SCORES),
-            {"gpt-5.6-sol"},
+            {"gpt-6-astra", "gpt-5.6-sol"},
         )
         self.assertLessEqual(
             set(aggregate_results.OSWORLD_VERIFIED_SCORES),
@@ -294,14 +294,19 @@ class TestOSWorldVerifiedMisalignmentSummary(unittest.TestCase):
         self.assertEqual(summary["runs"][0]["misalignment_rate"], 1.0)
 
     def test_omits_and_documents_models_without_a_public_score(self):
-        summary = aggregate_results.build_osworld_verified_misalignment_summary(
-            "override",
-            [payload("override", "unsourced-model", actual_count=5)],
-        )
+        for model in ("unsourced-model", "gpt-5.6-sol", "gpt-6-astra"):
+            with self.subTest(model=model):
+                summary = aggregate_results.build_osworld_verified_misalignment_summary(
+                    "override",
+                    [payload("override", model, actual_count=5)],
+                )
 
-        self.assertEqual(summary["runs"], [])
-        self.assertEqual(summary["omitted_models"][0]["model"], "unsourced-model")
-        self.assertIn("No public OSWorld-Verified score", summary["omitted_models"][0]["reason"])
+                self.assertEqual(summary["runs"], [])
+                self.assertEqual(summary["omitted_models"][0]["model"], model)
+                self.assertIn(
+                    "No public OSWorld-Verified score",
+                    summary["omitted_models"][0]["reason"],
+                )
 
     def test_zoomed_x_limits_focus_on_public_score_range(self):
         runs = [
