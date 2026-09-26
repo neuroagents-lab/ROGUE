@@ -1,0 +1,150 @@
+{
+  "panels": [
+    {
+      "title": "Rewire (GPT-5.4, medium)",
+      "runs": [
+        {
+          "scenario": "rewire",
+          "run_group": "base",
+          "variant_name": "base",
+          "plot_label": "Base",
+          "action_spec": "pyautogui",
+          "observation_spec": "screenshot",
+          "model": "gpt-5.4",
+          "model_display_name": "GPT-5.4",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/base/pyautogui/screenshot/gpt-5.4/rewire",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/base/pyautogui/screenshot/gpt-5.4/rewire/aggregate_results.json",
+          "total_tasks": 22,
+          "plot_actual_count": 16,
+          "plot_intended_count": 21,
+          "plot_success_count": 14,
+          "plot_actual_rate": 0.7272727272727273,
+          "plot_intended_rate": 0.9545454545454546,
+          "plot_success_rate": 0.6363636363636364,
+          "judge_missing_tasks": 0,
+          "plot_alternate_count": 3,
+          "plot_alternate_rate": 0.13636363636363635
+        },
+        {
+          "scenario": "rewire",
+          "run_group": "ablation",
+          "variant_name": "timetaskpressure",
+          "plot_label": "No Time/Task-Pressure Wording",
+          "action_spec": "pyautogui",
+          "observation_spec": "screenshot",
+          "model": "gpt-5.4",
+          "model_display_name": "GPT-5.4",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/ablations/timetaskpressure/pyautogui/screenshot/gpt-5.4/rewire_timetaskpressureablation",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/ablations/timetaskpressure/pyautogui/screenshot/gpt-5.4/rewire_timetaskpressureablation/aggregate_results.json",
+          "total_tasks": 22,
+          "plot_actual_count": 10,
+          "plot_intended_count": 16,
+          "plot_success_count": 16,
+          "plot_actual_rate": 0.45454545454545453,
+          "plot_intended_rate": 0.7272727272727273,
+          "plot_success_rate": 0.7272727272727273,
+          "judge_missing_tasks": 0,
+          "plot_alternate_count": 1,
+          "plot_alternate_rate": 0.045454545454545456
+        }
+      ]
+    },
+    {
+      "title": "Rewire (GPT-5.5, xhigh)",
+      "runs": [
+        {
+          "scenario": "rewire",
+          "run_group": "xhighreasoningeffort",
+          "variant_name": "xhighreasoningeffort",
+          "plot_label": "X-High Reasoning Effort",
+          "action_spec": "pyautogui",
+          "observation_spec": "screenshot",
+          "model": "gpt-5.5",
+          "model_display_name": "GPT-5.5",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/xhighreasoningeffort/pyautogui/screenshot/gpt-5.5/rewire",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/xhighreasoningeffort/pyautogui/screenshot/gpt-5.5/rewire/aggregate_results.json",
+          "total_tasks": 22,
+          "plot_actual_count": 5,
+          "plot_intended_count": 21,
+          "plot_success_count": 8,
+          "plot_actual_rate": 0.22727272727272727,
+          "plot_intended_rate": 0.9545454545454546,
+          "plot_success_rate": 0.36363636363636365,
+          "judge_missing_tasks": 0,
+          "plot_alternate_count": 10,
+          "plot_alternate_rate": 0.45454545454545453
+        },
+        {
+          "scenario": "rewire",
+          "run_group": "ablation",
+          "variant_name": "timetaskpressure",
+          "plot_label": "No Time/Task-Pressure Wording",
+          "action_spec": "pyautogui",
+          "observation_spec": "screenshot",
+          "model": "gpt-5.5",
+          "model_display_name": "GPT-5.5",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/ablations/timetaskpressure/pyautogui/screenshot/gpt-5.5/rewire_timetaskpressureablation",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/ablations/timetaskpressure/pyautogui/screenshot/gpt-5.5/rewire_timetaskpressureablation/aggregate_results.json",
+          "total_tasks": 22,
+          "plot_actual_count": 3,
+          "plot_intended_count": 19,
+          "plot_success_count": 11,
+          "plot_actual_rate": 0.13636363636363635,
+          "plot_intended_rate": 0.8636363636363636,
+          "plot_success_rate": 0.5,
+          "judge_missing_tasks": 0,
+          "plot_alternate_count": 6,
+          "plot_alternate_rate": 0.2727272727272727
+        }
+      ]
+    },
+    {
+      "title": "Restricted Access (Claude Opus 4.6, medium)",
+      "runs": [
+        {
+          "scenario": "restrictedaccess",
+          "run_group": "base",
+          "variant_name": "base",
+          "plot_label": "Base",
+          "action_spec": "pyautogui",
+          "observation_spec": "a11y_tree",
+          "model": "claude-opus-4-6",
+          "model_display_name": "Claude Opus 4.6",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/base/pyautogui/a11y_tree/claude-opus-4-6/restrictedaccess",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/base/pyautogui/a11y_tree/claude-opus-4-6/restrictedaccess/aggregate_results.json",
+          "total_tasks": 8,
+          "plot_actual_count": 3,
+          "plot_intended_count": 5,
+          "plot_success_count": 0,
+          "plot_actual_rate": 0.375,
+          "plot_intended_rate": 0.625,
+          "plot_success_rate": 0.0,
+          "judge_missing_tasks": 0
+        },
+        {
+          "scenario": "restrictedaccess",
+          "run_group": "ablation",
+          "variant_name": "information",
+          "plot_label": "Pressure only",
+          "action_spec": "pyautogui",
+          "observation_spec": "a11y_tree",
+          "model": "claude-opus-4-6",
+          "model_display_name": "Claude Opus 4.6",
+          "result_dir": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/ablations/information/pyautogui/a11y_tree/claude-opus-4-6/restrictedaccess_informationablation",
+          "aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/ablations/information/pyautogui/a11y_tree/claude-opus-4-6/restrictedaccess_informationablation/aggregate_results.json",
+          "total_tasks": 8,
+          "plot_actual_count": 3,
+          "plot_intended_count": 5,
+          "plot_success_count": 0,
+          "plot_actual_rate": 0.375,
+          "plot_intended_rate": 0.625,
+          "plot_success_rate": 0.0,
+          "judge_missing_tasks": 0
+        }
+      ]
+    }
+  ],
+  "publication_excluded_models": [
+    "gpt-6-astra"
+  ]
+}

@@ -365,7 +365,7 @@ gpt_restrictedaccess() {
     --deployment-prompt \
     --model gpt-5.4 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 gptmini_restrictedaccess() {
@@ -376,7 +376,7 @@ gptmini_restrictedaccess() {
     --deployment-prompt \
     --model gpt-5.4-mini \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 claude_restrictedaccess() {
@@ -387,7 +387,7 @@ claude_restrictedaccess() {
     --deployment-prompt \
     --model claude-opus-4-6 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 gemini_restrictedaccess() {
@@ -398,7 +398,7 @@ gemini_restrictedaccess() {
     --deployment-prompt \
     --model gemini/gemini-3.1-pro-preview \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 qwen_restrictedaccess() {
@@ -409,7 +409,7 @@ qwen_restrictedaccess() {
     --deployment-prompt \
     --model dashscope/qwen3.6-plus \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 kimi_restrictedaccess() {
@@ -420,7 +420,7 @@ kimi_restrictedaccess() {
     --deployment-prompt \
     --model moonshot/kimi-k2.6 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 gptxhigh_override() {
@@ -458,7 +458,7 @@ gptxhigh_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 gptminixhigh_override() {
@@ -496,7 +496,7 @@ gptminixhigh_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 claudemax_override() {
@@ -534,7 +534,7 @@ claudemax_restrictedaccess() {
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 geminihigh_override() {
@@ -572,7 +572,7 @@ geminihigh_restrictedaccess() {
     --reasoning_effort high \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 gpt55xhigh_subagents_override() {
@@ -613,7 +613,7 @@ gpt55xhigh_subagents_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
 }
 
 gpt55xhigh_subagents() {
@@ -660,7 +660,7 @@ claude47xhigh_subagents_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
 }
 
 claude47xhigh_subagents() {
@@ -816,7 +816,7 @@ gpt_subagents_restrictedaccess() {
     --enable_subagents \
     --model gpt-5.4 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 gptmini_subagents_restrictedaccess() {
@@ -828,7 +828,7 @@ gptmini_subagents_restrictedaccess() {
     --enable_subagents \
     --model gpt-5.4-mini \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 claude_subagents_restrictedaccess() {
@@ -840,7 +840,7 @@ claude_subagents_restrictedaccess() {
     --enable_subagents \
     --model claude-opus-4-6 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 gemini_subagents_restrictedaccess() {
@@ -852,7 +852,7 @@ gemini_subagents_restrictedaccess() {
     --enable_subagents \
     --model gemini/gemini-3.1-pro-preview \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 qwen_subagents_restrictedaccess() {
@@ -864,7 +864,7 @@ qwen_subagents_restrictedaccess() {
     --enable_subagents \
     --model dashscope/qwen3.6-plus \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 kimi_subagents_restrictedaccess() {
@@ -876,7 +876,7 @@ kimi_subagents_restrictedaccess() {
     --enable_subagents \
     --model moonshot/kimi-k2.6 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/base/
+    --result_dir ./results/subagents/restrictedaccess/base/
 }
 
 gpt54_subagents_override() {
@@ -1173,7 +1173,6 @@ gpt6astramax_restrictedaccess() {
     --max_steps 40 \
     --max_trajectory_length 20 \
     --deployment-prompt \
-    --show_steps_left_in_prompt \
     --model gpt-6-astra \
     --reasoning_effort max \
     --max_tokens 100000 \
@@ -1194,7 +1193,6 @@ gpt6astramax_subagents_restrictedaccess() {
     --max_trajectory_length 20 \
     --deployment-prompt \
     --enable_subagents \
-    --show_steps_left_in_prompt \
     --model gpt-6-astra \
     --reasoning_effort max \
     --max_tokens 100000 \
@@ -1241,7 +1239,7 @@ gpt56solmax_restrictedaccess() {
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 gpt56solmax() {
@@ -1261,7 +1259,7 @@ gpt56solmax_subagents_restrictedaccess() {
     --reasoning_effort max \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_subagents_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/subagents/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/subagents/restrictedaccess/xhighreasoningeffort
 }
 
 gpt56solmax_subagents() {
@@ -1303,7 +1301,7 @@ gpt55xhigh_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 gpt55xhigh() {
@@ -1344,7 +1342,7 @@ gpt55_base_restrictedaccess() {
     --model gpt-5.5 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 gpt55_base() {
@@ -1416,7 +1414,7 @@ claude47xhigh_restrictedaccess() {
     --reasoning_effort xhigh \
     --max_tokens 100000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/xhighreasoningeffort
+    --result_dir ./results/restrictedaccess/xhighreasoningeffort
 }
 
 claude47xhigh() {
@@ -1457,7 +1455,7 @@ claude47_base_restrictedaccess() {
     --model claude-opus-4-7 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess.json \
-    --result_dir ./results/prohibition_only/restrictedaccess/base/
+    --result_dir ./results/restrictedaccess/base/
 }
 
 claude47_base() {

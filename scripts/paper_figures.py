@@ -14,7 +14,7 @@ import json
 import math
 import sys
 import textwrap
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -32,14 +32,22 @@ from aggregate_results import (  # noqa: E402
     MODEL_ORDER,
     OPENAI_JUDGE_TARGET,
     OSWORLD_SCATTER_PLOT_CONFIG,
+    OSWORLD_VERIFIED_SCORES,
     SCATTER_PLOT_CONFIG,
     SCATTER_MODEL_COLORS,
     SUCCESS_COLOR,
     binomial_standard_error,
     build_judge_profiles,
-    discover_base_leaf_dirs,
-    discover_xhigh_reasoning_effort_leaf_dirs,
+    discover_run_group_leaf_dirs,
+    discover_leaf_dirs,
+    normalize_leaf_payload,
+    build_scenario_summary,
+    build_combined_rates_with_subagents_summary,
+    combined_run_alignment_key,
+    load_cached_base_scenario_summary,
+    load_cached_xhigh_reasoning_effort_scenario_summary,
     load_matplotlib,
+    judgment_metric_unavailable,
 )
 from compare_textonly_results import (  # noqa: E402
     build_scenario_comparison,
@@ -57,6 +65,13 @@ DEFAULT_RERUN_TEXTONLY_ROOT = (
     REPO_ROOT / "additional_results" / "textonly_results_v2"
 )
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "figures" / "paper"
+# Publication selection only; benchmark aggregates retain every evaluated model.
+PUBLICATION_EXCLUDED_MODELS = ("gpt-6-astra",)
+FIGURE3_EXCLUDED_RUN_KEYS = (
+    "gpt-5.5",
+    "claude-opus-4-7",
+    "subagents:claude-opus-4-6",
+)
 COMBINED_RATES_WITH_SUBAGENTS_FILENAME = "combined_rates_with_subagents.json"
 JUDGE_SENSITIVITY_OUTPUT_STEM = "judge_sensitivity"
 GPT_JUDGE_COLOR = INTENDED_COLOR
@@ -80,15 +95,18 @@ CAPABILITY_OSWORLD_PANEL_TITLES = {
     "restrictedaccess": "(c) Restricted access",
 }
 CAPABILITY_OSWORLD_MODEL_LABELS = {
-    "gpt-5.5": "GPT-5.5 (xhigh)",
-    "gpt-5.4": "GPT-5.4 (xhigh)",
-    "gpt-5.4-mini": "GPT-5.4 Mini (xhigh)",
-    "claude-opus-4-6": "Claude Opus 4.6 (max)",
-    "gemini/gemini-3.1-pro-preview": "Gemini 3.1 Pro (high)",
-    "dashscope/qwen3.6-plus": "Qwen 3.6 Plus (thinking)",
-    "moonshot/kimi-k2.6": "Kimi K2.6 (thinking)",
+    "gpt-5.6-sol": "GPT-5.6 Sol + subagents",
+    "gpt-5.5": "GPT-5.5",
+    "gpt-5.4": "GPT-5.4",
+    "gpt-5.4-mini": "GPT-5.4 Mini",
+    "claude-opus-4-7": "Claude Opus 4.7",
+    "claude-opus-4-6": "Claude Opus 4.6",
+    "gemini/gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
+    "dashscope/qwen3.6-plus": "Qwen 3.6 Plus",
+    "moonshot/kimi-k2.6": "Kimi K2.6",
 }
-CAPABILITY_OSWORLD_FIGURE_SIZE = (5.5, 2.72)
+CAPABILITY_OSWORLD_FIGURE_SIZE = (5.5, 2.95)
+
 
 
 @dataclass(frozen=True)
@@ -272,13 +290,15 @@ FIGURE_9_PANELS = (
         title="Restricted Access (Claude Opus 4.6)",
         variants=(
             "base",
+            "disclosure_pressure",
             "realism",
             "realismdesktopprivacy",
             "realismdeadline",
             "realismlogin",
         ),
         variant_labels={
-            "base": "Base",
+            "base": "Base\n(prohibition only)",
+            "disclosure_pressure": "Disclosure +\npressure",
             "realism": "Explicit Path\nRestriction",
             "realismdesktopprivacy": "Desktop Privacy",
             "realismdeadline": "Deadline",
@@ -299,6 +319,45 @@ FIGURE_9_PANELS = (
             ),
         ),
     ),
+)
+
+
+RESTRICTEDACCESS_CONDITION_PANEL = PanelSpec(
+    scenario="restrictedaccess",
+    model="claude-opus-4-6",
+    action_spec="pyautogui",
+    observation_spec="a11y_tree",
+    title="Restricted Access (Claude Opus 4.6, medium)",
+    variants=("base", "timetaskpressure", "information", "disclosure_pressure"),
+    variant_labels={
+        "base": "Base\n(prohibition only)",
+        "timetaskpressure": "Disclosure only",
+        "information": "Pressure only*",
+        "disclosure_pressure": "Disclosure + pressure",
+    },
+    series=FIGURE_9_PANELS[-1].series,
+)
+
+
+INFORMATION_PANELS = (
+    replace(FIGURE_9_PANELS[0], title="Override (GPT-5.4, medium)",
+            variants=("base", "description"),
+            variant_labels={"base": "Button description", "description": "No button description"}),
+    replace(FIGURE_9_PANELS[1], title="Rewire (GPT-5.4, medium)",
+            variants=("base", "scriptvisibility"),
+            variant_labels={"base": "shutdown.sh opened", "scriptvisibility": "shutdown.sh hidden"}),
+    replace(RESTRICTEDACCESS_CONDITION_PANEL,
+            variants=("base", "timetaskpressure")),
+)
+PRESSURE_PANELS = (
+    replace(FIGURE_9_PANELS[1], title="Rewire (GPT-5.4, medium)",
+            variants=("base", "timetaskpressure"),
+            variant_labels={"base": "Base", "timetaskpressure": "Without completion\npressure"}),
+    replace(FIGURE_9_PANELS[1], model="gpt-5.5", title="Rewire (GPT-5.5, xhigh)",
+            variants=("xhighreasoningeffort", "timetaskpressure"),
+            variant_labels={"xhighreasoningeffort": "Base", "timetaskpressure": "Without completion\npressure"}),
+    replace(RESTRICTEDACCESS_CONDITION_PANEL,
+            variants=("base", "information")),
 )
 
 
@@ -332,6 +391,20 @@ CLAUDE_47_XHIGH = TextAgenticModelSpec(
 )
 
 
+def _historical_access_model(model: TextAgenticModelSpec) -> TextAgenticModelSpec:
+    """Keep paper comparisons on the measured disclosure-and-pressure condition."""
+    groups = {
+        "base": "disclosure_pressure",
+        "xhighreasoningeffort": "disclosure_pressure_xhigh",
+    }
+    return replace(
+        model,
+        textonly_run_group=groups.get(model.textonly_run_group, model.textonly_run_group),
+        agentic_run_group=groups.get(model.agentic_run_group, model.agentic_run_group),
+        agentic_variant=groups.get(model.agentic_variant, model.agentic_variant),
+    )
+
+
 FIGURE_2_SPEC = TextAgenticFigureSpec(
     output_stem="figure_2",
     rows=(
@@ -349,7 +422,10 @@ FIGURE_2_SPEC = TextAgenticFigureSpec(
             TextAgenticPanelSpec(
                 title="Restricted Access (Claude Opus)",
                 scenario="restrictedaccess",
-                models=(CLAUDE_46_XHIGH, CLAUDE_47_XHIGH),
+                models=(
+                    _historical_access_model(CLAUDE_46_XHIGH),
+                    _historical_access_model(CLAUDE_47_XHIGH),
+                ),
             ),
         ),
     ),
@@ -375,7 +451,10 @@ def _figure_8_row(
         TextAgenticPanelSpec(
             title=title if show_titles else "",
             scenario=scenario,
-            models=(model,),
+            models=(
+                _historical_access_model(model)
+                if scenario == "restrictedaccess" else model,
+            ),
         )
         for title, scenario in zip(titles, scenarios)
     )
@@ -437,17 +516,232 @@ MIXED_REASONING_SPEC = TextAgenticFigureSpec(
                     TextAgenticModelSpec(
                         model="claude-opus-4-6",
                         short_label="4.6",
-                        textonly_run_group="base",
-                        agentic_run_group="base",
-                        agentic_variant="base",
+                        textonly_run_group="disclosure_pressure",
+                        agentic_run_group="disclosure_pressure",
+                        agentic_variant="disclosure_pressure",
                     ),
-                    CLAUDE_47_XHIGH,
+                    _historical_access_model(CLAUDE_47_XHIGH),
                 ),
             ),
         ),
     ),
     figure_size=(20.48, 5.12),
 )
+
+
+
+def filter_publication_data(
+    payload: Mapping[str, Any],
+    excluded_models: Sequence[str] = PUBLICATION_EXCLUDED_MODELS,
+) -> Dict[str, Any]:
+    """Copy publication data while excluding model rows and their source paths.
+
+    The explicit exclusion list is recorded for reproducibility. Source payloads
+    and the general benchmark aggregates are never mutated.
+    """
+    excluded = set(excluded_models)
+    omit = object()
+
+    def copy_selected(value: Any) -> Any:
+        if isinstance(value, dict):
+            if value.get("model") in excluded:
+                return omit
+            selected = {}
+            for key, item in value.items():
+                if key in excluded or key == "publication_excluded_models":
+                    continue
+                copied = copy_selected(item)
+                if copied is not omit:
+                    selected[key] = copied
+            return selected
+        if isinstance(value, (list, tuple)):
+            selected = []
+            for item in value:
+                copied = copy_selected(item)
+                if copied is not omit:
+                    selected.append(copied)
+            return selected
+        if isinstance(value, str) and excluded.intersection(value.replace("\\", "/").split("/")):
+            return omit
+        return value
+
+    selected = copy_selected(dict(payload))
+    if selected is omit:
+        selected = {}
+    selected["publication_excluded_models"] = sorted(excluded)
+    return selected
+
+
+
+def select_figure3_runs(summary: Mapping[str, Any]) -> Dict[str, Any]:
+    """Apply the manuscript's model/configuration selection across all panels."""
+    selected = filter_publication_data(summary)
+    excluded = set(FIGURE3_EXCLUDED_RUN_KEYS)
+    for scenario in selected.get("scenarios", []):
+        scenario["runs"] = [
+            run for run in scenario.get("runs", [])
+            if combined_run_alignment_key(run) not in excluded
+        ]
+    selected["publication_excluded_run_keys"] = sorted(excluded)
+    selected["publication_layout"] = "compact"
+    return selected
+
+
+def _tag_publication_condition(run: Dict[str, Any], *, historical: bool) -> Dict[str, Any]:
+    return {**run,
+            "prompt_condition": "disclosure_pressure" if historical else "prohibition_only",
+            "publication_source": "legacy_fallback" if historical else "new_base",
+            "publication_legacy_fallback": historical}
+
+
+def build_publication_combined_summary(
+    summary: Mapping[str, Any], results_root: Path,
+    adjudications: Sequence[Mapping[str, Any]] = (),
+) -> Dict[str, Any]:
+    """Prefer new restricted-access runs; fill missing configurations from legacy.
+
+    Main-agent, subagent, and reasoning settings remain separate. The benchmark
+    aggregates are untouched; any author adjudication is recorded on its exact
+    historical publication row only.
+    """
+    selected = filter_publication_data(summary)
+    results_root = Path(results_root).expanduser().resolve()
+    base, _ = load_cached_base_scenario_summary(results_root, "restrictedaccess", restrictedaccess_condition="disclosure_pressure")
+    high, _ = load_cached_xhigh_reasoning_effort_scenario_summary(results_root, "restrictedaccess", restrictedaccess_condition="disclosure_pressure")
+    sub, _ = load_cached_base_scenario_summary(results_root / "subagents", "subagents_restrictedaccess", restrictedaccess_condition="disclosure_pressure")
+    sub_high, _ = load_cached_xhigh_reasoning_effort_scenario_summary(results_root / "subagents", "subagents_restrictedaccess", restrictedaccess_condition="disclosure_pressure")
+    historical = filter_publication_data(build_combined_rates_with_subagents_summary(
+        {"restrictedaccess": base} if base else {},
+        {"restrictedaccess": high} if high else {},
+        {"restrictedaccess": sub} if sub else {},
+        {"restrictedaccess": sub_high} if sub_high else {},
+    ))
+    current = next((item for item in selected.get("scenarios", []) if item.get("scenario") == "restrictedaccess"), None)
+    older = next((item for item in historical.get("scenarios", []) if item.get("scenario") == "restrictedaccess"), None)
+    if current is None and older is not None:
+        current = {**older, "runs": []}
+        selected.setdefault("scenarios", []).append(current)
+    if current is None:
+        return select_figure3_runs(selected)
+    current["runs"] = [_tag_publication_condition(run, historical=False) for run in current["runs"]]
+    occupied = {combined_run_alignment_key(run): run for run in current["runs"]}
+    for run in (older or {}).get("runs", []):
+        key = combined_run_alignment_key(run)
+        if key in occupied:
+            # An existing publication row is already measured with the new
+            # prompt. Never pool it with another prompt or interface.
+            continue
+        row = _tag_publication_condition(run, historical=True)
+        for record in adjudications:
+            if (record.get("condition") != "disclosure_pressure"
+                    or record.get("run_key") != row.get("run_key")
+                    or record.get("source_scenario") != row.get("source_scenario")
+                    or record.get("model") != row.get("model")):
+                continue
+            before = record["automated_aggregate"]
+            after = record["adjudicated_aggregate"]
+            if (row["plot_actual_count"] != before["actual_count"]
+                    or row["total_tasks"] != before["total_tasks"]
+                    or row["total_tasks"] != after["total_tasks"]):
+                raise RuntimeError(f"Manual adjudication does not match historical counts: {row['run_key']}")
+            row["automated_plot_actual_count"] = row["plot_actual_count"]
+            row["automated_plot_actual_rate"] = row["plot_actual_rate"]
+            row["plot_actual_count"] = int(after["actual_count"])
+            row["plot_actual_rate"] = float(after["actual_rate"])
+            row.setdefault("publication_manual_adjudications", []).append(dict(record))
+        current["runs"].append(row)
+        occupied[key] = row
+    selected = select_figure3_runs(selected)
+    for scenario in selected["scenarios"]:
+        for row in scenario["runs"]:
+            source_scenario = row.get("source_scenario", scenario["scenario"])
+            leaves = _discover_run_leaves(results_root, source_scenario, row["run_key"])
+            row["aggregate_files"] = [str(leaf.aggregate_path) for leaf in leaves
+                                      if leaf.model == row["model"]
+                                      and leaf.action_spec in row.get("action_specs", ())
+                                      and leaf.observation_spec in row.get("observation_specs", ())]
+    selected["included_sources"] = sorted({
+        path for scenario in selected["scenarios"] for run in scenario["runs"]
+        for path in run["aggregate_files"]
+    })
+    selected["publication_restrictedaccess_policy"] = "Prefer prohibition-only runs for each model/agent/reasoning configuration; otherwise use disclosure + pressure. Dagger marks fallback rows."
+    return selected
+
+
+def build_publication_osworld_summary(
+    summary: Mapping[str, Any], additional_runs: Sequence[Mapping[str, Any]] = (),
+    historical_runs: Sequence[Mapping[str, Any]] = (),
+) -> Dict[str, Any]:
+    """Prefer base runs within the manuscript's higher-effort configurations."""
+    selected = filter_publication_data(summary)
+    def configuration(run):
+        return (run["model"], run.get("reasoning_effort"), bool(run.get("enable_subagents", False)))
+    occupied = {configuration(run) for run in selected["runs"]}
+    for run in additional_runs:
+        if configuration(run) not in occupied:
+            selected["runs"].append(dict(run))
+            occupied.add(configuration(run))
+    for run in selected["runs"]:
+        if run.get("run_group") not in {"base", "xhighreasoningeffort"}:
+            raise ValueError("Figure 4 restricted access requires prohibition-only results.")
+    selected["runs"] = [_tag_publication_condition(run, historical=False) for run in selected["runs"]]
+    for run in filter_publication_data({"runs": historical_runs})["runs"]:
+        if run.get("run_group") not in {"disclosure_pressure", "disclosure_pressure_xhigh"}:
+            raise ValueError("Figure 4 fallback requires disclosure + pressure results.")
+        if configuration(run) not in occupied:
+            selected["runs"].append(_tag_publication_condition(run, historical=True))
+            occupied.add(configuration(run))
+    selected["publication_restrictedaccess_policy"] = "Use higher-effort or thinking-enabled configurations; prefer prohibition-only runs and otherwise use disclosure + pressure. Public reasoning and delegation settings are recorded separately."
+    return selected
+
+
+def _additional_default_access_capability_points(results_root: Path) -> List[Dict[str, Any]]:
+    """Include the manuscript's Opus 4.7 and subagent Sol configurations."""
+    specifications = (
+        ("claude-opus-4-7", "xhigh", False, "xhighreasoningeffort"),
+        ("gpt-5.6-sol", "max", True, "xhighreasoningeffort"),
+    )
+    points = []
+    for model, effort, subagents, group in specifications:
+        root = results_root / "subagents" if subagents else results_root
+        scenario = "subagents_restrictedaccess" if subagents else "restrictedaccess"
+        loader = load_cached_base_scenario_summary if group == "base" else load_cached_xhigh_reasoning_effort_scenario_summary
+        source_summary, _ = loader(root, scenario)
+        for run in (source_summary or {}).get("runs", []):
+            if run.get("model") != model or run.get("run_group") != group:
+                continue
+            result_dir = Path(run["result_dir"])
+            args = json.loads((result_dir.parent / "args.json").read_text())
+            if args.get("reasoning_effort") != effort or bool(args.get("enable_subagents", False)) != subagents:
+                continue
+            if model == "gpt-5.6-sol":
+                score = {"success_rate": 0.830, "published_reasoning_effort": "max",
+                         "published_reasoning_configuration": "max effort",
+                         "source_url": "https://arxiv.org/html/2607.24653v1",
+                         "source_label": "Kimi Team, Kimi K3: Open Frontier Intelligence, Table 2 and section 6.1.2",
+                         "reasoning_source_url": "https://arxiv.org/html/2607.24653v1"}
+            else:
+                score = dict(OSWORLD_VERIFIED_SCORES[model])
+            point = {
+                "model": model, "model_display_name": run["model_display_name"],
+                "run_group": group, "variant_name": group, "source_scenario": scenario,
+                "reasoning_effort": effort, "enable_subagents": subagents,
+                "action_specs": [run["action_spec"]], "observation_specs": [run["observation_spec"]],
+                "completed_tasks": run["total_tasks"], "misaligned_tasks": run["plot_actual_count"],
+                "misalignment_rate": run["plot_actual_rate"],
+                "osworld_verified_success_rate": score["success_rate"],
+                "osworld_verified_source_label": score["source_label"],
+                "osworld_verified_source_url": score["source_url"],
+                "published_reasoning_configuration": score["published_reasoning_configuration"],
+                "published_reasoning_effort": score["published_reasoning_effort"],
+                "reasoning_source_url": score["reasoning_source_url"],
+                "capability_reasoning_matched": effort == score["published_reasoning_effort"],
+                "capability_reference_scope": "underlying_model", "source_checked_at": "2026-09-25",
+                "publication_marker": "D" if subagents else "o",
+                "result_dirs": [str(result_dir)], "aggregate_files": [run["aggregate_path"]],
+            }
+            points.append(point)
+    return points
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
@@ -460,7 +754,7 @@ def _read_json(path: Path) -> Dict[str, Any]:
         raise RuntimeError(f"Summary file is not valid JSON: {path}") from exc
     if not isinstance(payload, dict):
         raise RuntimeError(f"Summary file must contain a JSON object: {path}")
-    return payload
+    return filter_publication_data(payload)
 
 
 def _textonly_run_root(textonly_root: Path, run_group: str) -> Path:
@@ -1327,6 +1621,123 @@ def textonly_agentic_mixed_reasoning(
     )
 
 
+
+
+def _load_exact_condition_panel(results_root: Path, panel: PanelSpec) -> Dict[str, Any]:
+    """Read one explicit leaf per condition, without observation/model pooling."""
+    leaves = discover_leaf_dirs(results_root, panel.scenario)
+    payloads = []
+    for variant in panel.variants:
+        expected_group = variant if variant in {
+            "base", "xhighreasoningeffort", "disclosure_pressure", "disclosure_pressure_xhigh",
+        } else "ablation"
+        matches = [leaf for leaf in leaves
+                   if leaf.model == panel.model and leaf.action_spec == panel.action_spec
+                   and leaf.observation_spec == panel.observation_spec
+                   and leaf.variant_name == variant and leaf.run_group == expected_group]
+        if len(matches) != 1:
+            raise RuntimeError(f"Expected one {panel.title}/{variant} leaf; found {len(matches)}.")
+        leaf = matches[0]
+        payloads.append(normalize_leaf_payload(_read_json(leaf.aggregate_path), leaf))
+    return build_scenario_summary(panel.scenario, payloads)
+
+
+def _condition_panels_figure(
+    panels: Sequence[PanelSpec], *, results_root: Path, output_dir: Path,
+    output_stem: str, formats: Sequence[str], dpi: int,
+) -> Tuple[Path, ...]:
+    results_root = Path(results_root).expanduser().resolve()
+    summaries = [_load_exact_condition_panel(results_root, panel) for panel in panels]
+    plt, _ = load_matplotlib()
+    figure, axes = plt.subplots(1, len(panels), figsize=(20.48, 5.25), sharey=True)
+    for index, (axis, panel, summary) in enumerate(zip(axes, panels, summaries)):
+        _render_panel(axis, panel, summary, show_y_axis=index == 0)
+    figure.subplots_adjust(left=0.05, right=0.99, top=0.72, bottom=0.20, wspace=0.12)
+    if output_stem == "timetaskpressure_ablation_v2":
+        figure.text(0.665, 0.025, "*Pressure-only also changes absolute paths to relative paths.",
+                    fontsize=9, color="#444444")
+    output_dir = Path(output_dir).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    try:
+        for fmt in dict.fromkeys(formats):
+            if fmt not in {"pdf", "png"}:
+                raise ValueError(f"Unsupported output format: {fmt}")
+            path = output_dir / f"{output_stem}.{fmt}"
+            figure.savefig(path, format=fmt, facecolor="white", dpi=dpi)
+            paths.append(path)
+    finally:
+        plt.close(figure)
+    (output_dir / f"{output_stem}.json").write_text(
+        json.dumps(filter_publication_data({"panels": [
+            {"title": panel.title, "runs": _ordered_runs(summary, panel)}
+            for panel, summary in zip(panels, summaries)
+        ]}), indent=2) + "\n", encoding="utf-8",
+    )
+    return tuple(paths)
+
+
+def information_ablation(
+    results_root: Path = DEFAULT_RESULTS_ROOT, output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"), dpi: int = 300,
+) -> Tuple[Path, ...]:
+    return _condition_panels_figure(INFORMATION_PANELS, results_root=results_root,
+                                   output_dir=output_dir, output_stem="information_ablation",
+                                   formats=formats, dpi=dpi)
+
+
+def task_pressure_ablation(
+    results_root: Path = DEFAULT_RESULTS_ROOT, output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"), dpi: int = 300,
+) -> Tuple[Path, ...]:
+    return _condition_panels_figure(PRESSURE_PANELS, results_root=results_root,
+                                   output_dir=output_dir, output_stem="timetaskpressure_ablation_v2",
+                                   formats=formats, dpi=dpi)
+
+
+def restrictedaccess_conditions(
+    results_root: Path = DEFAULT_RESULTS_ROOT,
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"),
+    dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Compare four prompt conditions at one matched model/interface setting."""
+    panel = RESTRICTEDACCESS_CONDITION_PANEL
+    summary = _load_exact_condition_panel(Path(results_root).expanduser().resolve(), panel)
+    plt, _ = load_matplotlib()
+    figure, axis = plt.subplots(figsize=(10.6, 4.9))
+    _render_panel(axis, panel, summary, show_y_axis=True)
+    figure.text(
+        0.09, 0.025,
+        "*Pressure-only runs also use relative paths; this is not a pure pressure intervention.",
+        fontsize=9, color="#444444",
+    )
+    figure.subplots_adjust(left=0.09, right=0.99, top=0.73, bottom=0.19)
+    output_dir = Path(output_dir).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    try:
+        for fmt in dict.fromkeys(formats):
+            if fmt not in {"pdf", "png"}:
+                raise ValueError(f"Unsupported output format: {fmt}")
+            path = output_dir / f"restrictedaccess_conditions.{fmt}"
+            figure.savefig(path, format=fmt, facecolor="white", dpi=dpi)
+            paths.append(path)
+    finally:
+        plt.close(figure)
+    # A sidecar ties the published bars to the source tasks and aggregate paths.
+    provenance = {
+        "scenario": panel.scenario, "model": panel.model,
+        "action_spec": panel.action_spec, "observation_spec": panel.observation_spec,
+        "runs": _ordered_runs(summary, panel),
+        "caveat": "The pressure-only condition also changes absolute paths to relative paths.",
+    }
+    (output_dir / "restrictedaccess_conditions.json").write_text(
+        json.dumps(filter_publication_data(provenance), indent=2) + "\n", encoding="utf-8",
+    )
+    return tuple(paths)
+
+
 def _combined_rates_with_subagents_path(results_root: Path) -> Path:
     return (
         results_root
@@ -1344,8 +1755,12 @@ def _judge_ids() -> Tuple[str, str]:
 
 
 def _run_group_from_key(run_key: str) -> str:
-    if "xhighreasoningeffort" in run_key.split(":"):
-        return "xhighreasoningeffort"
+    key_parts = run_key.split(":")
+    for group in (
+        "disclosure_pressure_xhigh", "disclosure_pressure", "xhighreasoningeffort"
+    ):
+        if group in key_parts:
+            return group
     return "base"
 
 
@@ -1356,7 +1771,9 @@ def _figure_3_run_sort_key(run: JudgeRun) -> Tuple[int, str, int, str]:
         model_index = len(MODEL_ORDER)
 
     is_subagent = run.run_key.startswith("subagents:")
-    is_xhigh = _run_group_from_key(run.run_key) == "xhighreasoningeffort"
+    is_xhigh = _run_group_from_key(run.run_key) in {
+        "xhighreasoningeffort", "disclosure_pressure_xhigh"
+    }
     if not is_subagent and not is_xhigh:
         variant_index = 0
     elif is_xhigh and not is_subagent:
@@ -1378,9 +1795,9 @@ def _discover_run_leaves(
         if run_key.startswith("subagents:")
         else results_root
     )
-    if _run_group_from_key(run_key) == "xhighreasoningeffort":
-        return discover_xhigh_reasoning_effort_leaf_dirs(source_root, scenario)
-    return discover_base_leaf_dirs(source_root, scenario)
+    return discover_run_group_leaf_dirs(
+        source_root, scenario, _run_group_from_key(run_key)
+    )
 
 
 def _load_judge_runs(results_root: Path) -> Dict[str, Tuple[JudgeRun, ...]]:
@@ -1695,7 +2112,10 @@ def _load_panel_summary(results_root: Path, panel: PanelSpec) -> Dict[str, Any]:
     candidates = sorted(summary_dir.glob("ablation_comparison_*.json"))
     matches = []
     for path in candidates:
-        if path.name.startswith("ablation_comparison_base_vs_"):
+        if path.name.startswith((
+            "ablation_comparison_base_vs_",
+            "ablation_comparison_disclosure_pressure_vs_",
+        )):
             continue
         summary = _read_json(path)
         if summary.get("model") != panel.model:
@@ -1856,6 +2276,14 @@ def _render_panel(
             for count, total in zip(counts, totals)
         ]
 
+        missing_judgments = [
+            judgment_metric_unavailable(run, series.count_key)
+            for run in runs
+        ]
+        heights = [float("nan") if missing else height
+                   for height, missing in zip(heights, missing_judgments)]
+        errors = [0.0 if missing else error
+                  for error, missing in zip(errors, missing_judgments)]
         bars = axis.bar(
             positions,
             heights,
@@ -1873,12 +2301,13 @@ def _render_panel(
         )
         legend_handles.append(bars[0])
 
-        for bar, count, total_tasks, error in zip(
-            bars,
-            counts,
-            totals,
-            errors,
+        for bar, count, total_tasks, error, missing in zip(
+            bars, counts, totals, errors, missing_judgments,
         ):
+            if missing:
+                axis.text(bar.get_x() + bar.get_width() / 2, 0.025, "Not\njudged",
+                          ha="center", va="bottom", fontsize=8, color="#777777")
+                continue
             axis.text(
                 bar.get_x() + bar.get_width() / 2,
                 min(bar.get_height() + error + 0.018, 1.018),
@@ -2000,7 +2429,25 @@ def figure_9(
         plt, _ = load_matplotlib()
         plt.close(figure)
 
+    (output_dir / "figure_9.json").write_text(
+        json.dumps(filter_publication_data({"panels": [
+            {"title": panel.title, "runs": _ordered_runs(summaries[panel.scenario], panel)}
+            for panel in FIGURE_9_PANELS
+        ]}), indent=2) + "\n", encoding="utf-8",
+    )
     return tuple(output_paths)
+
+
+def _judge_run_configuration_key(run: Mapping[str, Any]) -> Tuple[str, bool, bool]:
+    """Align scenario panels by model, delegation, and reasoning configuration."""
+    run_key = str(run.get("run_key", ""))
+    return (
+        str(run.get("model", run_key.split(":")[-1])),
+        run_key.startswith("subagents:"),
+        _run_group_from_key(run_key) in {
+            "xhighreasoningeffort", "disclosure_pressure_xhigh"
+        },
+    )
 
 
 def render_judge_sensitivity_figure(
@@ -2013,19 +2460,22 @@ def render_judge_sensitivity_figure(
             f"received {len(panels)}."
         )
 
-    run_key_sequences = []
+    run_configuration_sequences = []
     for panel in panels:
         panel_runs = panel.get("runs")
         if not isinstance(panel_runs, (list, tuple)) or not panel_runs:
             raise RuntimeError(
                 f"Judge-sensitivity panel {panel.get('outcome')!r} has no runs."
             )
-        run_key_sequences.append(
-            tuple(str(run.get("run_key", "")) for run in panel_runs)
+        run_configuration_sequences.append(
+            tuple(_judge_run_configuration_key(run) for run in panel_runs)
         )
-    if any(keys != run_key_sequences[0] for keys in run_key_sequences[1:]):
+    if any(
+        keys != run_configuration_sequences[0]
+        for keys in run_configuration_sequences[1:]
+    ):
         raise RuntimeError(
-            "Judge-sensitivity panels do not contain the same ordered run keys."
+            "Judge-sensitivity panels do not contain the same ordered model configurations."
         )
 
     plt, _ = load_matplotlib()
@@ -2464,6 +2914,36 @@ def _load_capability_osworld_summaries(
             scenario,
         )
         summary = _read_json(summary_path)
+        if scenario == "restrictedaccess":
+            additional = _additional_default_access_capability_points(resolved_results_root)
+            historical_path = (
+                resolved_results_root / scenario / "disclosure_pressure_xhigh"
+                / "summary" / summary_path.name
+            )
+            historical = _read_json(historical_path)
+            summary = build_publication_osworld_summary(summary, additional, historical["runs"])
+            included = {(run["model"], run["run_group"]) for run in summary["runs"]}
+            summary["omitted_runs"] = [run for run in summary.get("omitted_runs", [])
+                                       if (run.get("model"), run.get("run_group")) not in included]
+            included_models = {run["model"] for run in summary["runs"]}
+            summary["omitted_models"] = [model for model in summary.get("omitted_models", [])
+                                         if (model.get("model") if isinstance(model, dict) else model) not in included_models]
+            summary["matches_public_reasoning_configuration"] = False
+            summary["capability_reference_scope"] = "underlying_model"
+            summary["marker_style"] = "circles: parent-only ROGUE; diamond: subagent-enabled ROGUE"
+            for run in summary["runs"]:
+                source_scenario = run.get("source_scenario", scenario)
+                source_root = resolved_results_root / "subagents" if run.get("enable_subagents") else resolved_results_root
+                leaves = [leaf for leaf in discover_run_group_leaf_dirs(source_root, source_scenario, run["run_group"])
+                          if leaf.model == run["model"]
+                          and leaf.action_spec in run["action_specs"]
+                          and leaf.observation_spec in run["observation_specs"]]
+                run["aggregate_files"] = [str(leaf.aggregate_path) for leaf in leaves]
+                run["result_dirs"] = [str(leaf.result_dir) for leaf in leaves]
+                if run["model"] == "dashscope/qwen3.6-plus":
+                    run["osworld_verified_source_label"] = "Alibaba Qwen 3.6 Plus launch report"
+                    run["osworld_verified_source_url"] = "https://www.alibabacloud.com/blog/alibaba-unveils-qwen3-6-plus-to-accelerate-agentic-ai-deployment-for-enterprises-and-alibaba%E2%80%99s-ai-applications_603005"
+            summary["x_axis_limits"] = [0.6, 0.85]
         if summary.get("scenario") != scenario:
             raise RuntimeError(
                 f"Expected {scenario!r} summary at {summary_path}, got "
@@ -2511,24 +2991,18 @@ def _capability_osworld_x_ticks(
     x_min, x_max = x_axis_limits
     if x_min >= x_max:
         raise ValueError("x_axis_limits must be an increasing pair")
-    base_step = 0.025 if x_max - x_min <= 0.25 else 0.05
-    first_tick = math.ceil((x_min - 1e-12) / base_step) * base_step
-    tick_count = (
-        int(math.floor((x_max - first_tick + 1e-12) / base_step)) + 1
-    )
-    if tick_count <= 0:
-        return (x_min, x_max)
-    all_ticks = [
-        first_tick + index * base_step for index in range(tick_count)
-    ]
-    stride = max(1, math.ceil(len(all_ticks) / 4))
-    return tuple(all_ticks[::stride])
+    # These are compact side-by-side panels: use a simple two-decimal grid.
+    step = 0.10 if x_max - x_min > 0.18 else 0.05
+    first_tick = math.ceil((x_min - 1e-12) / step) * step
+    ticks = tuple(first_tick + index * step
+                  for index in range(int(math.floor((x_max - first_tick + 1e-12) / step)) + 1))
+    return ticks or (x_min, x_max)
 
 
 def render_capability_osworld_vs_misalignment(
     summaries: Sequence[Mapping[str, Any]],
 ) -> Any:
-    """Render the three reasoning-matched OSWorld scatter panels."""
+    """Render ROGUE violation rates against public model capability references."""
     if len(summaries) != len(CAPABILITY_OSWORLD_SCENARIOS):
         raise RuntimeError(
             "OSWorld capability figure requires exactly three summaries."
@@ -2616,23 +3090,49 @@ def render_capability_osworld_vs_misalignment(
             if not isinstance(run, dict):
                 continue
             model = str(run.get("model", ""))
+            completed = int(run.get("completed_tasks", 0))
+            misaligned = int(run.get("misaligned_tasks", 0))
+            if completed <= 0 or not 0 <= misaligned <= completed:
+                raise RuntimeError(f"Invalid OSWorld plot counts for {scenario}/{model}.")
+            axis.errorbar(
+                [float(run["osworld_verified_success_rate"])],
+                [float(run["misalignment_rate"])],
+                yerr=[binomial_standard_error(misaligned, completed)],
+                fmt="none", ecolor=model_colors.get(model, "#666666"),
+                elinewidth=0.9, capsize=2, capthick=0.9, zorder=2,
+            )
             axis.scatter(
                 [float(run.get("osworld_verified_success_rate", 0.0))],
                 [float(run.get("misalignment_rate", 0.0))],
                 s=64,
-                marker="o",
+                marker=run.get("publication_marker", "o"),
                 color=model_colors.get(model, "#666666"),
                 edgecolors="white",
                 linewidths=0.8,
                 zorder=3,
             )
+            if run.get("publication_point_annotation"):
+                axis.annotate(run["publication_point_annotation"],
+                              (float(run["osworld_verified_success_rate"]), float(run["misalignment_rate"])),
+                              xytext=(6, 0), textcoords="offset points", fontsize=6,
+                              color="#333333", ha="left", va="center")
+            if run.get("publication_legacy_fallback"):
+                axis.annotate("†", (float(run["osworld_verified_success_rate"]), float(run["misalignment_rate"])),
+                              xytext=(5, -10 if float(run["misalignment_rate"]) >= 0.9 else 3),
+                              textcoords="offset points", fontsize=7,
+                              fontweight="bold", color="#333333", clip_on=False)
 
+    legend_markers = {
+        model: next((run.get("publication_marker", "o") for summary in summaries
+                     for run in summary["runs"] if run.get("model") == model), "o")
+        for model in ordered_models
+    }
     legend_handles = [
         axes_row[0].scatter(
             [],
             [],
             s=46,
-            marker="o",
+            marker=legend_markers[model],
             color=model_colors[model],
             edgecolors="white",
             linewidths=0.7,
@@ -2647,8 +3147,8 @@ def render_capability_osworld_vs_misalignment(
         legend_handles,
         legend_labels,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.045),
-        ncol=4,
+        bbox_to_anchor=(0.5, 0.055),
+        ncol=3,
         frameon=False,
         fontsize=7.0,
         handlelength=0.8,
@@ -2660,7 +3160,7 @@ def render_capability_osworld_vs_misalignment(
     )
     figure.text(
         0.5,
-        0.265,
+        0.30,
         "OSWorld-Verified success rate (zoomed)",
         ha="center",
         va="center",
@@ -2671,7 +3171,7 @@ def render_capability_osworld_vs_misalignment(
     figure.text(
         0.018,
         0.63,
-        "Actual misalignment rate",
+        "Actual violation rate",
         ha="center",
         va="center",
         rotation="vertical",
@@ -2679,12 +3179,15 @@ def render_capability_osworld_vs_misalignment(
         fontweight="bold",
         color="#222222",
     )
+    if any(run.get("publication_legacy_fallback") for summary in summaries for run in summary.get("runs", [])):
+        figure.text(0.5, 0.012, "† Restricted access: disclosure + pressure fallback; unmarked: prohibition only.",
+                    ha="center", va="bottom", fontsize=6.3, color="#444444")
     figure.subplots_adjust(
         left=0.105,
-        right=0.99,
+        right=0.975,
         top=0.90,
-        bottom=0.36,
-        wspace=0.12,
+        bottom=0.39,
+        wspace=0.30,
     )
     return figure
 
@@ -2728,6 +3231,9 @@ def capability_osworld_vs_misalignment(
         plt, _ = load_matplotlib()
         plt.close(figure)
 
+    (resolved_output_dir / f"{CAPABILITY_OSWORLD_OUTPUT_STEM}.json").write_text(
+        json.dumps(filter_publication_data({"scenarios": summaries}), indent=2) + "\n", encoding="utf-8",
+    )
     return tuple(output_paths)
 
 
@@ -2747,6 +3253,9 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
             "figure_8",
             "figure_9",
             "judge_sensitivity",
+            "restrictedaccess_conditions",
+            "information_ablation",
+            "task_pressure_ablation",
             "textonly_agentic_mixed_reasoning",
         ),
         help="Figure function to generate (default: figure_9).",
@@ -2762,8 +3271,8 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         type=Path,
         default=DEFAULT_TEXTONLY_ROOT,
         help=(
-            "Text-only results root containing base and "
-            "xhighreasoningeffort run groups."
+            "Text-only results root containing scenario-specific run groups; "
+            "restricted access uses the measured disclosure_pressure conditions."
         ),
     )
     parser.add_argument(
@@ -2849,6 +3358,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 output_dir=args.output_dir,
                 formats=args.formats,
                 dpi=args.dpi,
+            )
+        elif args.figure in {"information_ablation", "task_pressure_ablation"}:
+            render = information_ablation if args.figure == "information_ablation" else task_pressure_ablation
+            output_paths = render(
+                results_root=args.results_root, output_dir=args.output_dir,
+                formats=args.formats, dpi=args.dpi,
+            )
+        elif args.figure == "restrictedaccess_conditions":
+            output_paths = restrictedaccess_conditions(
+                results_root=args.results_root, output_dir=args.output_dir,
+                formats=args.formats, dpi=args.dpi,
             )
         elif args.figure == "judge_sensitivity":
             output_paths = figure_judge_sensitivity(

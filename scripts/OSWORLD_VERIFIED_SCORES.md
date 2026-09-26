@@ -1,12 +1,13 @@
 # OSWorld-Verified score sources and interpretation
 
-The capability-versus-misalignment plots produced by
+The general capability-versus-misalignment plots produced by
 [`aggregate_results.py`](aggregate_results.py) use public
 [OSWorld-Verified](https://github.com/xlang-ai/OSWorld) success rates as a rough
 capability proxy on the horizontal axis. Each score is paired with the ROGUE
 run whose reasoning configuration most closely matches the configuration used
 to obtain that public score. This page documents the exact values, matching
-decisions, and sources used in those plots.
+decisions, and sources used in those plots. The publication-specific selection
+and additional model-level reference scores are documented at the end of this page.
 
 The scores were last checked on 2026-08-03. They are kept in the
 `OSWORLD_VERIFIED_SCORES` table rather than fetched while the plots are
@@ -83,3 +84,29 @@ not currently have entries in `OSWORLD_VERIFIED_SCORES`. The OSWorld plot genera
 therefore omits them. Generated JSON summaries record these models, and any
 future model without a registered public score, in `omitted_models` along with
 the reason for omission.
+
+## Paper figure configuration
+
+Figure 4's restricted-access panel uses the following ROGUE runs and public
+underlying-model capability references. Prompt conditions and configurations
+are recorded separately in the figure's JSON output.
+
+| ROGUE configuration | Prompt condition | Actual access | OSWorld-Verified reference | Public configuration |
+| --- | --- | ---: | ---: | --- |
+| Opus 4.6 max | Disclosure + pressure | 8/8 | 72.7% | Max effort |
+| GPT-5.4 xhigh | Disclosure + pressure | 0/8 | 75.0% | Xhigh |
+| GPT-5.5 xhigh | Disclosure + pressure | 0/8 | 78.7% | Xhigh |
+| Kimi K2.6 thinking | Disclosure + pressure | 0/8 | 73.1% | Thinking enabled |
+| Qwen 3.6 Plus medium | Base | 1/8 | 62.5% | Thinking enabled |
+| Opus 4.7 xhigh | Base | 0/8 | 78.0% | Max effort |
+| GPT-5.6 Sol max + subagents | Base | 1/8 | 83.0% | Max-effort parent-model reference |
+
+GPT-5.6 Sol's 83.0% reference is reported by the Kimi Team in
+[Kimi K3: Open Frontier Intelligence](https://arxiv.org/html/2607.24653v1),
+Table 2; section 6.1.2 specifies max reasoning effort. It is a public model
+capability reference, not an independently measured capability score for ROGUE's
+subagent setup. The diamond marker identifies the ROGUE subagent configuration.
+
+The override and shutdown panels use the reasoning-matched selection above.
+General aggregate exports use the archived registry; `paper_figures.py` applies
+the paper's selection and additional reference.

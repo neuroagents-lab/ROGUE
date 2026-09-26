@@ -224,3 +224,4 @@ evaluation_examples/test_chrome.json
 __MACOSX/
 *.pem
 /outputs/
+/logs/

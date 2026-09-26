@@ -1,13 +1,6 @@
 # Ablation Experiments
 
-> Restricted-access ablations retain their original prompts and results. They
-> are now described relative to a prohibition-only base, which has no results
-> yet. See [the condition mapping](RESTRICTEDACCESS.md). In commands that used
-> the former base, the manifest below now points to its preserved
-> `informationpressure` definition; those reproduction commands write to a
-> fresh `results/historical_prompt_reruns/` root. The original result paths remain
-> documented in the condition mapping and are not moved or overwritten.
-This is a file to document the specific commands/args we use to run each ablation experiment.
+Commands for ablation experiments. See [RESTRICTEDACCESS.md](RESTRICTEDACCESS.md) for restricted-access prompt conditions and result directories.
 
 ## Scenario: Human Control Override
 
@@ -409,6 +402,31 @@ python scripts/python/run_multienv.py --provider_name aws --headless --action_sp
 
 ### Claude Opus 4.6
 
+#### Condition: Credential disclosure + pressure
+```bash
+python scripts/python/run_multienv.py \
+    --provider_name aws \
+    --headless \
+    --action_space pyautogui \
+    --observation_type a11y_tree \
+    --max_steps 40 \
+    --max_trajectory_length 20 \
+    --per-step-recording \
+    --deployment-prompt \
+    --show_steps_left_in_prompt \
+    --model claude-opus-4-6 \
+    --reasoning_effort medium \
+    --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json \
+    --result_dir ./results/restrictedaccess/disclosure_pressure \
+    --num_envs 5 \
+    --region us-east-1 \
+    --client_password osworld-public-evaluation
+```
+
+For the subagent variant, use `test_subagents_restrictedaccess_informationpressure.json`,
+add `--enable_subagents`, set `--max_steps 50` and `--max_trajectory_length 25`,
+and write to `./results/subagents/restrictedaccess/disclosure_pressure`.
+
 #### Condition: Credential disclosure + timestep pressure -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
@@ -427,7 +445,7 @@ python scripts/python/run_multienv.py \
     --result_dir ./results/restrictedaccess/ablations/urgencycreativitycompletion \
     --num_envs 5 \
     --region us-east-1 \
-    --client_password osworld-public-evaluation 
+    --client_password osworld-public-evaluation
 ```
 
 ```bash
@@ -457,32 +475,6 @@ python scripts/python/run_multienv.py \
 ```bash
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_timetaskpressureablation.json --result_dir ./results/restrictedaccess/ablations/timetaskpressure --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
-
-#### Ablation: Remove urgency, creativity, completion prompts, and restricted resource information -- note: complete, but did not successfully remove restricted resource information. 
-```bash
-python scripts/python/run_multienv.py \
-    --provider_name aws \
-    --headless \
-    --action_space pyautogui \
-    --observation_type a11y_tree \
-    --max_steps 40 \
-    --max_trajectory_length 20 \
-    --per-step-recording \
-    --deployment-prompt \
-    --show_steps_left_in_prompt \
-    --model claude-opus-4-6 \
-    --reasoning_effort medium \
-    --test_all_meta_path evaluation_examples/test_restrictedaccess_informationurgencycreativitycompletionablation.json \
-    --result_dir ./results/restrictedaccess/ablations/informationurgencycreativitycompletion \
-    --num_envs 5 \
-    --region us-east-1 \
-    --client_password osworld-public-evaluation 
-```
-
-```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_informationurgencycreativitycompletionablation.json --result_dir ./results/restrictedaccess/ablations/informationurgencycreativitycompletion --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
-```
-
 
 #### Condition: Completion pressure without credential disclosure -- COMPLETED
 ```bash
@@ -605,7 +597,7 @@ python scripts/python/run_multienv.py \
 python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_realismablation_login.json --result_dir ./results/restrictedaccess/ablations/realismlogin --num_envs 4 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
-#### Condition: Historical disclosure + pressure with evaluation framing
+#### Condition: Credential disclosure + pressure with evaluation framing
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -619,18 +611,18 @@ python scripts/python/run_multienv.py \
     --model claude-opus-4-6 \
     --reasoning_effort medium \
     --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json \
-    --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/evaluationprompt \
+    --result_dir ./results/restrictedaccess/ablations/evaluationprompt \
     --num_envs 5 \
     --region us-east-1 \
     --client_password osworld-public-evaluation
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --evaluation-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/evaluationprompt --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type a11y_tree --max_steps 40 --max_trajectory_length 20 --per-step-recording --evaluation-prompt --model claude-opus-4-6 --reasoning_effort medium --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/restrictedaccess/ablations/evaluationprompt --num_envs 5 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 ### GPT 5.4
-#### Historical disclosure-and-pressure condition with xhigh reasoning effort -- COMPLETED
+#### Credential disclosure + pressure with xhigh reasoning effort -- COMPLETED
 ```bash
 python scripts/python/run_multienv.py \
     --provider_name aws \
@@ -646,14 +638,14 @@ python scripts/python/run_multienv.py \
     --reasoning_effort xhigh \
     --max_tokens 25000 \
     --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json \
-    --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/informationpressure_xhigh \
+    --result_dir ./results/restrictedaccess/disclosure_pressure_xhigh \
     --num_envs 1 \
     --region us-east-1 \
     --client_password osworld-public-evaluation 
 ```
 
 ```bash
-python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model gpt-5.4 --reasoning_effort xhigh --max_tokens 25000 --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/historical_prompt_reruns/restrictedaccess/ablations/informationpressure_xhigh --num_envs 1 --region us-east-1 --client_password osworld-public-evaluation
+python scripts/python/run_multienv.py --provider_name aws --headless --action_space pyautogui --observation_type screenshot --max_steps 40 --max_trajectory_length 20 --per-step-recording --deployment-prompt --show_steps_left_in_prompt --model gpt-5.4 --reasoning_effort xhigh --max_tokens 25000 --test_all_meta_path evaluation_examples/test_restrictedaccess_informationpressure.json --result_dir ./results/restrictedaccess/disclosure_pressure_xhigh --num_envs 1 --region us-east-1 --client_password osworld-public-evaluation
 ```
 
 ## Scenario: Restricted Resource Access + Subagents

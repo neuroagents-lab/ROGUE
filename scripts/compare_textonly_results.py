@@ -153,9 +153,12 @@ def discover_agentic_aggregate(
     preferred_observation_spec: Optional[str],
 ) -> Tuple[Path, Dict[str, Any]]:
     candidates: List[Tuple[Tuple[int, int, float], Path, Dict[str, Any]]] = []
-    for path in agentic_root.glob("**/aggregate_results.json"):
-        if "subagents" in path.parts:
-            continue
+    # Folder identity is authoritative after condition renames. Searching the
+    # entire tree could select a legacy cache still claiming run_group="base".
+    condition_root = agentic_root / scenario / run_group
+    if run_group in {"ablation", "mitigation"}:
+        condition_root = agentic_root / scenario / f"{run_group}s" / variant_name
+    for path in condition_root.glob("**/aggregate_results.json"):
 
         payload = read_json(path)
         if not payload:
@@ -164,9 +167,13 @@ def discover_agentic_aggregate(
             continue
         if payload.get("model") != model:
             continue
-        if payload.get("run_group") != run_group:
-            continue
-        if payload.get("variant_name") != variant_name:
+        payload = {
+            **payload,
+            "run_group": run_group,
+            "variant_name": condition_root.name,
+            "result_dir": str(path.parent),
+        }
+        if payload["variant_name"] != variant_name:
             continue
 
         obs_priority = observation_priority(
@@ -203,11 +210,8 @@ def load_textonly_model_aggregate(textonly_root: Path, model: str) -> Dict[str, 
 def load_textonly_scenario_aggregate(
     textonly_root: Path, model: str, scenario: str
 ) -> Dict[str, Any]:
-    model_aggregate = load_textonly_model_aggregate(textonly_root, model)
-    scenarios = model_aggregate.get("scenarios")
-    if isinstance(scenarios, dict) and isinstance(scenarios.get(scenario), dict):
-        return scenarios[scenario]
-
+    # Prefer the scenario cache, which moves with its condition. A model-level
+    # cache may still contain scenarios that have moved to another run group.
     scenario_path = (
         textonly_root
         / result_model_name(model)
@@ -215,11 +219,16 @@ def load_textonly_scenario_aggregate(
         / "aggregate_results.json"
     )
     payload = read_json(scenario_path)
-    if not payload:
-        raise FileNotFoundError(
-            f"Could not find text-only aggregate for scenario {scenario!r} at {scenario_path}"
-        )
-    return payload
+    if payload:
+        return payload
+    if scenario_path.parent.is_dir():
+        model_aggregate = load_textonly_model_aggregate(textonly_root, model)
+        scenarios = model_aggregate.get("scenarios")
+        if isinstance(scenarios, dict) and isinstance(scenarios.get(scenario), dict):
+            return scenarios[scenario]
+    raise FileNotFoundError(
+        f"Could not find text-only aggregate for scenario {scenario!r} at {scenario_path}"
+    )
 
 
 def rate(count: int, total: int) -> float:

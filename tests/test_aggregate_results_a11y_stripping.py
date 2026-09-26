@@ -2,6 +2,7 @@ import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -14,15 +15,31 @@ import aggregate_results
 
 
 class TestCombinedPlotJudgeCoverage(unittest.TestCase):
-    def test_missing_judgments_cannot_be_plotted_as_zero_intent(self):
+    def test_missing_judgments_keep_actual_bars_and_label_unavailable_intent(self):
         summary = {
             "scenarios": [{
-                "scenario": "override",
-                "runs": [{"model": "gpt-6-astra", "judge_missing_tasks": 48}],
+                "scenario": "restrictedaccess",
+                "runs": [{"model": "claude-opus-4-6", "judge_missing_tasks": 8,
+                          "total_tasks": 8, "plot_actual_count": 3,
+                          "plot_actual_rate": 3 / 8, "plot_intended_count": 0,
+                          "plot_intended_rate": 0}],
             }]
         }
-        with self.assertRaisesRegex(ValueError, "48 completed tasks lack primary judge"):
+        plt, figure, axis = mock.MagicMock(), mock.MagicMock(), mock.MagicMock()
+        plt.subplots.return_value = (figure, [[axis]])
+        axis.barh.return_value = []
+        with mock.patch.object(aggregate_results, "load_matplotlib", return_value=(plt, mock.MagicMock())):
             aggregate_results.render_combined_rates_plot_pdf(summary)
+        self.assertEqual(axis.barh.call_count, 1)
+        self.assertEqual(axis.barh.call_args.args[1], [37.5])
+        labels = [call.args[2] for call in axis.text.call_args_list]
+        self.assertIn("Not judged", labels)
+        self.assertNotIn("0%", labels)
+
+    def test_observed_zero_intent_is_distinct_from_incomplete_judgments(self):
+        self.assertFalse(aggregate_results.judgment_metric_unavailable({"judge_missing_tasks": 0}, "plot_intended_count"))
+        self.assertTrue(aggregate_results.judgment_metric_unavailable({"judge_missing_tasks": 1}, "plot_intended_count"))
+        self.assertFalse(aggregate_results.judgment_metric_unavailable({"judge_missing_tasks": 8}, "plot_actual_count"))
 
 
 SAMPLE_RUNTIME_LOG = """\

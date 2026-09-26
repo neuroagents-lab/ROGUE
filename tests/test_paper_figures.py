@@ -49,6 +49,154 @@ def access_output(intent):
     return {"intent_access_passwords": intent}
 
 
+class TestPublicationSelection(unittest.TestCase):
+    def test_excludes_astra_and_its_sources_without_changing_raw_data_or_sol(self):
+        raw = {"scenarios": [{"scenario": "restrictedaccess", "runs": [
+            {"model": "gpt-6-astra", "plot_actual_count": 0},
+            {"model": "gpt-5.6-sol", "plot_actual_count": 1},
+        ]}], "included_sources": [
+            "results/override/xhighreasoningeffort/pyautogui/screenshot/gpt-6-astra/override/aggregate_results.json",
+            "results/override/xhighreasoningeffort/pyautogui/screenshot/gpt-5.6-sol/override/aggregate_results.json",
+        ]}
+        selected = paper_figures.filter_publication_data(raw)
+        self.assertEqual([run["model"] for run in selected["scenarios"][0]["runs"]], ["gpt-5.6-sol"])
+        self.assertEqual(len(selected["included_sources"]), 1)
+        self.assertIn("gpt-5.6-sol", selected["included_sources"][0])
+        self.assertEqual(selected["publication_excluded_models"], ["gpt-6-astra"])
+        self.assertEqual(len(raw["scenarios"][0]["runs"]), 2)
+        self.assertEqual(len(raw["included_sources"]), 2)
+        selected["scenarios"][0]["runs"][0]["plot_actual_count"] = 7
+        self.assertEqual(raw["scenarios"][0]["runs"][1]["plot_actual_count"], 1)
+
+    def test_figure3_removes_only_requested_configurations_across_all_panels(self):
+        keys = ["gpt-5.5", "xhighreasoningeffort:gpt-5.5", "subagents:xhighreasoningeffort:gpt-5.5",
+                "claude-opus-4-7", "xhighreasoningeffort:claude-opus-4-7",
+                "subagents:xhighreasoningeffort:claude-opus-4-7", "claude-opus-4-6",
+                "subagents:claude-opus-4-6"]
+        raw = {"scenarios": [{"scenario": scenario, "runs": [
+            {"run_key": key if scenario != "restrictedaccess" else key.replace("xhighreasoningeffort", "disclosure_pressure_xhigh"),
+             "model": key.split(":")[-1]} for key in keys
+        ]} for scenario in ("override", "rewire", "restrictedaccess")]}
+        selected = paper_figures.select_figure3_runs(raw)
+        for scenario in selected["scenarios"]:
+            self.assertEqual(len(scenario["runs"]), 5)
+            actual = {paper_figures.combined_run_alignment_key(run) for run in scenario["runs"]}
+            self.assertEqual(actual, set(keys) - set(paper_figures.FIGURE3_EXCLUDED_RUN_KEYS))
+        self.assertEqual(selected["publication_layout"], "compact")
+        self.assertEqual(len(raw["scenarios"][0]["runs"]), 8)
+
+    def test_selection_can_be_overridden_explicitly_for_reproduction(self):
+        raw = {"runs": [{"model": "gpt-6-astra"}, {"model": "gpt-5.6-sol"}]}
+        selected = paper_figures.filter_publication_data(raw, excluded_models=())
+        self.assertEqual(len(selected["runs"]), 2)
+        self.assertEqual(selected["publication_excluded_models"], [])
+
+
+class TestPublicationFallback(unittest.TestCase):
+    @staticmethod
+    def row(model, key, actual, *, source="restrictedaccess"):
+        return {"model": model, "run_key": key, "source_scenario": source,
+                "total_tasks": 8, "plot_actual_count": actual, "plot_actual_rate": actual / 8,
+                "plot_intended_count": 2, "plot_intended_rate": 2 / 8,
+                "action_specs": ["pyautogui"], "observation_specs": ["screenshot"]}
+
+    def build(self, current, older, adjudications=()):
+        old_summary = {"scenarios": [{"scenario": "restrictedaccess", "runs": older}]}
+        with mock.patch.object(paper_figures, "load_cached_base_scenario_summary", return_value=(None, [])), \
+             mock.patch.object(paper_figures, "load_cached_xhigh_reasoning_effort_scenario_summary", return_value=(None, [])), \
+             mock.patch.object(paper_figures, "build_combined_rates_with_subagents_summary", return_value=old_summary), \
+             mock.patch.object(paper_figures, "_discover_run_leaves", return_value=[]):
+            return paper_figures.build_publication_combined_summary(current, Path("/results"), adjudications)
+
+    def test_new_config_wins_and_adjudication_only_changes_exact_legacy_fallback(self):
+        current = {"scenarios": [{"scenario": "restrictedaccess", "runs": [
+            self.row("claude-opus-4-6", "claude-opus-4-6", 3),
+        ]}]}
+        legacy_key = "subagents:disclosure_pressure_xhigh:gpt-5.5"
+        older = [self.row("claude-opus-4-6", "disclosure_pressure:claude-opus-4-6", 8),
+                 self.row("gpt-5.5", legacy_key, 0, source="subagents_restrictedaccess"),
+                 self.row("gpt-6-astra", "disclosure_pressure_xhigh:gpt-6-astra", 0)]
+        record = {"condition": "disclosure_pressure", "run_key": legacy_key,
+                  "source_scenario": "subagents_restrictedaccess", "model": "gpt-5.5",
+                  "task_id": "shared-task-id", "automated_aggregate": {"actual_count": 0, "total_tasks": 8},
+                  "adjudicated_aggregate": {"actual_count": 1, "total_tasks": 8, "actual_rate": 1 / 8}}
+        selected = self.build(current, older, [record])
+        runs = selected["scenarios"][0]["runs"]
+        self.assertEqual(len(runs), 2)
+        self.assertEqual((runs[0]["plot_actual_count"], runs[0]["prompt_condition"]), (3, "prohibition_only"))
+        self.assertEqual((runs[1]["plot_actual_count"], runs[1]["automated_plot_actual_count"]), (1, 0))
+        self.assertEqual(runs[1]["plot_intended_count"], 2)
+        self.assertEqual(runs[1]["publication_source"], "legacy_fallback")
+        self.assertEqual(older[1]["plot_actual_count"], 0)
+        current["scenarios"][0]["runs"].append(self.row("gpt-5.5", "subagents:xhighreasoningeffort:gpt-5.5", 0, source="subagents_restrictedaccess"))
+        rerun = self.build(current, older, [record])["scenarios"][0]["runs"]
+        self.assertEqual(rerun[1]["plot_actual_count"], 0)
+        self.assertNotIn("publication_manual_adjudications", rerun[1])
+
+    def test_capability_panel_prefers_base_and_records_combined_fallback(self):
+        new = {"runs": [{"model": "dashscope/qwen3.6-plus", "run_group": "base", "reasoning_effort": "medium", "misaligned_tasks": 1}]}
+        historical = [
+            {"model": "dashscope/qwen3.6-plus", "run_group": "disclosure_pressure", "reasoning_effort": "medium", "misaligned_tasks": 4},
+            {"model": "claude-opus-4-6", "run_group": "disclosure_pressure_xhigh", "reasoning_effort": "max", "misaligned_tasks": 8,
+             "osworld_verified_success_rate": 0.727},
+        ]
+        selected = paper_figures.build_publication_osworld_summary(new, historical_runs=historical)
+        self.assertEqual(len(selected["runs"]), 2)
+        qwen, opus = selected["runs"]
+        self.assertEqual((qwen["misaligned_tasks"], qwen["prompt_condition"]), (1, "prohibition_only"))
+        self.assertEqual((opus["misaligned_tasks"], opus["reasoning_effort"], opus["osworld_verified_success_rate"]), (8, "max", 0.727))
+        self.assertEqual(opus["publication_source"], "legacy_fallback")
+        self.assertEqual(opus["prompt_condition"], "disclosure_pressure")
+        self.assertEqual(len(new["runs"]), 1)
+        self.assertNotIn("prompt_condition", historical[1])
+        old = {"runs": [{"model": "gpt-5.5", "run_group": "disclosure_pressure_xhigh"}]}
+        with self.assertRaisesRegex(ValueError, "prohibition-only"):
+            paper_figures.build_publication_osworld_summary(old)
+        with self.assertRaisesRegex(ValueError, "disclosure \\+ pressure"):
+            paper_figures.build_publication_osworld_summary(new, historical_runs=new["runs"])
+
+
+    def test_additional_base_points_preserve_effort_and_delegation_provenance(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rows = {}
+            for model, effort, subagents, group, count in (
+                ("claude-opus-4-7", "xhigh", False, "xhighreasoningeffort", 0),
+                ("gpt-5.6-sol", "max", True, "xhighreasoningeffort", 1),
+            ):
+                model_dir = root / model.replace("/", "__")
+                result_dir = model_dir / "restrictedaccess"
+                result_dir.mkdir(parents=True)
+                (model_dir / "args.json").write_text(json.dumps({"reasoning_effort": effort, "enable_subagents": subagents}))
+                rows[model] = {"model": model, "model_display_name": model, "run_group": group,
+                               "result_dir": str(result_dir), "aggregate_path": str(result_dir / "aggregate_results.json"),
+                               "action_spec": "pyautogui", "observation_spec": "screenshot", "total_tasks": 8,
+                               "plot_actual_count": count, "plot_actual_rate": count / 8}
+            def load_high(path, scenario, **kwargs):
+                model = "gpt-5.6-sol" if scenario == "subagents_restrictedaccess" else "claude-opus-4-7"
+                return {"runs": [rows[model]]}, []
+            with mock.patch.object(paper_figures, "load_cached_xhigh_reasoning_effort_scenario_summary", side_effect=load_high):
+                points = {point["model"]: point for point in paper_figures._additional_default_access_capability_points(root)}
+            self.assertEqual(set(points), {"claude-opus-4-7", "gpt-5.6-sol"})
+            opus = points["claude-opus-4-7"]
+            self.assertEqual((opus["misaligned_tasks"], opus["published_reasoning_effort"]), (0, "max"))
+            sol = points["gpt-5.6-sol"]
+            self.assertEqual((sol["misaligned_tasks"], sol["completed_tasks"], sol["osworld_verified_success_rate"]), (1, 8, 0.83))
+            self.assertTrue(sol["enable_subagents"])
+            self.assertEqual(sol["source_scenario"], "subagents_restrictedaccess")
+            self.assertEqual(sol["publication_marker"], "D")
+            self.assertIn("2607.24653v1", sol["osworld_verified_source_url"])
+
+    def test_same_model_parent_and_subagent_configurations_are_not_pooled(self):
+        parent = {"model": "gpt-5.6-sol", "reasoning_effort": "max", "run_group": "xhighreasoningeffort", "enable_subagents": False}
+        child = {**parent, "enable_subagents": True, "publication_marker": "D"}
+        result = paper_figures.build_publication_osworld_summary({"runs": [parent]}, [child, child])
+        self.assertEqual(len(result["runs"]), 2)
+        self.assertEqual([row["enable_subagents"] for row in result["runs"]], [False, True])
+
+
 class TestJudgeAgreementTableNumbers(unittest.TestCase):
     def setUp(self):
         self.runs = {
@@ -382,13 +530,27 @@ class TestCapabilityOSWorldFigure(unittest.TestCase):
             ),
         )
 
-    def test_zoomed_ticks_are_thinned_to_four_readable_labels(self):
+    def test_osworld_error_bars_use_completed_task_counts(self):
+        summaries = [{"scenario": scenario, "x_axis_limits": [0.57, 0.8], "runs": [{
+            "model": "dashscope/qwen3.6-plus", "osworld_verified_success_rate": 0.625,
+            "misalignment_rate": 1 / 8, "misaligned_tasks": 1, "completed_tasks": 8,
+        }]} for scenario in paper_figures.CAPABILITY_OSWORLD_SCENARIOS]
+        plt, figure = mock.MagicMock(), mock.MagicMock()
+        axes = [mock.MagicMock() for _ in summaries]
+        plt.subplots.return_value = (figure, [axes])
+        with mock.patch.object(paper_figures, "load_matplotlib", return_value=(plt, mock.MagicMock())):
+            paper_figures.render_capability_osworld_vs_misalignment(summaries)
+        for axis in axes:
+            self.assertEqual(axis.errorbar.call_count, 1)
+            self.assertAlmostEqual(axis.errorbar.call_args.kwargs["yerr"][0], ((1 / 8) * (7 / 8) / 8) ** 0.5)
+
+    def test_zoomed_ticks_use_simple_grid_in_compact_panels(self):
         ticks = paper_figures._capability_osworld_x_ticks((0.61, 0.8))
 
-        self.assertEqual(len(ticks), 4)
+        self.assertEqual(len(ticks), 2)
         for actual, expected in zip(
             ticks,
-            (0.625, 0.675, 0.725, 0.775),
+            (0.7, 0.8),
         ):
             self.assertAlmostEqual(actual, expected)
 
@@ -403,15 +565,60 @@ class TestTextAgenticFigureSpecs(unittest.TestCase):
             [panel.scenario for panel in spec.rows[0]],
             ["override", "rewire", "restrictedaccess"],
         )
-        self.assertTrue(
-            all(
-                model.textonly_run_group == "xhighreasoningeffort"
-                and model.agentic_run_group == "xhighreasoningeffort"
-                and model.agentic_variant == "xhighreasoningeffort"
-                for panel in spec.rows[0]
-                for model in panel.models
+        for panel in spec.rows[0]:
+            expected = (
+                "disclosure_pressure_xhigh"
+                if panel.scenario == "restrictedaccess"
+                else "xhighreasoningeffort"
             )
+            for model in panel.models:
+                self.assertEqual(model.textonly_run_group, expected)
+                self.assertEqual(model.agentic_run_group, expected)
+                self.assertEqual(model.agentic_variant, expected)
+
+    def test_textonly_stays_matched_historical_while_wording_includes_new_base(self):
+        for spec in (paper_figures.FIGURE_2_SPEC, paper_figures.FIGURE_8_SPEC, paper_figures.MIXED_REASONING_SPEC):
+            for row in spec.rows:
+                for panel in row:
+                    if panel.scenario != "restrictedaccess":
+                        continue
+                    for model in panel.models:
+                        self.assertIn(model.agentic_run_group, {"disclosure_pressure", "disclosure_pressure_xhigh"})
+                        self.assertEqual(model.agentic_variant, model.agentic_run_group)
+                        self.assertEqual(model.textonly_run_group, model.agentic_run_group)
+        access_panel = paper_figures.FIGURE_9_PANELS[-1]
+        self.assertIn("disclosure_pressure", access_panel.variants)
+        self.assertIn("base", access_panel.variants)
+
+    def test_four_condition_panel_uses_one_matched_configuration(self):
+        panel = paper_figures.RESTRICTEDACCESS_CONDITION_PANEL
+        self.assertEqual(panel.model, "claude-opus-4-6")
+        self.assertEqual(panel.observation_spec, "a11y_tree")
+        self.assertEqual(panel.variants, ("base", "timetaskpressure", "information", "disclosure_pressure"))
+        self.assertEqual(panel.variant_labels["information"], "Pressure only*")
+
+    def test_information_and_pressure_panels_use_independent_additions(self):
+        self.assertEqual(paper_figures.INFORMATION_PANELS[-1].variants, ("base", "timetaskpressure"))
+        self.assertEqual(paper_figures.PRESSURE_PANELS[-1].variants, ("base", "information"))
+        self.assertEqual(paper_figures.PRESSURE_PANELS[1].variants, ("xhighreasoningeffort", "timetaskpressure"))
+
+    def test_judge_alignment_keeps_condition_identity_out_of_model_configuration(self):
+        historical = {"model": "gpt-5.5", "run_key": "subagents:disclosure_pressure_xhigh:gpt-5.5"}
+        other_scenario = {"model": "gpt-5.5", "run_key": "subagents:xhighreasoningeffort:gpt-5.5"}
+        self.assertEqual(
+            paper_figures._judge_run_configuration_key(historical),
+            paper_figures._judge_run_configuration_key(other_scenario),
         )
+        self.assertNotEqual(
+            paper_figures._judge_run_configuration_key(historical),
+            paper_figures._judge_run_configuration_key({"model": "gpt-5.5", "run_key": "disclosure_pressure:gpt-5.5"}),
+        )
+
+    def test_historical_judge_keys_discover_their_own_condition(self):
+        for group in ("disclosure_pressure", "disclosure_pressure_xhigh"):
+            with mock.patch.object(paper_figures, "discover_run_group_leaf_dirs", return_value=[]) as discover:
+                paper_figures._discover_run_leaves(Path("results"), "restrictedaccess", f"subagents:{group}:gpt-5.5")
+            discover.assert_called_once_with(Path("results/subagents"), "restrictedaccess", group)
 
     def test_figure_2_merged_reuses_the_figure_2_layout(self):
         spec = paper_figures.FIGURE_2_MERGED_SPEC

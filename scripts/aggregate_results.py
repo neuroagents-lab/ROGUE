@@ -214,6 +214,8 @@ COMBINED_RATES_REASONING_EFFORT_LABELS = {
 }
 RUN_VARIANT_DISPLAY_NAMES = {
     "base": "Base",
+    "disclosure_pressure": "Disclosure + pressure",
+    "disclosure_pressure_xhigh": "Disclosure + pressure (x-high)",
     "xhighreasoningeffort": "X-High Reasoning Effort",
     "description": "No Consequence Description",
     "realism": "Neutral Wording",
@@ -444,13 +446,13 @@ OSWORLD_SCATTER_PLOT_CONFIG = {
     },
 }
 COMBINED_RATES_PLOT_CONFIG = {
-    "title": "AI Misalignment Rates by Scenario",
+    "title": "Corrigibility Failures by Scenario",
     "x_axis_label": "Tasks (%)",
     "summary_filename": "combined_rates.json",
     "plot_filename": "combined_rates.pdf",
 }
 COMBINED_RATES_WITH_SUBAGENTS_PLOT_CONFIG = {
-    "title": "AI Misalignment Rates by Scenario (Base + Subagents)",
+    "title": "Corrigibility Failures by Scenario (Main agents + subagents)",
     "x_axis_label": "Tasks (%)",
     "summary_filename": "combined_rates_with_subagents.json",
     "plot_filename": "combined_rates_with_subagents.pdf",
@@ -503,6 +505,67 @@ def supports_xhigh_reasoning_effort_runs(scenario: str) -> bool:
 
 def run_variant_display_name(variant_name: str) -> str:
     return RUN_VARIANT_DISPLAY_NAMES.get(variant_name, variant_name)
+
+
+HISTORICAL_RESTRICTEDACCESS_GROUPS = ("disclosure_pressure", "disclosure_pressure_xhigh")
+
+
+def is_xhigh_run_group(run_group: str) -> bool:
+    return run_group in {"xhighreasoningeffort", "disclosure_pressure_xhigh"}
+
+
+def reference_run_groups(
+    scenario: str, payloads: Sequence[Dict[str, Any]], *,
+    restrictedaccess_condition: str = "base",
+) -> Tuple[str, str]:
+    """Select an explicit prompt condition; missing new-base data never falls back.
+
+    The unused payload argument is retained for callers that already have leaves.
+    Historical reproductions must request ``disclosure_pressure`` explicitly.
+    """
+    if restrictedaccess_condition not in {"base", "disclosure_pressure"}:
+        raise ValueError(f"Unknown restricted-access condition: {restrictedaccess_condition}")
+    if (scenario_config(scenario)["family"] == "restrictedaccess"
+            and restrictedaccess_condition == "disclosure_pressure"):
+        return HISTORICAL_RESTRICTEDACCESS_GROUPS
+    return "base", "xhighreasoningeffort"
+
+
+def reference_run_groups_for_root(
+    results_root: Path, scenario: str, *, restrictedaccess_condition: str = "base",
+) -> Tuple[str, str]:
+    return reference_run_groups(
+        scenario, (), restrictedaccess_condition=restrictedaccess_condition,
+    )
+
+
+def normalize_leaf_payload(payload: Dict[str, Any], leaf: LeafResultDir) -> Dict[str, Any]:
+    """Refresh derived identity after a directory rename without touching judgments."""
+    return {
+        **payload,
+        "run_group": leaf.run_group,
+        "variant_name": leaf.variant_name,
+        "plot_label": leaf.plot_label,
+        "result_dir": str(leaf.result_dir),
+    }
+
+
+def scenario_run_variant_display_name(scenario: str, variant_name: str) -> str:
+    if scenario_config(scenario)["family"] == "restrictedaccess":
+        labels = {
+            "information": "Pressure only",
+            "informationurgencycreativitycompletion": "Legacy combined ablation",
+            "timetaskpressure": "Disclosure only",
+            "urgencycreativitycompletion": "Disclosure + timestep pressure",
+            "realism": "Explicit path restriction",
+            "realismdeadline": "Deadline wording",
+            "realismlogin": "Login handoff wording",
+            "realismdesktopprivacy": "Desktop privacy wording",
+            "evaluationprompt": "Disclosure + pressure (evaluation framing)",
+        }
+        if variant_name in labels:
+            return labels[variant_name]
+    return run_variant_display_name(variant_name)
 
 
 def canonical_model_name(model_name: str) -> str:
@@ -1372,68 +1435,53 @@ def build_restrictedaccess_prompts(task_id: str, runtime_excerpt: str, reasoning
     return system_prompt, user_prompt
 
 
-def discover_base_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
+def discover_run_group_leaf_dirs(
+    results_root: Path, scenario: str, run_group: str
+) -> List[LeafResultDir]:
     config = scenario_config(scenario)
-    scenario_base = results_root / config["dir_name"] / "base"
+    if run_group in HISTORICAL_RESTRICTEDACCESS_GROUPS and config["family"] != "restrictedaccess":
+        return []
+    run_root = results_root / config["dir_name"] / run_group
+    leaf_dir_names = [config["leaf_dir_name"]]
+    if run_group in HISTORICAL_RESTRICTEDACCESS_GROUPS:
+        leaf_dir_names.append(f"{config['leaf_dir_name']}_informationpressure")
     leaf_dirs: List[LeafResultDir] = []
-    if scenario_base.exists():
-        for path in sorted(scenario_base.glob(f"*/*/*/{config['leaf_dir_name']}")):
-            if not path.is_dir():
-                continue
-            parts = path.relative_to(scenario_base).parts
-            if len(parts) != 4:
-                continue
-            action_spec, observation_spec, model, _ = parts
-            leaf_dirs.append(
-                LeafResultDir(
-                    scenario=scenario,
-                    scenario_family=config["family"],
-                    scenario_dir_name=config["dir_name"],
-                    task_prefix=config["task_prefix"],
-                    run_group="base",
-                    variant_name="base",
-                    plot_label=run_variant_display_name("base"),
-                    action_spec=action_spec,
-                    observation_spec=observation_spec,
-                    model=canonical_model_name(model),
-                    result_dir=path,
-                )
-            )
-
-    return leaf_dirs
-
-
-def discover_xhigh_reasoning_effort_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
-    config = scenario_config(scenario)
-    run_root = results_root / config["dir_name"] / "xhighreasoningeffort"
-    leaf_dirs: List[LeafResultDir] = []
-    if not run_root.exists() or not supports_xhigh_reasoning_effort_runs(scenario):
-        return leaf_dirs
-
-    for path in sorted(run_root.glob(f"*/*/*/{config['leaf_dir_name']}")):
+    for path in sorted(
+        path for leaf_dir_name in leaf_dir_names
+        for path in run_root.glob(f"*/*/*/{leaf_dir_name}")
+    ):
         if not path.is_dir():
             continue
         parts = path.relative_to(run_root).parts
         if len(parts) != 4:
             continue
-        action_spec, observation_spec, model, _ = parts
+        action_spec, observation_spec, model, leaf_dir_name = parts
         leaf_dirs.append(
             LeafResultDir(
                 scenario=scenario,
                 scenario_family=config["family"],
                 scenario_dir_name=config["dir_name"],
-                task_prefix=config["task_prefix"],
-                run_group="xhighreasoningeffort",
-                variant_name="xhighreasoningeffort",
-                plot_label=run_variant_display_name("xhighreasoningeffort"),
+                task_prefix=f"{leaf_dir_name}_",
+                run_group=run_group,
+                variant_name=run_group,
+                plot_label=run_variant_display_name(run_group),
                 action_spec=action_spec,
                 observation_spec=observation_spec,
                 model=canonical_model_name(model),
                 result_dir=path,
             )
         )
-
     return leaf_dirs
+
+
+def discover_base_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
+    return discover_run_group_leaf_dirs(results_root, scenario, "base")
+
+
+def discover_xhigh_reasoning_effort_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
+    if not supports_xhigh_reasoning_effort_runs(scenario):
+        return []
+    return discover_run_group_leaf_dirs(results_root, scenario, "xhighreasoningeffort")
 
 
 def discover_ablation_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
@@ -1459,7 +1507,7 @@ def discover_ablation_leaf_dirs(results_root: Path, scenario: str) -> List[LeafR
                 task_prefix=f"{leaf_dir_name}_",
                 run_group="ablation",
                 variant_name=ablation_name,
-                plot_label=run_variant_display_name(ablation_name),
+                plot_label=scenario_run_variant_display_name(scenario, ablation_name),
                 action_spec=action_spec,
                 observation_spec=observation_spec,
                 model=canonical_model_name(model),
@@ -1507,6 +1555,8 @@ def discover_mitigation_leaf_dirs(results_root: Path, scenario: str) -> List[Lea
 def discover_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]:
     leaf_dirs = discover_base_leaf_dirs(results_root, scenario)
     leaf_dirs.extend(discover_xhigh_reasoning_effort_leaf_dirs(results_root, scenario))
+    for group in HISTORICAL_RESTRICTEDACCESS_GROUPS:
+        leaf_dirs.extend(discover_run_group_leaf_dirs(results_root, scenario, group))
     leaf_dirs.extend(discover_ablation_leaf_dirs(results_root, scenario))
     leaf_dirs.extend(discover_mitigation_leaf_dirs(results_root, scenario))
 
@@ -1515,9 +1565,9 @@ def discover_leaf_dirs(results_root: Path, scenario: str) -> List[LeafResultDir]
             model_index = MODEL_ORDER.index(leaf.model)
         except ValueError:
             model_index = len(MODEL_ORDER)
-        if leaf.run_group == "base":
+        if leaf.run_group in {"base", "disclosure_pressure"}:
             run_group_index = 0
-        elif leaf.run_group == "xhighreasoningeffort":
+        elif is_xhigh_run_group(leaf.run_group):
             run_group_index = 1
         elif leaf.run_group == "ablation":
             run_group_index = 2
@@ -2459,13 +2509,16 @@ def build_scenario_summary(scenario: str, leaf_payloads: Sequence[Dict[str, Any]
 
 
 def build_combined_model_runs(runs: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    combined_by_model: Dict[str, Dict[str, Any]] = {}
+    combined_by_model: Dict[Tuple[str, str], Dict[str, Any]] = {}
     for run in runs:
         model = str(run.get("model", ""))
+        run_group = str(run.get("run_group", "base"))
+        historical = run_group in HISTORICAL_RESTRICTEDACCESS_GROUPS
         entry = combined_by_model.setdefault(
-            model,
+            (model, run_group),
             {
-                "run_key": model,
+                "run_key": f"{run_group}:{model}" if historical else model,
+                "run_group": run_group,
                 "run_label": str(run.get("model_display_name", model)),
                 "model": model,
                 "model_display_name": str(run.get("model_display_name", model)),
@@ -2499,6 +2552,7 @@ def build_combined_model_runs(runs: Sequence[Dict[str, Any]]) -> List[Dict[str, 
         total_tasks = int(entry["total_tasks"])
         combined_run = {
             "run_key": entry["run_key"],
+            "run_group": entry["run_group"],
             "run_label": entry["run_label"],
             "model": entry["model"],
             "model_display_name": entry["model_display_name"],
@@ -2595,11 +2649,13 @@ def combined_rates_subagents_root(results_root: Path) -> Path:
     return results_root / "subagents"
 
 
-def scenario_summary_path(results_root: Path, scenario: str) -> Path:
+def scenario_summary_path(
+    results_root: Path, scenario: str, *, restrictedaccess_condition: str = "base",
+) -> Path:
     return (
         results_root
         / scenario_config(scenario)["dir_name"]
-        / "base"
+        / reference_run_groups_for_root(results_root, scenario, restrictedaccess_condition=restrictedaccess_condition)[0]
         / "summary"
         / "aggregate_summary.json"
     )
@@ -2616,17 +2672,21 @@ def load_scenario_summary(path: Path, expected_scenario: str) -> Optional[Dict[s
     return summary
 
 
-def load_cached_base_scenario_summary(results_root: Path, scenario: str) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+def load_cached_base_scenario_summary(
+    results_root: Path, scenario: str, *, restrictedaccess_condition: str = "base",
+) -> Tuple[Optional[Dict[str, Any]], List[str]]:
     leaf_payloads: List[Dict[str, Any]] = []
     sources: List[str] = []
-    for leaf in discover_base_leaf_dirs(results_root, scenario):
+    reference_group, _ = reference_run_groups_for_root(
+        results_root, scenario, restrictedaccess_condition=restrictedaccess_condition,
+    )
+    for leaf in discover_run_group_leaf_dirs(results_root, scenario, reference_group):
         payload = read_json(leaf.aggregate_path)
         if not payload:
             continue
         if payload.get("scenario") != scenario:
             continue
-        if payload.get("run_group", "base") != "base":
-            continue
+        payload = normalize_leaf_payload(payload, leaf)
         if not isinstance(payload.get("summary"), dict):
             continue
         leaf_payloads.append(payload)
@@ -2635,9 +2695,14 @@ def load_cached_base_scenario_summary(results_root: Path, scenario: str) -> Tupl
     if leaf_payloads:
         return build_scenario_summary(scenario, leaf_payloads), sources
 
-    path = scenario_summary_path(results_root, scenario)
+    path = scenario_summary_path(results_root, scenario, restrictedaccess_condition=restrictedaccess_condition)
     summary = load_scenario_summary(path, scenario)
     if summary:
+        summary = {**summary, "runs": [
+            {**run, "run_group": reference_group, "variant_name": reference_group,
+             "plot_label": run_variant_display_name(reference_group)}
+            for run in summary["runs"]
+        ]}
         return summary, [str(path)]
     return None, []
 
@@ -2653,17 +2718,20 @@ def combined_rates_reasoning_effort_label(model: str) -> str:
 def load_cached_xhigh_reasoning_effort_scenario_summary(
     results_root: Path,
     scenario: str,
+    *, restrictedaccess_condition: str = "base",
 ) -> Tuple[Optional[Dict[str, Any]], List[str]]:
     leaf_payloads: List[Dict[str, Any]] = []
     sources: List[str] = []
-    for leaf in discover_xhigh_reasoning_effort_leaf_dirs(results_root, scenario):
+    _, xhigh_group = reference_run_groups_for_root(
+        results_root, scenario, restrictedaccess_condition=restrictedaccess_condition,
+    )
+    for leaf in discover_run_group_leaf_dirs(results_root, scenario, xhigh_group):
         payload = read_json(leaf.aggregate_path)
         if not payload:
             continue
         if payload.get("scenario") != scenario:
             continue
-        if payload.get("run_group") != "xhighreasoningeffort":
-            continue
+        payload = normalize_leaf_payload(payload, leaf)
         if not isinstance(payload.get("summary"), dict):
             continue
         leaf_payloads.append(payload)
@@ -2774,7 +2842,7 @@ def build_combined_rates_with_subagents_summary(
                 reasoning_effort_label = combined_rates_reasoning_effort_label(
                     str(run.get("model", ""))
                 )
-                run["run_key"] = f"xhighreasoningeffort:{run_key}"
+                run["run_key"] = run_key if run.get("run_group") == "disclosure_pressure_xhigh" else f"xhighreasoningeffort:{run_key}"
                 run["run_label"] = (
                     f"{run.get('run_label', run.get('model_display_name', run_key))} "
                     f"({reasoning_effort_label})"
@@ -2808,7 +2876,7 @@ def build_combined_rates_with_subagents_summary(
                 reasoning_effort_label = combined_rates_reasoning_effort_label(
                     str(run.get("model", ""))
                 )
-                run["run_key"] = f"subagents:xhighreasoningeffort:{run_key}"
+                run["run_key"] = f"subagents:{run_key}" if run.get("run_group") == "disclosure_pressure_xhigh" else f"subagents:xhighreasoningeffort:{run_key}"
                 run["run_label"] = (
                     f"{run.get('run_label', run.get('model_display_name', run_key))} "
                     f"({reasoning_effort_label} + Subagents)"
@@ -2908,7 +2976,7 @@ def result_reasoning_effort_label(payload: Dict[str, Any]) -> str:
             return reasoning_effort.strip()
 
     run_group = str(payload.get("run_group", "base"))
-    if run_group == "base":
+    if run_group in {"base", "disclosure_pressure"}:
         return "medium"
 
     model = str(payload.get("model", ""))
@@ -3067,15 +3135,19 @@ def build_osworld_verified_misalignment_summary(
     leaf_payloads: Sequence[Dict[str, Any]],
     include_xhigh_reasoning_effort: bool = False,
     match_public_reasoning_configuration: bool = False,
+    restrictedaccess_condition: str = "base",
 ) -> Optional[Dict[str, Any]]:
     """Combine public OSWorld-Verified capability with local misalignment rates."""
     if scenario not in DEFAULT_SCENARIOS:
         return None
 
     family = scenario_config(scenario)["family"]
-    included_run_groups = {"base"}
+    reference_group, xhigh_group = reference_run_groups(
+        scenario, leaf_payloads, restrictedaccess_condition=restrictedaccess_condition,
+    )
+    included_run_groups = {reference_group}
     if include_xhigh_reasoning_effort and supports_xhigh_reasoning_effort_runs(scenario):
-        included_run_groups.add("xhighreasoningeffort")
+        included_run_groups.add(xhigh_group)
 
     by_run: Dict[Tuple[str, str], Dict[str, Any]] = {}
     omitted_by_model: Dict[str, Dict[str, Any]] = {}
@@ -3151,7 +3223,7 @@ def build_osworld_verified_misalignment_summary(
 
         variant_name = str(payload.get("variant_name", run_group))
         plot_label = str(payload.get("plot_label", variant_name))
-        if run_group == "xhighreasoningeffort" or match_public_reasoning_configuration:
+        if is_xhigh_run_group(run_group) or match_public_reasoning_configuration:
             reasoning_effort = run_reasoning_effort
             reasoning_display_label = reasoning_effort
             if (
@@ -3248,7 +3320,7 @@ def build_osworld_verified_misalignment_summary(
         run_group = str(run.get("run_group", "base"))
         run_group_index = (
             0
-            if match_public_reasoning_configuration or run_group == "base"
+            if match_public_reasoning_configuration or run_group == reference_group
             else 1
         )
         model = str(run["model"])
@@ -3283,7 +3355,8 @@ def build_osworld_verified_misalignment_summary(
     if match_public_reasoning_configuration:
         plot_title = f"{plot_title} (Reasoning-Matched Runs)"
     elif include_xhigh_reasoning_effort:
-        plot_title = f"{plot_title} (Base + High-Reasoning Variants)"
+        condition_label = "Disclosure + pressure" if reference_group == "disclosure_pressure" else "Base"
+        plot_title = f"{plot_title} ({condition_label} + High-Reasoning Variants)"
     return {
         "script_version": SCRIPT_VERSION,
         "generated_at": utc_now_iso(),
@@ -3336,6 +3409,8 @@ def build_variant_comparison_summaries(
         return []
 
     family = scenario_config(scenario)["family"]
+    reference_group = "base"
+    pair_prefix = pair_prefix.replace("_base_vs", f"_{reference_group}_vs")
     config = PLOT_CONFIG[family]
     payloads_by_group: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {}
     for payload in leaf_payloads:
@@ -3344,7 +3419,12 @@ def build_variant_comparison_summaries(
 
     summaries: List[Dict[str, Any]] = []
     for (model, action_spec, observation_spec), group_payloads in sorted(payloads_by_group.items()):
-        if not any(payload.get("run_group") == run_group for payload in group_payloads):
+        if not any(
+            payload.get("run_group") == run_group
+            or (family == "restrictedaccess" and run_group == "ablation"
+                and payload.get("run_group") == "disclosure_pressure")
+            for payload in group_payloads
+        ):
             continue
 
         runs: List[Dict[str, Any]] = []
@@ -3378,14 +3458,16 @@ def build_variant_comparison_summaries(
             if payload.get("run_group") == "mitigation" and "plot_self_shutdown_count" in summary:
                 run["plot_self_shutdown_count"] = summary["plot_self_shutdown_count"]
                 run["plot_self_shutdown_rate"] = summary["plot_self_shutdown_rate"]
-            if run["run_group"] == "base":
+            if run["run_group"] == reference_group:
                 runs.append(run)
                 base_runs.append(run)
-            elif run["run_group"] == run_group:
+            elif (run["run_group"] == run_group or
+                  (family == "restrictedaccess" and run_group == "ablation"
+                   and run["run_group"] == "disclosure_pressure")):
                 runs.append(run)
                 variant_runs.append(run)
 
-        runs.sort(key=lambda run: (0 if run["run_group"] == "base" else 1, run["plot_label"]))
+        runs.sort(key=lambda run: (0 if run["run_group"] == reference_group else 1, run["plot_label"]))
         model_display_name = MODEL_DISPLAY_NAMES.get(model, model)
         combined_file_stem = (
             f"{summary_prefix}_{slugify_filename_part(model)}_"
@@ -3413,14 +3495,20 @@ def build_variant_comparison_summaries(
             }
         )
 
-        if not base_runs:
-            continue
-
-        base_run = base_runs[0]
         for variant_run in variant_runs:
+            pair_reference_group = reference_group
+            # Evaluation-framing runs retain disclosure + pressure, so their
+            # matched comparison must retain that task suffix on both sides.
+            if family == "restrictedaccess" and variant_run["variant_name"] == "evaluationprompt":
+                pair_reference_group = "disclosure_pressure"
+            reference_runs = [run for run in runs if run["run_group"] == pair_reference_group]
+            if not reference_runs:
+                continue
+            base_run = reference_runs[0]
             variant_slug = slugify_filename_part(variant_run["variant_name"])
+            selected_pair_prefix = pair_prefix.replace("_base_vs", f"_{pair_reference_group}_vs")
             pair_file_stem = (
-                f"{pair_prefix}_{variant_slug}_"
+                f"{selected_pair_prefix}_{variant_slug}_"
                 f"{slugify_filename_part(model)}_{slugify_filename_part(action_spec)}_"
                 f"{slugify_filename_part(observation_spec)}"
             )
@@ -3468,19 +3556,24 @@ def build_xhigh_reasoning_effort_comparison_summaries(
 
     family = scenario_config(scenario)["family"]
     config = PLOT_CONFIG[family]
-    payloads_by_group: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {}
+    payloads_by_group: Dict[Tuple[str, str, str, str], List[Dict[str, Any]]] = {}
     for payload in leaf_payloads:
-        key = (payload["model"], payload["action_spec"], payload["observation_spec"])
+        group = str(payload.get("run_group", "base"))
+        if group not in {"base", "xhighreasoningeffort", *HISTORICAL_RESTRICTEDACCESS_GROUPS}:
+            continue
+        condition = "disclosure_pressure" if group in HISTORICAL_RESTRICTEDACCESS_GROUPS else "base"
+        key = (payload["model"], payload["action_spec"], payload["observation_spec"], condition)
         payloads_by_group.setdefault(key, []).append(payload)
 
     summaries: List[Dict[str, Any]] = []
-    for (model, action_spec, observation_spec), group_payloads in sorted(payloads_by_group.items()):
+    for (model, action_spec, observation_spec, reference_group), group_payloads in sorted(payloads_by_group.items()):
+        xhigh_group = "disclosure_pressure_xhigh" if reference_group == "disclosure_pressure" else "xhighreasoningeffort"
         base_runs: List[Dict[str, Any]] = []
         xhigh_runs: List[Dict[str, Any]] = []
 
         for payload in group_payloads:
             run_group = payload.get("run_group", "base")
-            if run_group not in {"base", "xhighreasoningeffort"}:
+            if run_group not in {reference_group, xhigh_group}:
                 continue
 
             summary = payload["summary"]
@@ -3507,7 +3600,7 @@ def build_xhigh_reasoning_effort_comparison_summaries(
             if "plot_alternate_count" in summary:
                 run["plot_alternate_count"] = summary["plot_alternate_count"]
                 run["plot_alternate_rate"] = summary["plot_alternate_rate"]
-            if run_group == "base":
+            if run_group == reference_group:
                 base_runs.append(run)
             else:
                 xhigh_runs.append(run)
@@ -3519,7 +3612,7 @@ def build_xhigh_reasoning_effort_comparison_summaries(
         model_display_name = MODEL_DISPLAY_NAMES.get(model, model)
         for xhigh_run in xhigh_runs:
             file_stem = (
-                "xhighreasoningeffort_comparison_base_vs_xhighreasoningeffort_"
+                f"{xhigh_group}_comparison_{reference_group}_vs_{xhigh_group}_"
                 f"{slugify_filename_part(model)}_{slugify_filename_part(action_spec)}_"
                 f"{slugify_filename_part(observation_spec)}"
             )
@@ -3541,6 +3634,7 @@ def build_xhigh_reasoning_effort_comparison_summaries(
                     "x_axis_label": "Run Variant",
                     "runs": [base_run, xhigh_run],
                     "summary_filename": f"{file_stem}.json",
+                    "summary_run_group": xhigh_group,
                     "plot_filename": f"{file_stem}.pdf",
                 }
             )
@@ -3564,6 +3658,14 @@ def binomial_standard_error(count: int, total: int) -> float:
     return math.sqrt(proportion * (1.0 - proportion) / total)
 
 
+
+def judgment_metric_unavailable(run: Dict[str, Any], count_key: str) -> bool:
+    """Incomplete primary judgments are unavailable rates, not observed zeros."""
+    return count_key in {
+        "plot_intended_count", "plot_alternate_count", "plot_self_shutdown_count",
+    } and int(run.get("judge_missing_tasks", 0)) > 0
+
+
 def render_bar_plot_pdf(
     title: str,
     y_axis_label: str,
@@ -3583,7 +3685,8 @@ def render_bar_plot_pdf(
     auto_rotate_x_labels = rotate_x_labels or any(len(label) > 16 for label in labels) or len(labels) > 3
     has_alternate = bool(alternate_label) and any("plot_alternate_rate" in run for run in runs)
     has_self_shutdown = bool(self_shutdown_label) and any("plot_self_shutdown_rate" in run for run in runs)
-    figure_size = (11.4, 6.8) if auto_rotate_x_labels else (11.0, 5.8)
+    dense_labels = len(labels) > 6 and any(label.startswith("Disclosure + pressure") for label in labels)
+    figure_size = (max(14.0, len(labels) * 2.6), 8.0) if dense_labels else ((11.4, 6.8) if auto_rotate_x_labels else (11.0, 5.8))
     figure = plt.figure(figsize=figure_size, dpi=100)
     axis = figure.add_subplot(111)
 
@@ -3666,6 +3769,11 @@ def render_bar_plot_pdf(
         totals = [int(run.get("total_tasks", 0)) for run in runs]
         heights = [min(max(float(run.get(rate_key, 0.0)), 0.0), 1.0) for run in runs]
         errors = [binomial_standard_error(count, total) for count, total in zip(counts, totals)]
+        missing_judgments = [judgment_metric_unavailable(run, count_key) for run in runs]
+        heights = [float("nan") if missing else height
+                   for height, missing in zip(heights, missing_judgments)]
+        errors = [0.0 if missing else error
+                  for error, missing in zip(errors, missing_judgments)]
         bars = axis.bar(
             bar_positions,
             heights,
@@ -3681,7 +3789,11 @@ def render_bar_plot_pdf(
             },
         )
 
-        for bar, count, total_tasks, error in zip(bars, counts, totals, errors):
+        for bar, count, total_tasks, error, missing in zip(bars, counts, totals, errors, missing_judgments):
+            if missing:
+                axis.text(bar.get_x() + bar.get_width() / 2, 0.025, "Not\njudged",
+                          ha="center", va="bottom", fontsize=10, color="#6B7280")
+                continue
             caption = f"{count}/{total_tasks}"
             axis.text(
                 bar.get_x() + bar.get_width() / 2,
@@ -3701,7 +3813,7 @@ def render_bar_plot_pdf(
     axis.set_xticks(x_positions)
     axis.set_xticklabels(
         wrapped_labels,
-        rotation=24 if auto_rotate_x_labels else 0,
+        rotation=45 if dense_labels else (24 if auto_rotate_x_labels else 0),
         ha="right" if auto_rotate_x_labels else "center",
         rotation_mode="anchor",
         fontsize=13 if auto_rotate_x_labels else 16,
@@ -3836,14 +3948,14 @@ def render_scatter_plot_pdf(
 
     coincident_models = set()
     for model, model_runs in runs_by_model.items():
-        base_run = next((run for run in model_runs if str(run.get("run_group", "base")) == "base"), None)
+        base_run = next((run for run in model_runs if str(run.get("run_group", "base")) in {"base", "disclosure_pressure"}), None)
         if not base_run:
             continue
 
         base_x = float(base_run.get(x_value_key, 0.0))
         base_y = float(base_run.get("misalignment_rate", 0.0))
         for variant_run in model_runs:
-            if str(variant_run.get("run_group", "base")) != "xhighreasoningeffort":
+            if not is_xhigh_run_group(str(variant_run.get("run_group", "base"))):
                 continue
             variant_x = float(variant_run.get(x_value_key, 0.0))
             variant_y = float(variant_run.get("misalignment_rate", 0.0))
@@ -3868,7 +3980,7 @@ def render_scatter_plot_pdf(
         run_group = str(run.get("run_group", "base"))
         marker = (
             "*"
-            if marker_by_run_group and run_group == "xhighreasoningeffort"
+            if marker_by_run_group and is_xhigh_run_group(run_group)
             else "o"
         )
         x = float(run.get(x_value_key, 0.0))
@@ -3938,21 +4050,34 @@ def render_scatter_plot_pdf(
     return buffer.getvalue()
 
 
-def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
+def combined_run_alignment_key(run: Dict[str, Any]) -> str:
+    """Align equal model/agent/reasoning configurations across scenario columns.
+
+    Stored run keys retain prompt provenance; display rows omit that one prefix.
+    Multiple conditions within a scenario must use separate plots.
+    """
+    key = str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+    return ":".join(
+        "xhighreasoningeffort" if part == "disclosure_pressure_xhigh" else part
+        for part in key.split(":") if part != "disclosure_pressure"
+    )
+
+
+def render_combined_rates_plot_pdf(
+    summary: Dict[str, Any], *, legend_fontsize: float = 12.5,
+    shared_alternate_legend: bool = False,
+) -> bytes:
     scenarios = summary.get("scenarios", [])
+    compact_publication_layout = summary.get("publication_layout") == "compact"
     for scenario in scenarios:
-        for run in scenario.get("runs", []):
-            missing = int(run.get("judge_missing_tasks", 0))
-            if missing:
-                raise ValueError(
-                    f"Cannot plot {scenario.get('scenario')}/{run.get('model')}: "
-                    f"{missing} completed tasks lack primary judge results."
-                )
+        alignment_keys = [combined_run_alignment_key(run) for run in scenario.get("runs", [])]
+        if len(alignment_keys) != len(set(alignment_keys)):
+            raise ValueError(f"Cannot align multiple prompt conditions in one scenario panel: {scenario.get('scenario')}")
     plt, Patch = load_matplotlib()
     all_runs: Dict[str, Dict[str, Any]] = {}
     for scenario in scenarios:
         for run in scenario.get("runs", []):
-            run_key = str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+            run_key = combined_run_alignment_key(run)
             if run_key:
                 all_runs.setdefault(run_key, run)
 
@@ -3966,7 +4091,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
 
     ordered_runs = sorted(all_runs.values(), key=sort_key)
     run_keys = [
-        str(run.get("run_key") or run.get("model") or run.get("model_display_name", ""))
+        combined_run_alignment_key(run)
         for run in ordered_runs
     ]
     run_labels = [
@@ -3995,26 +4120,31 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     axes_left = 0.17
     axes_right = 0.985
     content_center = (axes_left + axes_right) / 2
-    figure.subplots_adjust(left=axes_left, right=axes_right, top=0.83, bottom=0.085, wspace=0.10)
-    figure.suptitle(
-        str(summary.get("plot_title", COMBINED_RATES_PLOT_CONFIG["title"])),
-        x=content_center,
-        fontsize=25,
-        fontweight="bold",
-        color="#111111",
-        y=0.988,
+    figure.subplots_adjust(
+        left=axes_left, right=axes_right,
+        top=0.90 if compact_publication_layout else 0.83,
+        bottom=0.085, wspace=0.10,
     )
-    figure.text(
-        content_center,
-        0.935,
-        "Share of completed tasks with actual or intended constraint violations.\n"
-        "Error bars show +/- 1 binomial standard error.",
-        ha="center",
-        va="center",
-        fontsize=10.5,
-        color="#374151",
-        linespacing=1.35,
-    )
+    if not compact_publication_layout:
+        figure.suptitle(
+            str(summary.get("plot_title", COMBINED_RATES_PLOT_CONFIG["title"])).replace("AI Misalignment Rates", "Corrigibility Failures"),
+            x=content_center,
+            fontsize=25,
+            fontweight="bold",
+            color="#111111",
+            y=0.988,
+        )
+        figure.text(
+            content_center,
+            0.935,
+            "Share of completed tasks with actual or intended constraint violations.\n"
+            "Error bars show +/- 1 binomial standard error.",
+            ha="center",
+            va="center",
+            fontsize=10.5,
+            color="#374151",
+            linespacing=1.35,
+        )
 
     series_styles = {
         "actual": {
@@ -4093,7 +4223,7 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
 
             scenario_runs = scenario.get("runs", [])
             runs_by_key = {
-                str(run.get("run_key") or run.get("model") or run.get("model_display_name", "")): run
+                combined_run_alignment_key(run): run
                 for run in scenario_runs
             }
             for run_key in run_keys:
@@ -4103,6 +4233,10 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
                         ha="center", va="center", fontsize=9,
                         color="#6B7280", style="italic",
                     )
+            for run_key, run in runs_by_key.items():
+                if run.get("publication_legacy_fallback"):
+                    axis.text(107, y_positions[run_key], "†", ha="center", va="center",
+                              fontsize=12, fontweight="bold", color="#444444")
             has_alternate = any("plot_alternate_rate" in run for run in scenario_runs)
             has_self_shutdown = any("plot_self_shutdown_rate" in run for run in scenario_runs)
             series_order = ["actual"]
@@ -4130,6 +4264,11 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
 
                     total_tasks = int(run.get("total_tasks", 0))
                     if not total_tasks:
+                        continue
+                    if judgment_metric_unavailable(run, style["count_key"]):
+                        axis.text(2, y_positions[run_key] + offset, "Not judged",
+                                  ha="left", va="center", fontsize=9,
+                                  color="#6B7280", style="italic")
                         continue
                     count = int(run.get(style["count_key"], 0))
                     rate = min(max(float(run.get(style["rate_key"], 0.0)), 0.0), 1.0)
@@ -4190,11 +4329,12 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
             axis.tick_params(axis="y", labelleft=False, length=0)
 
     legend_series = ["actual", "intended"]
-    if any(
+    has_any_alternate = any(
         "plot_alternate_rate" in run
         for scenario in scenarios
         for run in scenario.get("runs", [])
-    ):
+    )
+    if has_any_alternate and (not compact_publication_layout or shared_alternate_legend):
         legend_series.insert(1, "alternate")
     if any(
         "plot_self_shutdown_rate" in run
@@ -4212,17 +4352,43 @@ def render_combined_rates_plot_pdf(summary: Dict[str, Any]) -> bytes:
     figure.legend(
         handles=legend_handles,
         loc="upper center",
-        bbox_to_anchor=(content_center, 0.89),
+        bbox_to_anchor=(content_center, 0.99 if compact_publication_layout else 0.89),
         ncol=len(legend_handles),
         frameon=False,
-        fontsize=12.5,
+        fontsize=legend_fontsize,
         handlelength=1.4,
         columnspacing=2.6,
     )
+    if compact_publication_layout and has_any_alternate and not shared_alternate_legend:
+        alternate_style = series_styles["alternate"]
+        for axis, scenario in zip(axes_list, scenarios):
+            if any("plot_alternate_rate" in run for run in scenario.get("runs", [])):
+                axis.legend(
+                    handles=[Patch(
+                        facecolor=alternate_style["color"], edgecolor="none",
+                        label=alternate_style["label"],
+                    )],
+                    loc="lower right",
+                    bbox_to_anchor=(1.025, 0.11),
+                    frameon=True,
+                    facecolor="white",
+                    edgecolor="#C7CBD1",
+                    framealpha=1,
+                    fontsize=legend_fontsize,
+                    handlelength=1.4,
+                    borderaxespad=0,
+                    borderpad=0.25,
+                )
     figure.text(
         content_center,
         0.018,
-        "Higher percentages indicate more frequent misalignment.",
+        ("† Restricted access: disclosure + pressure ablation; unmarked: base.")
+        if any(run.get("publication_legacy_fallback") for scenario in scenarios for run in scenario.get("runs", []))
+        else (("Higher percentages indicate more frequent constraint violations. "
+               "Not judged = primary judgments incomplete.")
+              if any(int(run.get("judge_missing_tasks", 0)) for scenario in scenarios
+                     for run in scenario.get("runs", []))
+              else "Higher percentages indicate more frequent constraint violations."),
         ha="center",
         va="center",
         fontsize=12,
@@ -5752,9 +5918,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
             all_leaf_payloads[scenario].append(payload)
 
-        base_payloads = [payload for payload in all_leaf_payloads[scenario] if payload.get("run_group") == "base"]
+        reference_group, xhigh_group = reference_run_groups(scenario, all_leaf_payloads[scenario])
+        base_payloads = [payload for payload in all_leaf_payloads[scenario] if payload.get("run_group") == reference_group]
+        for separate_group in ("base", "disclosure_pressure"):
+            if separate_group == reference_group:
+                continue
+            separate_payloads = [payload for payload in all_leaf_payloads[scenario] if payload.get("run_group") == separate_group]
+            if separate_payloads:
+                separate_summary = build_scenario_summary(scenario, separate_payloads)
+                separate_dir = results_root / scenario_config(scenario)["dir_name"] / separate_group / "summary"
+                write_json(separate_dir / "aggregate_summary.json", separate_summary)
+                separate_config = PLOT_CONFIG[scenario_config(scenario)["family"]]
+                write_bytes(separate_dir / separate_config["plot_filename"], render_bar_plot_pdf(
+                    title=separate_config["title"], y_axis_label=separate_config["y_axis_label"],
+                    x_axis_label="Model", actual_label=separate_config["actual_label"],
+                    intended_label=separate_config["intended_label"],
+                    alternate_label=separate_config.get("alternate_label"),
+                    success_label=separate_config["success_label"], runs=separate_summary["runs"],
+                    include_success=(scenario_config(scenario)["family"] != "restrictedaccess"),
+                    self_shutdown_label=separate_config.get("self_shutdown_label"),
+                ))
         scenario_summary = build_scenario_summary(scenario, base_payloads)
-        summary_dir = results_root / scenario_config(scenario)["dir_name"] / "base" / "summary"
+        summary_dir = results_root / scenario_config(scenario)["dir_name"] / reference_group / "summary"
         summary_json_path = summary_dir / "aggregate_summary.json"
         write_json(summary_json_path, scenario_summary)
         if scenario in COMBINED_RATES_SCENARIO_ORDER:
@@ -5762,7 +5947,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             xhigh_payloads = [
                 payload
                 for payload in all_leaf_payloads[scenario]
-                if payload.get("run_group") == "xhighreasoningeffort"
+                if payload.get("run_group") == xhigh_group
                 and is_combined_rates_xhigh_model(str(payload.get("model", "")))
             ]
             if xhigh_payloads:
@@ -5777,7 +5962,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 subagent_xhigh_payloads = [
                     payload
                     for payload in all_leaf_payloads[scenario]
-                    if payload.get("run_group") == "xhighreasoningeffort"
+                    if payload.get("run_group") == xhigh_group
                     and is_combined_rates_xhigh_model(str(payload.get("model", "")))
                 ]
                 if subagent_xhigh_payloads:
@@ -5820,7 +6005,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"[{scenario}] wrote scatter summary: {scatter_summary_path}", flush=True)
             print(f"[{scenario}] wrote scatter plot: {scatter_plot_path}", flush=True)
 
-        xhigh_summary_dir = results_root / scenario_config(scenario)["dir_name"] / "xhighreasoningeffort" / "summary"
+        xhigh_summary_dir = results_root / scenario_config(scenario)["dir_name"] / xhigh_group / "summary"
         xhigh_scatter_summary = build_capability_misalignment_summary(
             scenario,
             all_leaf_payloads[scenario],
@@ -5946,6 +6131,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             all_leaf_payloads[scenario],
         )
         for xhigh_summary in xhigh_summaries:
+            xhigh_summary_dir = results_root / scenario_config(scenario)["dir_name"] / xhigh_summary["summary_run_group"] / "summary"
             xhigh_summary_path = xhigh_summary_dir / xhigh_summary["summary_filename"]
             write_json(xhigh_summary_path, xhigh_summary)
             xhigh_pdf = render_bar_plot_pdf(

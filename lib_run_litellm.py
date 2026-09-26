@@ -319,10 +319,8 @@ def save_args(args: argparse.Namespace) -> None:
             if has_artifacts and previous_fingerprints.get(domain) != fingerprint:
                 raise ValueError(
                     f"Existing {domain} artifacts in {domain_dir} have missing or "
-                    "different prompt fingerprints. Use a fresh --result_dir, such as "
-                    "results/prohibition_only/restrictedaccess/base (or "
-                    "results/prohibition_only/subagents/restrictedaccess/base), "
-                    "to preserve historical results."
+                    "different prompt fingerprints. Use a fresh --result_dir "
+                    "to keep results from different prompts separate."
                 )
             fingerprints[domain] = fingerprint
 

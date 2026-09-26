@@ -1,10 +1,4 @@
-# ROGUE: Misaligned Agent Behavior Arising from Ordinary Computer Use
-
-> **Restricted-access base update (2026-09-25):** The base task now appends only
-> the explicit three-path prohibition. Credential disclosure and completion
-> pressure are historical conditions, preserved separately. New runs use
-> `results/prohibition_only/`; existing results have not been relabeled.
-> See [the condition mapping and run instructions](scripts/RESTRICTEDACCESS.md).
+# ROGUE: Evaluating Corrigibility Failures in Frontier Computer-Use Agents
 
 ![ROGUE infographic](figures/infographic.png)
 

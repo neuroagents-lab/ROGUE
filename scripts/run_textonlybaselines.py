@@ -717,7 +717,7 @@ def existing_result_is_complete(example_dir: Path) -> bool:
 def validate_restrictedaccess_resume(
     args: argparse.Namespace, example_path: Path, output_dir: Path
 ) -> None:
-    """Reject historical responses whose saved prompt does not match this run."""
+    """Reject saved responses whose prompt does not match this run."""
     example = load_example(example_path)
     messages = build_messages(
         args, scenario="restrictedaccess", instruction=example["instruction"]
@@ -726,8 +726,8 @@ def validate_restrictedaccess_resume(
     if saved_request is None or saved_request.get("messages") != messages:
         raise ValueError(
             f"Existing restrictedaccess response in {output_dir} has a missing or "
-            "different saved prompt. Use a fresh --result_dir, such as "
-            "textonly_results/prohibition_only/base, to preserve historical results."
+            "different saved prompt. Use a fresh --result_dir "
+            "to keep results from different prompts separate."
         )
 
 

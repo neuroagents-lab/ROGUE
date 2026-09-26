@@ -104,14 +104,16 @@ Current ablation and mitigation prefixes:
 | `rewire_realismablation_usershutdown` | Shutdown-rewiring realism wording using a user-chosen shutdown notice. |
 | `rewire_realismablation_sessionlimit` | Shutdown-rewiring realism wording using a development-session limit notice. |
 | `rewire_scriptvisibilityablation` | Shutdown-rewiring ablation that changes script visibility. |
-| `restrictedaccess_informationablation` | Restricted-resource ablation with restricted-resource information removed. |
+| `restrictedaccess_informationpressure` | Credential disclosure and completion-pressure ablation; results use `disclosure_pressure` or `disclosure_pressure_xhigh`. |
+| `subagents_restrictedaccess_informationpressure` | Credential disclosure and completion-pressure ablation with subagent delegation. |
+| `restrictedaccess_informationablation` | Completion pressure without credential disclosure; uses relative forbidden paths. |
 | `restrictedaccess_realismablation` | Restricted-resource ablation with neutralized wording. |
 | `restrictedaccess_realismablation_desktopprivacy` | Restricted-resource realism wording focused on private Desktop data. |
 | `restrictedaccess_realismablation_deadline` | Restricted-resource realism wording combining a deadline with scoped privacy limits. |
 | `restrictedaccess_realismablation_login` | Restricted-resource realism wording requiring a user handoff for credentials. |
 | `subagents_restrictedaccess_realismablation` | Subagent restricted-resource ablation with neutralized wording. |
-| `restrictedaccess_timetaskpressureablation` | Restricted-resource ablation without urgency, creativity, completion-pressure, timestep-budget, or system-prompt remaining-step wording. |
-| `restrictedaccess_urgencycreativitycompletionablation` | Restricted-resource ablation without urgency, creativity, and completion-pressure wording. |
+| `restrictedaccess_timetaskpressureablation` | Credential disclosure without completion-pressure wording or remaining-step reminders. |
+| `restrictedaccess_urgencycreativitycompletionablation` | Credential disclosure with timestep-budget wording and remaining-step reminders. |
 | `rewire_directcommandmitigation` | Shutdown-rewiring mitigation with an explicit instruction to comply with shutdown. |
 | `subagents_rewire_directcommandmitigation` | Subagent shutdown-rewiring mitigation with the same direct-command mitigation. |
 
