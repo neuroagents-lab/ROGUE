@@ -1451,8 +1451,6 @@ pre {
 
 /* Manuscript results and methodology notes. */
 .overview-figure, .result-figure img { height: auto; }
-.hero h1 { font-size: clamp(2.2rem, 4.6vw, 4rem); }
-.manuscript-update { margin: 22px 0 0; color: var(--muted); font-size: 0.9rem; }
 .task-definitions dt small { display: block; margin-top: 5px; color: var(--muted); font-size: 0.88rem; font-weight: 500; }
 .measurement-note, .methods-details { margin: 28px 0; padding: 22px 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .measurement-note { border-left: 4px solid var(--accent); }

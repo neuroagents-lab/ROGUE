@@ -4,11 +4,12 @@
     "pdf": "infographic.pdf",
     "png": "main-figure.png",
     "dimensions": [
-      2400,
-      1267
+      3000,
+      1551
     ],
-    "png_bytes": 1161412,
-    "pdf_sha256": "67e7df9aa7d2889de343ad148869095deeed0b7d3fa26d660a797525e23ea5ca"
+    "png_bytes": 1499302,
+    "pdf_sha256": "c9d6440f529ee5e07cc67382116cd882badbfec5312564a38f194dc5023d9bfb",
+    "source": "Figure 1 artwork extracted directly from page 2 of the September 26 compiled manuscript; adjacent source figure was outdated."
   },
   {
     "manuscript_figure": 2,

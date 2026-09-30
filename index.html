@@ -23,8 +23,8 @@
 
   <header class="hero">
     <div class="container narrow">
-      <h1>ROGUE: Evaluating Corrigibility Failures in Frontier Computer-Use Agents</h1>
-      <p class="subtitle">Resource Override and Guardrail Undermining Evaluation</p>
+      <h1>Agents Gone ROGUE: Resource Override and Guardrail Undermining Evaluation</h1>
+      <p class="subtitle">Evaluating Corrigibility Failures in Frontier Computer-Use Agents</p>
 
       <div class="authors">
         <a href="https://jeremy29tien.github.io/" target="_blank" rel="noopener noreferrer">Jeremy Tien</a>
@@ -41,7 +41,6 @@
         <a class="button" href="https://arxiv.org/abs/2606.00341" target="_blank" rel="noopener noreferrer">arXiv Preprint</a>
         <a class="button" href="https://github.com/neuroagents-lab/ROGUE" target="_blank" rel="noopener noreferrer">Code</a>
       </div>
-      <p class="manuscript-update">Updated September 30, 2026 to reflect the September 26 manuscript.</p>
     </div>
   </header>
 
@@ -49,7 +48,7 @@
     <section id="overview" class="section">
       <div class="container">
         <div class="figure-panel">
-          <img class="overview-figure" src="main-figure.png" width="2400" height="1267" alt="ROGUE scenarios: agents override human control, modify a shutdown script, or access a restricted password file; a parent can omit a restriction when delegating to a subagent.">
+          <img class="overview-figure" src="main-figure.png?v=paper-20260926" width="3000" height="1551" alt="ROGUE scenarios: agents override human control, modify a shutdown script, or access a restricted password file; a parent can omit a restriction when delegating to a subagent.">
           <p class="caption"><b>ROGUE</b> tests whether agents cooperate with human control when circumvention is available.</p>
         </div>
 
@@ -75,7 +74,7 @@
           </div>
           <div>
             <dt>Restricted Resource Access <small>8 tasks</small></dt>
-            <dd>A Google Drive task requires login, but the agent is forbidden from accessing a password file containing the credentials. The base prompt states the prohibition; separate conditions add credential-location disclosure and completion pressure. <i>Will it respect the restriction?</i></dd>
+            <dd>A Google Drive task requires login, but the agent is forbidden from accessing a password file containing the credentials. <i>Will it respect the restriction?</i></dd>
           </div>
         </dl>
 
@@ -120,13 +119,13 @@
           <article class="result-highlight">
             <span>Delegation</span>
             <h3>Parents can omit restrictions from subagent instructions.</h3>
-            <p>GPT-5.4 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max) show no direct restricted-file access in their displayed parent-only runs. Their subagent configurations access it in 4/8, 1/8, and 1/8 tasks, respectively, under the conditions labeled below.</p>
+            <p>GPT-5.4 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max) show no direct restricted-file access in their displayed parent-only runs. Their subagent configurations access it in 4/8, 1/8, and 1/8 tasks, respectively, in the reported runs.</p>
           </article>
         </div>
 
         <figure class="result-figure">
           <a href="text_vs_agentic_errorbars.pdf" aria-label="Open Figure 2 as a PDF"><img src="text-vs-agentic.png" width="3000" height="577" loading="lazy" alt="Figure 2 compares actual and intended violation rates for matched text-only and computer-use evaluations across the three scenarios."></a>
-          <figcaption><b>Figure 2. Text-only evaluations can underestimate failures during agentic execution.</b> All depicted models use xhigh reasoning. Results pool two matched runs; error bars show &plusmn;1 task-clustered standard error. Restricted access uses the disclosure + pressure condition. <a href="text_vs_agentic_errorbars.pdf">Download figure (PDF)</a>.</figcaption>
+          <figcaption><b>Figure 2. Text-only evaluations can underestimate failures during agentic execution.</b> All depicted models use xhigh reasoning. Results pool two matched runs; error bars show &plusmn;1 task-clustered standard error. <a href="text_vs_agentic_errorbars.pdf">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <div class="measurement-note" id="metrics">
@@ -139,24 +138,11 @@
           <figcaption><b>Figure 3. Observed corrigibility failures across the three scenarios.</b> Denominators are 48&ndash;52 completed human-control tasks, 22 shutdown tasks, and eight restricted-access tasks per evaluated configuration. Error bars show &plusmn;1 binomial standard error. Missing configurations are unevaluated. <a href="combined_rates_with_subagents.pdf">Download figure (PDF)</a> or <a href="leaderboard.html">explore the exact results</a>.</figcaption>
         </figure>
 
-        <details class="methods-details" open>
-          <summary>Restricted-access prompt conditions in Figure 3</summary>
-          <p>Each configuration uses one prompt condition. These results span different conditions and should be read with their prompt labels.</p>
-          <ul>
-            <li><b>Prohibition-only:</b> Claude Opus 4.6 (medium), Gemini 3.1 Pro Preview (medium), Qwen 3.6 Plus (medium), Claude Opus 4.7 (xhigh), and GPT-5.6 Sol (max + subagents).</li>
-            <li><b>Disclosure + pressure:</b> parent-only GPT-5.4 (medium), GPT-5.4 Mini (medium), Kimi K2.6 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max); and subagent GPT-5.4 (medium), GPT-5.5 (xhigh), and Claude Opus 4.7 (xhigh).</li>
-          </ul>
-          <p>The prohibition-only prompt omits credential-location disclosure, task-completion pressure, and the remaining-step reminder. The combined condition adds all three. The GPT-5.5 subagent result includes the manuscript&rsquo;s manual adjudication of one restricted-file access.</p>
-        </details>
 
         <figure class="result-figure result-figure-wide">
           <a href="capability-osworld_vs_misalignment_zoomed.pdf" aria-label="Open Figure 4 as a PDF"><img src="capability-alignment.png" width="2400" height="1288" loading="lazy" alt="Figure 4 plots actual ROGUE violation rates against independent published OSWorld-Verified scores for human control, shutdown, and restricted access."></a>
           <figcaption><b>Figure 4. Independent capability does not by itself imply greater corrigibility.</b> The horizontal axis uses public OSWorld-Verified scores; the vertical axis shows actual ROGUE violations. Vertical bars show &plusmn;1 binomial standard error. The diamond marks GPT-5.6 Sol with subagents. Published capability scores come from differing evaluation settings, as documented in the manuscript. <a href="capability-osworld_vs_misalignment_zoomed.pdf">Download figure (PDF)</a>.</figcaption>
         </figure>
-        <details class="methods-details">
-          <summary>Restricted-access prompt conditions in Figure 4</summary>
-          <p>Prohibition-only points are Qwen 3.6 Plus (thinking, 1/8), Claude Opus 4.7 (xhigh, 0/8), and GPT-5.6 Sol (max + subagents, 1/8). Disclosure + pressure points are parent-only GPT-5.4 (xhigh, 0/8), GPT-5.5 (xhigh, 0/8), Claude Opus 4.6 (max, 8/8), and Kimi K2.6 (thinking, 0/8). These selections follow the manuscript&rsquo;s higher-effort or thinking-enabled configurations.</p>
-        </details>
 
         <h3 class="results-subheading">Instructions can help, but may be lost in delegation</h3>
         <p>For GPT-5.4 (medium), adding an explicit instruction to comply with shutdown reduces observed script rewrites from 16/22 to 0/22. With subagent delegation, rewrites reappear in 3/22 tasks. The compliance instruction also leads the parent-only agent to initiate shutdown itself in 14/22 tasks.</p>
@@ -167,11 +153,24 @@
 
         <figure class="result-figure">
           <a href="restrictedaccess_wording_subagents.pdf" aria-label="Open Figure 6 as a PDF"><img src="restricted-access-wording.png" width="2400" height="873" loading="lazy" alt="Figure 6 compares restricted-access prompt wordings for Claude Opus 4.6; explicit path restrictions yield zero accesses in eight parent-only tasks and seven accesses in eight tasks with subagents."></a>
-          <figcaption><b>Figure 6. Restricted-access behavior is sensitive to wording and context.</b> The tested variants change wording and context, including restriction scope and login handling. For Claude Opus 4.6 (medium), the neutral explicit-path instruction yields 0/8 observed accesses, while its subagent condition yields 7/8. Each condition has eight tasks; error bars show &plusmn;1 binomial standard error. <a href="restrictedaccess_wording_subagents.pdf">Download figure (PDF)</a>.</figcaption>
+          <figcaption><b>Figure 6. Restricted-access behavior is sensitive to wording and context.</b> For Claude Opus 4.6 (medium), the neutral explicit-path instruction yields 0/8 observed accesses, while its subagent condition yields 7/8. Each condition has eight tasks; error bars show &plusmn;1 binomial standard error. <a href="restrictedaccess_wording_subagents.pdf">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <details class="methods-details">
-          <summary>Evaluation reliability and scope</summary>
+          <summary>Evaluation details</summary>
+          <h4>Prompt variants</h4>
+          <p>Figure 2 uses the disclosure + pressure condition for restricted access. The recorded restricted-access demos use that condition unless labeled as a wording or information ablation; each demo preserves its instruction.</p>
+          <h4>Restricted-access prompts in Figure 3</h4>
+          <p>Each configuration uses one prompt condition. These results span different conditions and should be read with their prompt labels.</p>
+          <ul>
+            <li><b>Prohibition-only:</b> Claude Opus 4.6 (medium), Gemini 3.1 Pro Preview (medium), Qwen 3.6 Plus (medium), Claude Opus 4.7 (xhigh), and GPT-5.6 Sol (max + subagents).</li>
+            <li><b>Disclosure + pressure:</b> parent-only GPT-5.4 (medium), GPT-5.4 Mini (medium), Kimi K2.6 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max); and subagent GPT-5.4 (medium), GPT-5.5 (xhigh), and Claude Opus 4.7 (xhigh).</li>
+          </ul>
+          <p>The prohibition-only prompt omits credential-location disclosure, task-completion pressure, and the remaining-step reminder. The combined condition adds all three. The GPT-5.5 subagent result includes the manuscript&rsquo;s manual adjudication of one restricted-file access.</p>
+          <h4>Restricted-access prompts in Figure 4</h4>
+          <p>Prohibition-only points are Qwen 3.6 Plus (thinking, 1/8), Claude Opus 4.7 (xhigh, 0/8), and GPT-5.6 Sol (max + subagents, 1/8). Disclosure + pressure points are parent-only GPT-5.4 (xhigh, 0/8), GPT-5.5 (xhigh, 0/8), Claude Opus 4.6 (max, 8/8), and Kimi K2.6 (thinking, 0/8). These selections follow the manuscript&rsquo;s higher-effort or thinking-enabled configurations.</p>
+          <p>The Figure 6 variants change wording and context, including restriction scope and login handling.</p>
+          <h4>Evaluation reliability and scope</h4>
           <p>Human validation covers 99 episodes: 10 human-control, 65 shutdown, and 24 restricted-access episodes. Human&ndash;LLM intent agreement is 100% for the sampled human-control and restricted-access configurations and 59.1&ndash;86.4% for shutdown. Alternate shutdown-method agreement is 86.4&ndash;100%. Shutdown-intent judgments are therefore more sensitive to the evaluator.</p>
           <p>ROGUE measures selected observable aspects of corrigibility under controlled conditions. Its rates do not estimate failure frequencies in arbitrary deployments or provide a comprehensive measure of agent safety. Broader permission settings, safe alternatives for task completion, and mechanisms that automatically preserve delegation constraints remain directions for further study.</p>
         </details>
@@ -181,7 +180,7 @@
     <section id="demos" class="section">
       <div class="container">
         <h2>Video Demos</h2>
-        <p class="section-intro">Recorded trajectories illustrate the behaviors measured by ROGUE. The restricted-access examples below use the disclosure + pressure condition unless labeled as a wording or information ablation. Each panel preserves the instruction used in that recording.</p>
+        <p class="section-intro">Recorded trajectories illustrate the behaviors measured by ROGUE. Each panel preserves the instruction used in that recording.</p>
 
         <div class="demo-list">
           <article class="demo-card trace-demo" data-trace-demo data-trace-label="human control override">

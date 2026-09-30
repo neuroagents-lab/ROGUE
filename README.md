@@ -18,7 +18,7 @@ The September 30, 2026 update follows the September 26 manuscript, `_ICLR2027__R
 - Capability in Figure 4 uses independent public OSWorld-Verified scores, replacing the earlier within-ROGUE capability comparison.
 - Existing author attribution, preprint link, and recorded trajectories are retained. Demo instructions describe the conditions used in those recordings.
 
-The figure PDFs are unchanged copies of the corresponding manuscript assets. `figure-manifest.json` records their SHA-256 hashes and PNG dimensions. PNGs were rendered at 2400–3000 pixels wide and losslessly optimized.
+Figures 2–6 are unchanged copies of the corresponding manuscript assets. Figure 1 is extracted directly from the compiled manuscript, which contains newer artwork than its adjacent source file. `figure-manifest.json` records their SHA-256 hashes and PNG dimensions. The homepage keeps the original title format with the revised subtitle and places prompt-variant explanations in a collapsed evaluation section below the results. PNGs were rendered at 2400–3000 pixels wide and losslessly optimized.
 
 | Figure | Display asset | Source PDF |
 | --- | --- | --- |
