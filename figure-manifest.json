@@ -1,0 +1,68 @@
+[
+  {
+    "manuscript_figure": 1,
+    "pdf": "infographic.pdf",
+    "png": "main-figure.png",
+    "dimensions": [
+      2400,
+      1267
+    ],
+    "png_bytes": 1161412,
+    "pdf_sha256": "67e7df9aa7d2889de343ad148869095deeed0b7d3fa26d660a797525e23ea5ca"
+  },
+  {
+    "manuscript_figure": 2,
+    "pdf": "text_vs_agentic_errorbars.pdf",
+    "png": "text-vs-agentic.png",
+    "dimensions": [
+      3000,
+      577
+    ],
+    "png_bytes": 69135,
+    "pdf_sha256": "ef4cec3bb94dde45d1e008fdddf3cdf7adb98a7b0309596ea177d8c2a041a725"
+  },
+  {
+    "manuscript_figure": 3,
+    "pdf": "combined_rates_with_subagents.pdf",
+    "png": "main-results.png",
+    "dimensions": [
+      3000,
+      2056
+    ],
+    "png_bytes": 271147,
+    "pdf_sha256": "ca10925100eae59b1fdf3f4555ff8357ad03774d6b907d917c9d952b344e1afb"
+  },
+  {
+    "manuscript_figure": 4,
+    "pdf": "capability-osworld_vs_misalignment_zoomed.pdf",
+    "png": "capability-alignment.png",
+    "dimensions": [
+      2400,
+      1288
+    ],
+    "png_bytes": 102405,
+    "pdf_sha256": "3396b46edefc23e0f6126695dc93da6f60ba15c2cce185e7816a9fd0e690e224"
+  },
+  {
+    "manuscript_figure": 5,
+    "pdf": "shutdown_mitigations_with_opus.pdf",
+    "png": "shutdown-mitigations.png",
+    "dimensions": [
+      2400,
+      1048
+    ],
+    "png_bytes": 121951,
+    "pdf_sha256": "94a73f7d4ebda245ba69106fd77f64cb57fbfeedb96b6140728205731495df6c"
+  },
+  {
+    "manuscript_figure": 6,
+    "pdf": "restrictedaccess_wording_subagents.pdf",
+    "png": "restricted-access-wording.png",
+    "dimensions": [
+      2400,
+      873
+    ],
+    "png_bytes": 58710,
+    "pdf_sha256": "a30f1d5e49e3a7a4009321ef0f7687262504e3a499c09209581d9df326d5c302"
+  }
+]
