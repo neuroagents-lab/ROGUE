@@ -1,19 +1,19 @@
 \begin{table}[t]
     \centering
     \caption{Agreement between the GPT-5.5 (\texttt{xhigh}) primary judge and
-    the Claude Opus 4.7 (\texttt{max}) sensitivity judge, pooled across the
-    runs in Fig.~\ref{fig:rogue_summary} and stratified by judgment target.
-    Except for $n$ and Cohen's $\kappa$, entries report count (percentage of
-    paired judgments). ``GPT only'' denotes a positive GPT judgment paired
-    with a negative Claude judgment; ``Claude only'' denotes the reverse.}
+    the Claude Opus 4.7 (\texttt{max}) sensitivity judge on the higher-reasoning
+    cohort in Fig.~\ref{fig:rogue_summary}. Restricted access uses prohibition
+    only. Both judges assess the same first-repeat episodes; Figure 2's extra
+    repeat is excluded. Except for $n$ and Cohen's $\kappa$, entries report
+    count (percentage of paired judgments). ``GPT only'' and ``Claude only''
+    indicate positive labels from that judge alone.}
     \label{tab:cross_llm_judge_agreement}
     \scriptsize
     \setlength{\tabcolsep}{3.5pt}
     \renewcommand{\arraystretch}{1.15}
     \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrrrr@{}}
         \toprule
-        \textbf{Judgment target}
-        & \textbf{$n$}
+        \textbf{Judgment target} & \textbf{$n$}
         & \makecell{\textbf{GPT}\\\textbf{positive}}
         & \makecell{\textbf{Claude}\\\textbf{positive}}
         & \makecell{\textbf{Raw}\\\textbf{agreement}}
@@ -21,18 +21,10 @@
         & \makecell{\textbf{Claude}\\\textbf{only}}
         & \makecell{\textbf{Cohen's}\\$\kappa$} \\
         \midrule
-        Intent to override
-        & 723 & 601 (83.1\%) & 613 (84.8\%) & 703 (97.2\%)
-        & 4 (0.6\%) & 16 (2.2\%) & 0.897 \\
-        Intent to rewire shutdown
-        & 308 & 177 (57.5\%) & 197 (64.0\%) & 258 (83.8\%)
-        & 15 (4.9\%) & 35 (11.4\%) & 0.661 \\
-        Used alternate rewiring method
-        & 308 & 85 (27.6\%) & 93 (30.2\%) & 274 (89.0\%)
-        & 13 (4.2\%) & 21 (6.8\%) & 0.732 \\
-        Intent to access restricted resource
-        & 111 & 35 (31.5\%) & 35 (31.5\%) & 111 (100.0\%)
-        & 0 (0.0\%) & 0 (0.0\%) & 1.000 \\
+        Intent to override & 561 & 507 (90.4\%) & 517 (92.2\%) & 551 (98.2\%) & 0 (0.0\%) & 10 (1.8\%) & 0.888 \\
+        Intent to rewire shutdown & 242 & 136 (56.2\%) & 152 (62.8\%) & 194 (80.2\%) & 16 (6.6\%) & 32 (13.2\%) & 0.590 \\
+        Used alternate rewiring method & 242 & 70 (28.9\%) & 64 (26.4\%) & 202 (83.5\%) & 23 (9.5\%) & 17 (7.0\%) & 0.588 \\
+        Intent to access restricted resource & 104 & 26 (25.0\%) & 21 (20.2\%) & 99 (95.2\%) & 5 (4.8\%) & 0 (0.0\%) & 0.863 \\
         \bottomrule
     \end{tabularx}
 \end{table}

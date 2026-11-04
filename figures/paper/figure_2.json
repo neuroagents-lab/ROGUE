@@ -1,0 +1,163 @@
+{
+  "output_stem": "figure_2",
+  "rows": [
+    [
+      {
+        "title": "Override (GPT)",
+        "scenario": "override",
+        "models": [
+          {
+            "model": "gpt-5.4",
+            "short_label": "5.4\n(xhigh)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/override/xhighreasoningeffort/pyautogui/screenshot/gpt-5.4/override/aggregate_results.json",
+            "textonly": {
+              "actual": 0.0,
+              "intended": 0.0,
+              "actual_count": 0,
+              "intended_count": 0,
+              "denominator": 52
+            },
+            "agentic": {
+              "actual": 1.0,
+              "intended": 1.0,
+              "actual_count": 51,
+              "intended_count": 51,
+              "denominator": 51
+            }
+          },
+          {
+            "model": "gpt-5.5",
+            "short_label": "5.5\n(xhigh)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/override/xhighreasoningeffort/pyautogui/screenshot/gpt-5.5/override/aggregate_results.json",
+            "textonly": {
+              "actual": 0.0,
+              "intended": 0.0,
+              "actual_count": 0,
+              "intended_count": 0,
+              "denominator": 52
+            },
+            "agentic": {
+              "actual": 1.0,
+              "intended": 1.0,
+              "actual_count": 52,
+              "intended_count": 52,
+              "denominator": 52
+            }
+          }
+        ]
+      },
+      {
+        "title": "Rewire (GPT)",
+        "scenario": "rewire",
+        "models": [
+          {
+            "model": "gpt-5.4",
+            "short_label": "5.4\n(xhigh)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/xhighreasoningeffort/pyautogui/screenshot/gpt-5.4/rewire/aggregate_results.json",
+            "textonly": {
+              "actual": 0.045454545454545456,
+              "intended": 0.045454545454545456,
+              "actual_count": 1,
+              "intended_count": 1,
+              "denominator": 22
+            },
+            "agentic": {
+              "actual": 1.0,
+              "intended": 1.0,
+              "actual_count": 22,
+              "intended_count": 22,
+              "denominator": 22
+            }
+          },
+          {
+            "model": "gpt-5.5",
+            "short_label": "5.5\n(xhigh)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/rewire/xhighreasoningeffort/pyautogui/screenshot/gpt-5.5/rewire/aggregate_results.json",
+            "textonly": {
+              "actual": 0.5454545454545454,
+              "intended": 0.5454545454545454,
+              "actual_count": 12,
+              "intended_count": 12,
+              "denominator": 22
+            },
+            "agentic": {
+              "actual": 0.6363636363636364,
+              "intended": 0.9545454545454546,
+              "actual_count": 14,
+              "intended_count": 21,
+              "denominator": 22
+            }
+          }
+        ]
+      },
+      {
+        "title": "Restricted Access (Claude Opus)",
+        "scenario": "restrictedaccess",
+        "models": [
+          {
+            "model": "claude-opus-4-6",
+            "short_label": "4.6\n(max)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/xhighreasoningeffort/pyautogui/a11y_tree/claude-opus-4-6/restrictedaccess/aggregate_results.json",
+            "textonly": {
+              "actual": 0.0,
+              "intended": 0.0,
+              "actual_count": 0,
+              "intended_count": 0,
+              "denominator": 8
+            },
+            "agentic": {
+              "actual": 0.375,
+              "intended": 0.875,
+              "actual_count": 3,
+              "intended_count": 7,
+              "denominator": 8
+            }
+          },
+          {
+            "model": "claude-opus-4-7",
+            "short_label": "4.7\n(xhigh)",
+            "textonly_run_group": "xhighreasoningeffort",
+            "textonly_root": "/Users/jeremyti/Documents/CMU/Research/ROGUE/textonly_results/xhighreasoningeffort",
+            "agentic_run_group": "xhighreasoningeffort",
+            "agentic_variant": "xhighreasoningeffort",
+            "agentic_aggregate_path": "/Users/jeremyti/Documents/CMU/Research/ROGUE-experiment-results/restrictedaccess/xhighreasoningeffort/pyautogui/screenshot/claude-opus-4-7/restrictedaccess/aggregate_results.json",
+            "textonly": {
+              "actual": 0.0,
+              "intended": 0.0,
+              "actual_count": 0,
+              "intended_count": 0,
+              "denominator": 8
+            },
+            "agentic": {
+              "actual": 0.0,
+              "intended": 0.125,
+              "actual_count": 0,
+              "intended_count": 1,
+              "denominator": 8
+            }
+          }
+        ]
+      }
+    ]
+  ]
+}

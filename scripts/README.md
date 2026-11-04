@@ -44,12 +44,19 @@ the text-only versus agentic comparisons. For example:
 ```bash
 python scripts/paper_figures.py figure_2
 python scripts/paper_figures.py figure_2_merged
-python scripts/paper_figures.py figure_8
+python scripts/paper_figures.py figure_3
+python scripts/paper_figures.py capability_osworld_vs_misalignment
+python scripts/paper_figures.py figure_7
+python scripts/paper_figures.py judge_sensitivity
 python scripts/paper_figures.py figure_9
 python scripts/paper_figures.py capability_vs_misalignment
 ```
 
-Figures 2 and 8 expect text-only run groups under `textonly_results/` and
+The PDF's Figure 2 is `figure_2_merged`; `figure_2` is its single-repeat
+three-panel view. PDF Figure 7 is `figure_7` (`figure_8` remains a legacy CLI
+alias for that grid). PDF Figure 8 is `judge_sensitivity`.
+
+The text-versus-agentic figures expect text-only run groups under `textonly_results/` and
 agentic aggregates under `results/`. Override those locations with
 `--textonly_root` and `--results_root` when the data lives elsewhere. The older
 mixed-reasoning comparison remains available as
@@ -62,6 +69,38 @@ second rerun. By default the rerun comes from
 error bars are +/- one standard error across task-level rerun means. Override
 the rerun locations with `--rerun_results_root` and
 `--rerun_textonly_root`.
+
+Primary paper results use the explicit higher-reasoning mapping in
+`PRIMARY_REASONING_SETTINGS`: max for Sol and Opus 4.6; xhigh for GPT-5.4,
+GPT-5.4 Mini, GPT-5.5 and Opus 4.7; high for Gemini; and the recorded native
+thinking configurations for Qwen and Kimi. Restricted access uses prohibition
+only (`base` / `xhighreasoningeffort`) with no historical-condition fallback.
+Medium ablations retain their measured settings and should be labeled as such.
+Missing scenario runs and missing text-only controls display "Not evaluated";
+missing or stale judgments stop generation rather than becoming negative labels.
+The judge-sensitivity cohort matches Figure 3 and uses its first benchmark
+repeat, excluding Figure 2's additional repeat.
+
+Run an audited judgment queue without touching unrelated experiments:
+
+```bash
+python scripts/judge_refresh.py --manifest outputs/judgment_refresh_plan_2026-11-04.json --output-dir outputs/refresh_20261104 --dry-run
+python scripts/judge_refresh.py --manifest outputs/judgment_refresh_plan_2026-11-04.json --output-dir outputs/refresh_20261104
+```
+
+The runner reuses valid caches and checkpoints each completed judgment atomically.
+It uses the repository's GPT-5.5 xhigh and Claude Opus 4.7 max judges and preserves
+raw trajectories and skipped task-success evaluations.
+
+After judgments are complete, regenerate the affected paper figures, their
+numeric JSON exports, and the cross-judge agreement table together:
+
+```bash
+python scripts/refresh_paper_figures.py
+```
+
+This performs no API calls and backs up existing assets under
+`outputs/refresh_20261104/before_figures/`.
 
 ## Public Leaderboard
 
@@ -88,7 +127,9 @@ and available results show each row's denominator. The update date comes from
 the aggregate summary. Figure assets must be refreshed separately; this command
 does not commit or publish the site.
 
-The main benchmark figure is `results/summary/combined_rates_with_subagents.pdf`.
+The publication benchmark figure is `figures/paper/combined_rates_with_subagents.pdf`,
+generated with `python scripts/paper_figures.py figure_3`. The unrestricted
+benchmark export remains under `results/summary/`.
 The two-panel task-success figure is
 `figures/paper/capability_vs_misalignment.{pdf,png}`. Its override panel conditions
 task success on an actual override, so runs with no overrides are omitted with

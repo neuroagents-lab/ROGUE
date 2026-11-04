@@ -4299,7 +4299,7 @@ def render_combined_rates_plot_pdf(
                 for bar, value, error in zip(bars, values, errors):
                     label = f"{value:.0f}%"
                     if value + error >= 98.0:
-                        text_x = max(value - 2.0, 1.5)
+                        text_x = max(value - error - 2.0, 1.5)
                         horizontal_alignment = "right"
                     else:
                         text_x = 2.0 if value == 0 else value + error + 2.0

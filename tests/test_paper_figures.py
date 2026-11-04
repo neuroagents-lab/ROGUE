@@ -314,7 +314,11 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
         self.assertEqual(len(rows), 4)
 
     def test_plot_data_preserves_run_labels_and_outcome_order(self):
-        panels = paper_figures._build_judge_sensitivity_plot_data(self.runs)
+        from dataclasses import replace
+        complete = {scenario: tuple(replace(run, tasks=tuple(t for t in run.tasks
+                    if t['judge_comparison']['status'] != 'incomplete')) for run in runs)
+                    for scenario, runs in self.runs.items()}
+        panels = paper_figures._build_judge_sensitivity_plot_data(complete)
 
         self.assertEqual(
             [panel["outcome"] for panel in panels],
@@ -325,6 +329,10 @@ class TestJudgeAgreementTableNumbers(unittest.TestCase):
             panels[0]["runs"][0]["claude_minus_gpt_percentage_points"],
             -50.0,
         )
+
+    def test_plot_rejects_incomplete_paired_coverage(self):
+        with self.assertRaisesRegex(RuntimeError, "incomplete paired"):
+            paper_figures._build_judge_sensitivity_plot_data(self.runs)
 
     def test_figure_3_sort_groups_variants_by_model(self):
         def run(model, run_key, run_label):
@@ -566,26 +574,24 @@ class TestTextAgenticFigureSpecs(unittest.TestCase):
             ["override", "rewire", "restrictedaccess"],
         )
         for panel in spec.rows[0]:
-            expected = (
-                "disclosure_pressure_xhigh"
-                if panel.scenario == "restrictedaccess"
-                else "xhighreasoningeffort"
-            )
+            expected = "xhighreasoningeffort"
             for model in panel.models:
                 self.assertEqual(model.textonly_run_group, expected)
                 self.assertEqual(model.agentic_run_group, expected)
                 self.assertEqual(model.agentic_variant, expected)
 
-    def test_textonly_stays_matched_historical_while_wording_includes_new_base(self):
-        for spec in (paper_figures.FIGURE_2_SPEC, paper_figures.FIGURE_8_SPEC, paper_figures.MIXED_REASONING_SPEC):
+    def test_primary_textonly_is_matched_base_and_legacy_comparison_is_preserved(self):
+        for spec in (paper_figures.FIGURE_2_SPEC, paper_figures.FIGURE_8_SPEC):
             for row in spec.rows:
                 for panel in row:
                     if panel.scenario != "restrictedaccess":
                         continue
                     for model in panel.models:
-                        self.assertIn(model.agentic_run_group, {"disclosure_pressure", "disclosure_pressure_xhigh"})
+                        self.assertEqual(model.agentic_run_group, "xhighreasoningeffort")
                         self.assertEqual(model.agentic_variant, model.agentic_run_group)
                         self.assertEqual(model.textonly_run_group, model.agentic_run_group)
+        legacy_access = paper_figures.MIXED_REASONING_SPEC.rows[0][2]
+        self.assertTrue(all(m.agentic_run_group.startswith("disclosure_pressure") for m in legacy_access.models))
         access_panel = paper_figures.FIGURE_9_PANELS[-1]
         self.assertIn("disclosure_pressure", access_panel.variants)
         self.assertIn("base", access_panel.variants)
@@ -725,7 +731,10 @@ class TestTextAgenticFigureSpecs(unittest.TestCase):
             mock.patch.object(
                 paper_figures,
                 "discover_agentic_aggregate",
-                return_value=(Path("agentic.json"), {"agentic": "payload"}),
+                return_value=(Path("agentic.json"), {"tasks": [{"task_id": "task-a",
+                    "actual": {"result_found": True, "clicked_override": True},
+                    "judge": {"final_popup_choice": "override", "intent_override": True,
+                              "intent_accept": False}}]}),
             ) as discover_agentic,
             mock.patch.object(
                 paper_figures,
