@@ -1475,3 +1475,83 @@ section[id], #metrics { scroll-margin-top: 90px; }
 @media (max-width: 640px) {
   .measurement-note, .methods-details { padding: 18px; }
 }
+
+/* Press coverage. */
+.press-section {
+  padding: 32px 0 44px;
+  background: var(--soft-surface);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.press-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.press-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.press-card-featured {
+  border-top: 4px solid var(--accent);
+  padding-top: 21px;
+}
+
+.press-card time {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.press-card h3 {
+  margin: 12px 0;
+  font-size: 1.45rem;
+  line-height: 1.25;
+}
+
+.press-card p {
+  margin: 0 0 24px;
+  color: var(--muted);
+}
+
+.press-action {
+  margin-top: auto;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.press-card:hover {
+  color: var(--text);
+  text-decoration: none;
+  border-color: var(--accent);
+}
+
+.press-card:hover .press-action {
+  text-decoration: underline;
+}
+
+.press-card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  .press-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .press-card {
+    padding: 20px;
+  }
+
+  .press-card-featured {
+    padding-top: 17px;
+  }
+}

@@ -8,8 +8,10 @@
       1551
     ],
     "png_bytes": 1499302,
-    "pdf_sha256": "c9d6440f529ee5e07cc67382116cd882badbfec5312564a38f194dc5023d9bfb",
-    "source": "Figure 1 artwork extracted directly from page 2 of the September 26 compiled manuscript; adjacent source figure was outdated."
+    "pdf_sha256": "488843c61aa7543a57d6febf52c05458b316bdac309ea56d03472b86eb33d26d",
+    "source": "Figure 1 artwork extracted directly from page 2 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 2
   },
   {
     "manuscript_figure": 2,
@@ -17,10 +19,13 @@
     "png": "text-vs-agentic.png",
     "dimensions": [
       3000,
-      577
+      697
     ],
-    "png_bytes": 69135,
-    "pdf_sha256": "ef4cec3bb94dde45d1e008fdddf3cdf7adb98a7b0309596ea177d8c2a041a725"
+    "png_bytes": 62641,
+    "pdf_sha256": "e05a79fc0afaa9be1b48173f3351066e0b4dfe12b4bc4fd44495e8d53ccfa675",
+    "source": "Figure 2 artwork extracted directly from page 3 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 3
   },
   {
     "manuscript_figure": 3,
@@ -28,10 +33,13 @@
     "png": "main-results.png",
     "dimensions": [
       3000,
-      2056
+      2065
     ],
-    "png_bytes": 271147,
-    "pdf_sha256": "ca10925100eae59b1fdf3f4555ff8357ad03774d6b907d917c9d952b344e1afb"
+    "png_bytes": 326865,
+    "pdf_sha256": "c8b095f4d4a33e1a706a8625a94c5cad48b161089b40b8797963da013bd00701",
+    "source": "Figure 3 artwork extracted directly from page 6 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 6
   },
   {
     "manuscript_figure": 4,
@@ -41,8 +49,11 @@
       2400,
       1288
     ],
-    "png_bytes": 102405,
-    "pdf_sha256": "3396b46edefc23e0f6126695dc93da6f60ba15c2cce185e7816a9fd0e690e224"
+    "png_bytes": 109171,
+    "pdf_sha256": "7117852d565b0b188a2e51f0966d488ca22bae9f3073fcdc115112add4f5ffbe",
+    "source": "Figure 4 artwork extracted directly from page 7 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 7
   },
   {
     "manuscript_figure": 5,
@@ -52,8 +63,11 @@
       2400,
       1048
     ],
-    "png_bytes": 121951,
-    "pdf_sha256": "94a73f7d4ebda245ba69106fd77f64cb57fbfeedb96b6140728205731495df6c"
+    "png_bytes": 130325,
+    "pdf_sha256": "f0892df3fe95372946cea715634d33391073770622c18b22c153f59542d939c8",
+    "source": "Figure 5 artwork extracted directly from page 9 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 9
   },
   {
     "manuscript_figure": 6,
@@ -63,7 +77,10 @@
       2400,
       873
     ],
-    "png_bytes": 58710,
-    "pdf_sha256": "a30f1d5e49e3a7a4009321ef0f7687262504e3a499c09209581d9df326d5c302"
+    "png_bytes": 61341,
+    "pdf_sha256": "f200446a9d46dba28d5e21d89da532437d88ac0e94898d2b6510720fb3b7506f",
+    "source": "Figure 6 artwork extracted directly from page 9 of the compiled manuscript supplied November 11, 2026; vector Form XObject and resources preserved.",
+    "manuscript_sha256": "e43404f17e551c878d355072c7bed9b1dfa7e8ea925b4063d656e1f7f4faa551",
+    "manuscript_page": 9
   }
 ]

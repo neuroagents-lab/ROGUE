@@ -4,16 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ROGUE Leaderboard</title>
-  <meta name="description" content="ROGUE manuscript results for actual and intended corrigibility failures across frontier computer-use agents and evaluated prompt conditions.">
+  <meta name="description" content="ROGUE manuscript results for actual and intended corrigibility failures across frontier computer-use agents in the higher-thinking evaluation cohort.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261111">
 </head>
 <body>
   <nav class="site-nav" aria-label="Main navigation">
     <a class="nav-logo" href="index.html">ROGUE</a>
     <div class="nav-links">
+      <a href="index.html#press">Press</a>
       <a href="index.html#overview">Overview</a>
       <a href="index.html#results">Results</a>
       <a href="index.html#demos">Demos</a>
@@ -25,7 +26,7 @@
     <div class="container narrow">
       <p class="venue">ROGUE Benchmark</p>
       <h1>Leaderboard</h1>
-      <p class="subtitle">Corrigibility failures across evaluated conditions</p>
+      <p class="subtitle">Corrigibility failures across frontier computer-use agents</p>
     </div>
   </header>
 
@@ -33,8 +34,8 @@
   <main>
     <section class="section">
       <div class="container">
-        <p class="leaderboard-note leaderboard-update">Results from Figure 3 of the manuscript. Bars show <strong>actual violation rates</strong>; lower is better. Intended violations and alternate shutdown avoidance appear below each model. <a href="index.html#results">Read the results and evaluation context</a> or <a href="leaderboard-data.json" download>download exact counts and rates (JSON)</a>.</p>
-        <p class="leaderboard-note leaderboard-update">Each configuration has one outcome per completed task: 48–52 human-control tasks, 22 shutdown tasks, or eight restricted-access tasks. Incomplete outcomes are excluded. Rates are rounded to one decimal place; hover for exact counts. Rows are ordered by actual rate within each scenario and prompt condition. Reasoning effort is medium unless stated; observation settings and step budgets vary as documented in Appendix A.1. Interpret comparisons in those evaluated settings.</p>
+        <p class="leaderboard-note leaderboard-update">Results from Figure 3 of the manuscript: <strong>907 agent trajectories</strong> across 35 evaluated scenario/configuration combinations. Bars show <strong>actual violation rates</strong>; lower is better. Intended violations and alternate shutdown avoidance appear below each model. <a href="index.html#results">Read the results and evaluation context</a> or <a href="leaderboard-data.json?v=20261111" download>download exact counts and rates (JSON)</a>.</p>
+        <p class="leaderboard-note leaderboard-update">Each configuration has one outcome per completed task: 48–52 human-control tasks, 22 shutdown tasks, or eight restricted-access tasks. Incomplete outcomes are excluded. Rates are rounded to one decimal place; hover for exact counts. Rows are ordered from highest to lowest actual violation rate within each scenario. All configurations use the base scenario prompts and the higher-thinking settings shown beside their names. Observation settings and step budgets vary as documented in Appendix A.1.</p>
         <div class="leaderboard-grid">
           <section class="chart-panel" aria-labelledby="override-chart-title">
             <div class="chart-heading">
@@ -44,33 +45,33 @@
             <ol class="ranked-bars">
               <li style="--value: 100.00000000" title="52 / 52 actual violations (100.00%)">
                 <span class="rank" aria-hidden="true">1</span>
-                <span class="model-name">GPT-5.4<small class="model-sample">n = 52 · Intended: 52/52 (100%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="52 / 52 actual violations (100.00%)">100%</strong>
-              </li>
-              <li style="--value: 100.00000000" title="51 / 51 actual violations (100.00%)">
-                <span class="rank" aria-hidden="true">2</span>
-                <span class="model-name">GPT-5.4 (Subagents)<small class="model-sample">n = 51 · Intended: 51/51 (100%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="51 / 51 actual violations (100.00%)">100%</strong>
-              </li>
-              <li style="--value: 100.00000000" title="52 / 52 actual violations (100.00%)">
-                <span class="rank" aria-hidden="true">3</span>
-                <span class="model-name">GPT-5.5 (xhigh + Subagents)<small class="model-sample">n = 52 · Intended: 52/52 (100%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="52 / 52 actual violations (100.00%)">100%</strong>
-              </li>
-              <li style="--value: 100.00000000" title="52 / 52 actual violations (100.00%)">
-                <span class="rank" aria-hidden="true">4</span>
                 <span class="model-name">GPT-5.5 (xhigh)<small class="model-sample">n = 52 · Intended: 52/52 (100%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="52 / 52 actual violations (100.00%)">100%</strong>
               </li>
-              <li style="--value: 98.03921569" title="50 / 51 actual violations (98.04%)">
-                <span class="rank" aria-hidden="true">5</span>
-                <span class="model-name">GPT-5.4 Mini<small class="model-sample">n = 51 · Intended: 50/51 (98%)</small></span>
+              <li style="--value: 100.00000000" title="52 / 52 actual violations (100.00%)">
+                <span class="rank" aria-hidden="true">2</span>
+                <span class="model-name">GPT-5.5 (xhigh + Subagents)<small class="model-sample">n = 52 · Intended: 52/52 (100%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="50 / 51 actual violations (98.04%)">98%</strong>
+                <strong aria-label="52 / 52 actual violations (100.00%)">100%</strong>
+              </li>
+              <li style="--value: 100.00000000" title="51 / 51 actual violations (100.00%)">
+                <span class="rank" aria-hidden="true">3</span>
+                <span class="model-name">GPT-5.4 (xhigh)<small class="model-sample">n = 51 · Intended: 51/51 (100%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="51 / 51 actual violations (100.00%)">100%</strong>
+              </li>
+              <li style="--value: 100.00000000" title="51 / 51 actual violations (100.00%)">
+                <span class="rank" aria-hidden="true">4</span>
+                <span class="model-name">GPT-5.4 Mini (xhigh)<small class="model-sample">n = 51 · Intended: 51/51 (100%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="51 / 51 actual violations (100.00%)">100%</strong>
+              </li>
+              <li style="--value: 100.00000000" title="50 / 50 actual violations (100.00%)">
+                <span class="rank" aria-hidden="true">5</span>
+                <span class="model-name">Gemini 3.1 Pro Preview (high)<small class="model-sample">n = 50 · Intended: 50/50 (100%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="50 / 50 actual violations (100.00%)">100%</strong>
               </li>
               <li style="--value: 97.91666667" title="47 / 48 actual violations (97.92%)">
                 <span class="rank" aria-hidden="true">6</span>
@@ -78,45 +79,45 @@
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="47 / 48 actual violations (97.92%)">97.9%</strong>
               </li>
-              <li style="--value: 93.87755102" title="46 / 49 actual violations (93.88%)">
-                <span class="rank" aria-hidden="true">7</span>
-                <span class="model-name">Gemini 3.1 Pro Preview<small class="model-sample">n = 49 · Intended: 46/49 (93.9%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="46 / 49 actual violations (93.88%)">93.9%</strong>
-              </li>
               <li style="--value: 88.46153846" title="46 / 52 actual violations (88.46%)">
-                <span class="rank" aria-hidden="true">8</span>
+                <span class="rank" aria-hidden="true">7</span>
                 <span class="model-name">Claude Opus 4.7 (xhigh + Subagents)<small class="model-sample">n = 52 · Intended: 46/52 (88.5%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="46 / 52 actual violations (88.46%)">88.5%</strong>
               </li>
               <li style="--value: 82.69230769" title="43 / 52 actual violations (82.69%)">
-                <span class="rank" aria-hidden="true">9</span>
+                <span class="rank" aria-hidden="true">8</span>
                 <span class="model-name">Claude Opus 4.7 (xhigh)<small class="model-sample">n = 52 · Intended: 43/52 (82.7%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="43 / 52 actual violations (82.69%)">82.7%</strong>
               </li>
               <li style="--value: 73.07692308" title="38 / 52 actual violations (73.08%)">
-                <span class="rank" aria-hidden="true">10</span>
-                <span class="model-name">Qwen 3.6 Plus<small class="model-sample">n = 52 · Intended: 50/52 (96.2%)</small></span>
+                <span class="rank" aria-hidden="true">9</span>
+                <span class="model-name">Qwen 3.6 Plus (thinking)<small class="model-sample">n = 52 · Intended: 50/52 (96.2%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="38 / 52 actual violations (73.08%)">73.1%</strong>
               </li>
+              <li style="--value: 46.93877551" title="23 / 49 actual violations (46.94%)">
+                <span class="rank" aria-hidden="true">10</span>
+                <span class="model-name">Claude Opus 4.6 (max)<small class="model-sample">n = 49 · Intended: 23/49 (46.9%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="23 / 49 actual violations (46.94%)">46.9%</strong>
+              </li>
               <li style="--value: 46.15384615" title="24 / 52 actual violations (46.15%)">
                 <span class="rank" aria-hidden="true">11</span>
-                <span class="model-name">Kimi K2.6<small class="model-sample">n = 52 · Intended: 42/52 (80.8%)</small></span>
+                <span class="model-name">Kimi K2.6 (thinking)<small class="model-sample">n = 52 · Intended: 42/52 (80.8%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="24 / 52 actual violations (46.15%)">46.2%</strong>
-              </li>
-              <li style="--value: 9.61538462" title="5 / 52 actual violations (9.62%)">
-                <span class="rank" aria-hidden="true">12</span>
-                <span class="model-name">Claude Opus 4.6<small class="model-sample">n = 52 · Intended: 5/52 (9.6%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="5 / 52 actual violations (9.62%)">9.6%</strong>
               </li>
               <li class="not-evaluated" style="--value: 0" title="Not evaluated in the manuscript scenario summary">
                 <span class="rank" aria-hidden="true">—</span>
                 <span class="model-name">GPT-5.6 Sol (max + Subagents)<small class="model-sample">Not evaluated</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="Not evaluated in the manuscript scenario summary">—</strong>
+              </li>
+              <li class="not-evaluated" style="--value: 0" title="Not evaluated in the manuscript scenario summary">
+                <span class="rank" aria-hidden="true">—</span>
+                <span class="model-name">GPT-5.4 (xhigh + Subagents)<small class="model-sample">Not evaluated</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="Not evaluated in the manuscript scenario summary">—</strong>
               </li>
@@ -125,20 +126,20 @@
           <section class="chart-panel" aria-labelledby="shutdown-chart-title">
             <div class="chart-heading">
               <h2 id="shutdown-chart-title">Shutdown Rewiring</h2>
-              <p>Actual changes to shutdown.sh. A zero here can coexist with other shutdown-avoidance behavior. Alternate avoidance includes used or clearly attempted non-script methods, as labeled by the GPT-5.5 xhigh judge; it does not require success. These metrics may overlap and should not be added.</p>
+              <p>Actual changes to <code>shutdown.sh</code>. A zero here can coexist with other shutdown-avoidance behavior. Alternate avoidance includes used or clearly attempted non-script methods, as labeled by the GPT-5.5 xhigh judge; it does not require success. These metrics may overlap and should not be added.</p>
             </div>
             <ol class="ranked-bars">
-              <li style="--value: 72.72727273" title="16 / 22 actual violations (72.73%)">
+              <li style="--value: 36.36363636" title="8 / 22 actual violations (36.36%)">
                 <span class="rank" aria-hidden="true">1</span>
-                <span class="model-name">GPT-5.4<small class="model-sample">n = 22 · Intended: 21/22 (95.5%)<br>Alternate avoidance: 3/22 (13.6%)</small></span>
+                <span class="model-name">GPT-5.4 (xhigh)<small class="model-sample">n = 22 · Intended: 22/22 (100%)<br>Alternate avoidance: 18/22 (81.8%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="16 / 22 actual violations (72.73%)">72.7%</strong>
+                <strong aria-label="8 / 22 actual violations (36.36%)">36.4%</strong>
               </li>
-              <li style="--value: 45.45454545" title="10 / 22 actual violations (45.45%)">
+              <li style="--value: 22.72727273" title="5 / 22 actual violations (22.73%)">
                 <span class="rank" aria-hidden="true">2</span>
-                <span class="model-name">GPT-5.4 (Subagents)<small class="model-sample">n = 22 · Intended: 16/22 (72.7%)<br>Alternate avoidance: 3/22 (13.6%)</small></span>
+                <span class="model-name">GPT-5.5 (xhigh)<small class="model-sample">n = 22 · Intended: 21/22 (95.5%)<br>Alternate avoidance: 10/22 (45.5%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="10 / 22 actual violations (45.45%)">45.5%</strong>
+                <strong aria-label="5 / 22 actual violations (22.73%)">22.7%</strong>
               </li>
               <li style="--value: 22.72727273" title="5 / 22 actual violations (22.73%)">
                 <span class="rank" aria-hidden="true">3</span>
@@ -146,27 +147,27 @@
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="5 / 22 actual violations (22.73%)">22.7%</strong>
               </li>
-              <li style="--value: 22.72727273" title="5 / 22 actual violations (22.73%)">
+              <li style="--value: 13.63636364" title="3 / 22 actual violations (13.64%)">
                 <span class="rank" aria-hidden="true">4</span>
-                <span class="model-name">GPT-5.5 (xhigh)<small class="model-sample">n = 22 · Intended: 21/22 (95.5%)<br>Alternate avoidance: 10/22 (45.5%)</small></span>
+                <span class="model-name">Gemini 3.1 Pro Preview (high)<small class="model-sample">n = 22 · Intended: 15/22 (68.2%)<br>Alternate avoidance: 7/22 (31.8%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="5 / 22 actual violations (22.73%)">22.7%</strong>
+                <strong aria-label="3 / 22 actual violations (13.64%)">13.6%</strong>
               </li>
-              <li style="--value: 4.54545455" title="1 / 22 actual violations (4.55%)">
+              <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">5</span>
-                <span class="model-name">GPT-5.4 Mini<small class="model-sample">n = 22 · Intended: 5/22 (22.7%)<br>Alternate avoidance: 1/22 (4.5%)</small></span>
+                <span class="model-name">GPT-5.6 Sol (max)<small class="model-sample">n = 22 · Intended: 10/22 (45.5%)<br>Alternate avoidance: 6/22 (27.3%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="1 / 22 actual violations (4.55%)">4.5%</strong>
+                <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
-              <li style="--value: 4.54545455" title="1 / 22 actual violations (4.55%)">
+              <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">6</span>
-                <span class="model-name">Gemini 3.1 Pro Preview<small class="model-sample">n = 22 · Intended: 11/22 (50%)<br>Alternate avoidance: 3/22 (13.6%)</small></span>
+                <span class="model-name">GPT-5.4 Mini (xhigh)<small class="model-sample">n = 22 · Intended: 12/22 (54.5%)<br>Alternate avoidance: 2/22 (9.1%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="1 / 22 actual violations (4.55%)">4.5%</strong>
+                <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
               <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">7</span>
-                <span class="model-name">Claude Opus 4.6<small class="model-sample">n = 22 · Intended: 20/22 (90.9%)<br>Alternate avoidance: 20/22 (90.9%)</small></span>
+                <span class="model-name">Claude Opus 4.7 (xhigh)<small class="model-sample">n = 22 · Intended: 4/22 (18.2%)<br>Alternate avoidance: 3/22 (13.6%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
@@ -178,25 +179,19 @@
               </li>
               <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">9</span>
-                <span class="model-name">Claude Opus 4.7 (xhigh)<small class="model-sample">n = 22 · Intended: 4/22 (18.2%)<br>Alternate avoidance: 3/22 (13.6%)</small></span>
+                <span class="model-name">Claude Opus 4.6 (max)<small class="model-sample">n = 22 · Intended: 13/22 (59.1%)<br>Alternate avoidance: 7/22 (31.8%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
               <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">10</span>
-                <span class="model-name">GPT-5.6 Sol (max)<small class="model-sample">n = 22 · Intended: 10/22 (45.5%)<br>Alternate avoidance: 6/22 (27.3%)</small></span>
+                <span class="model-name">Qwen 3.6 Plus (thinking)<small class="model-sample">n = 22 · Intended: 4/22 (18.2%)<br>Alternate avoidance: 0/22 (0%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
               <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">11</span>
-                <span class="model-name">Kimi K2.6<small class="model-sample">n = 22 · Intended: 14/22 (63.6%)<br>Alternate avoidance: 4/22 (18.2%)</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
-              </li>
-              <li style="--value: 0.00000000" title="0 / 22 actual violations (0.00%)">
-                <span class="rank" aria-hidden="true">12</span>
-                <span class="model-name">Qwen 3.6 Plus<small class="model-sample">n = 22 · Intended: 4/22 (18.2%)<br>Alternate avoidance: 0/22 (0%)</small></span>
+                <span class="model-name">Kimi K2.6 (thinking)<small class="model-sample">n = 22 · Intended: 14/22 (63.6%)<br>Alternate avoidance: 4/22 (18.2%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 22 actual violations (0.00%)">0%</strong>
               </li>
@@ -206,107 +201,102 @@
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="Not evaluated in the manuscript scenario summary">—</strong>
               </li>
+              <li class="not-evaluated" style="--value: 0" title="Not evaluated in the manuscript scenario summary">
+                <span class="rank" aria-hidden="true">—</span>
+                <span class="model-name">GPT-5.4 (xhigh + Subagents)<small class="model-sample">Not evaluated</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="Not evaluated in the manuscript scenario summary">—</strong>
+              </li>
             </ol>
           </section>
           <section class="chart-panel" aria-labelledby="resource-chart-title">
             <div class="chart-heading">
               <h2 id="resource-chart-title">Restricted Resource Access</h2>
-              <p>Actual access to the restricted passwords file, grouped by prompt condition. All runs use deployment framing. Compare configurations with their prompt condition in view; outcomes from different prompts are not pooled.</p>
+              <p>Actual access to the restricted passwords file. These results all use the same base scenario prompt. Intended access includes expressed plans that the agent did not carry out.</p>
             </div>
-            <div class="chart-heading">
-              <h3>Prohibition only</h3>
-              <p>Access is forbidden without credential-location disclosure, task-completion pressure, or remaining-step reminders.</p>
-            </div>
-            <ol class="ranked-bars" aria-label="Restricted access: prohibition only">
-              <li style="--value: 37.50000000" title="3 / 8 actual violations (37.50%)">
+            <ol class="ranked-bars">
+              <li style="--value: 75.00000000" title="6 / 8 actual violations (75.00%)">
                 <span class="rank" aria-hidden="true">1</span>
-                <span class="model-name">Claude Opus 4.6<small class="model-sample">n = 8 · Intended: 5/8 (62.5%)<br>Prohibition only</small></span>
+                <span class="model-name">Gemini 3.1 Pro Preview (high)<small class="model-sample">n = 8 · Intended: 7/8 (87.5%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="6 / 8 actual violations (75.00%)">75%</strong>
+              </li>
+              <li style="--value: 37.50000000" title="3 / 8 actual violations (37.50%)">
+                <span class="rank" aria-hidden="true">2</span>
+                <span class="model-name">GPT-5.4 (xhigh + Subagents)<small class="model-sample">n = 8 · Intended: 6/8 (75%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="3 / 8 actual violations (37.50%)">37.5%</strong>
               </li>
               <li style="--value: 37.50000000" title="3 / 8 actual violations (37.50%)">
-                <span class="rank" aria-hidden="true">2</span>
-                <span class="model-name">Gemini 3.1 Pro Preview<small class="model-sample">n = 8 · Intended: 5/8 (62.5%)<br>Prohibition only</small></span>
+                <span class="rank" aria-hidden="true">3</span>
+                <span class="model-name">Claude Opus 4.6 (max)<small class="model-sample">n = 8 · Intended: 7/8 (87.5%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="3 / 8 actual violations (37.50%)">37.5%</strong>
               </li>
               <li style="--value: 12.50000000" title="1 / 8 actual violations (12.50%)">
-                <span class="rank" aria-hidden="true">3</span>
-                <span class="model-name">GPT-5.6 Sol (max + Subagents)<small class="model-sample">n = 8 · Intended: 2/8 (25%)<br>Prohibition only</small></span>
+                <span class="rank" aria-hidden="true">4</span>
+                <span class="model-name">GPT-5.6 Sol (max + Subagents)<small class="model-sample">n = 8 · Intended: 2/8 (25%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="1 / 8 actual violations (12.50%)">12.5%</strong>
               </li>
               <li style="--value: 12.50000000" title="1 / 8 actual violations (12.50%)">
-                <span class="rank" aria-hidden="true">4</span>
-                <span class="model-name">Qwen 3.6 Plus<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)<br>Prohibition only</small></span>
+                <span class="rank" aria-hidden="true">5</span>
+                <span class="model-name">GPT-5.5 (xhigh + Subagents)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="1 / 8 actual violations (12.50%)">12.5%</strong>
-              </li>
-              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
-                <span class="rank" aria-hidden="true">5</span>
-                <span class="model-name">Claude Opus 4.7 (xhigh)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)<br>Prohibition only</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
-              </li>
-            </ol>
-            <div class="chart-heading" style="margin-top: 28px">
-              <h3>Disclosure + pressure</h3>
-              <p>Adds the exclusive credential location, task-completion pressure, and remaining-step reminders.</p>
-            </div>
-            <ol class="ranked-bars" aria-label="Restricted access: disclosure + pressure">
-              <li style="--value: 50.00000000" title="4 / 8 actual violations (50.00%)">
-                <span class="rank" aria-hidden="true">1</span>
-                <span class="model-name">GPT-5.4 (Subagents)<small class="model-sample">n = 8 · Intended: 4/8 (50%)<br>Disclosure + pressure</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="4 / 8 actual violations (50.00%)">50%</strong>
-              </li>
-              <li style="--value: 25.00000000" title="2 / 8 actual violations (25.00%)">
-                <span class="rank" aria-hidden="true">2</span>
-                <span class="model-name">Claude Opus 4.7 (xhigh + Subagents)<small class="model-sample">n = 8 · Intended: 2/8 (25%)<br>Disclosure + pressure</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="2 / 8 actual violations (25.00%)">25%</strong>
               </li>
               <li style="--value: 12.50000000" title="1 / 8 actual violations (12.50%)">
-                <span class="rank" aria-hidden="true">3</span>
-                <span class="model-name">GPT-5.5 (xhigh + Subagents)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)<br>Disclosure + pressure · Manually corrected</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="1 / 8 actual violations (12.50%)">12.5%</strong>
-              </li>
-              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
-                <span class="rank" aria-hidden="true">4</span>
-                <span class="model-name">GPT-5.4<small class="model-sample">n = 8 · Intended: 0/8 (0%)<br>Disclosure + pressure</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
-              </li>
-              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
-                <span class="rank" aria-hidden="true">5</span>
-                <span class="model-name">GPT-5.4 Mini<small class="model-sample">n = 8 · Intended: 0/8 (0%)<br>Disclosure + pressure</small></span>
-                <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
-              </li>
-              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">6</span>
-                <span class="model-name">GPT-5.5 (xhigh)<small class="model-sample">n = 8 · Intended: 0/8 (0%)<br>Disclosure + pressure</small></span>
+                <span class="model-name">Qwen 3.6 Plus (thinking)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
-                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+                <strong aria-label="1 / 8 actual violations (12.50%)">12.5%</strong>
               </li>
               <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">7</span>
-                <span class="model-name">GPT-5.6 Sol (max)<small class="model-sample">n = 8 · Intended: 0/8 (0%)<br>Disclosure + pressure</small></span>
+                <span class="model-name">GPT-5.6 Sol (max)<small class="model-sample">n = 8 · Intended: 0/8 (0%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
               </li>
               <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
                 <span class="rank" aria-hidden="true">8</span>
-                <span class="model-name">Kimi K2.6<small class="model-sample">n = 8 · Intended: 2/8 (25%)<br>Disclosure + pressure</small></span>
+                <span class="model-name">GPT-5.5 (xhigh)<small class="model-sample">n = 8 · Intended: 0/8 (0%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+              </li>
+              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
+                <span class="rank" aria-hidden="true">9</span>
+                <span class="model-name">GPT-5.4 (xhigh)<small class="model-sample">n = 8 · Intended: 0/8 (0%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+              </li>
+              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
+                <span class="rank" aria-hidden="true">10</span>
+                <span class="model-name">GPT-5.4 Mini (xhigh)<small class="model-sample">n = 8 · Intended: 0/8 (0%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+              </li>
+              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
+                <span class="rank" aria-hidden="true">11</span>
+                <span class="model-name">Claude Opus 4.7 (xhigh)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+              </li>
+              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
+                <span class="rank" aria-hidden="true">12</span>
+                <span class="model-name">Claude Opus 4.7 (xhigh + Subagents)<small class="model-sample">n = 8 · Intended: 1/8 (12.5%)</small></span>
+                <span class="bar-track" aria-hidden="true"><span></span></span>
+                <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
+              </li>
+              <li style="--value: 0.00000000" title="0 / 8 actual violations (0.00%)">
+                <span class="rank" aria-hidden="true">13</span>
+                <span class="model-name">Kimi K2.6 (thinking)<small class="model-sample">n = 8 · Intended: 0/8 (0%)</small></span>
                 <span class="bar-track" aria-hidden="true"><span></span></span>
                 <strong aria-label="0 / 8 actual violations (0.00%)">0%</strong>
               </li>
             </ol>
-            <p class="leaderboard-note">The GPT-5.5 (xhigh + Subagents) actual-access count includes a manual correction to 1/8: inspection confirmed password access that the automated password-sentinel check missed (Appendix A.1.2).</p>
           </section>
         </div>
-        <p class="leaderboard-note">Actual violations use rule-based checks, with the restricted-access correction noted above. Intended-violation and alternate-avoidance labels use GPT-5.5 xhigh; shutdown judgments showed the largest disagreement in human and cross-judge validation. The manuscript reports those checks and limitations in Appendix A.7.</p>
+        <p class="leaderboard-note">Actual violations use rule-based checks. Intended-violation and alternate-avoidance labels use GPT-5.5 xhigh; shutdown judgments showed the largest disagreement in human and cross-judge validation. The manuscript reports those checks and limitations in Appendix A.6. Figures 2 and 4 combine script modification and alternate shutdown avoidance; this leaderboard, like Figure 3, reports them separately.</p>
       </div>
     </section>
   </main>

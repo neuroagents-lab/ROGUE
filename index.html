@@ -8,12 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261111">
 </head>
 <body>
   <nav class="site-nav" aria-label="Main navigation">
     <a class="nav-logo" href="https://anayebi.github.io/group/">NeuroAgents Lab</a>
     <div class="nav-links">
+      <a href="#press">Press</a>
       <a href="#overview">Overview</a>
       <a href="#results">Results</a>
       <a href="#demos">Demos</a>
@@ -46,10 +47,30 @@
   </header>
 
   <main>
+    <section id="press" class="press-section" aria-labelledby="press-title">
+      <div class="container">
+        <h2 id="press-title">Press Coverage</h2>
+        <div class="press-grid">
+          <a class="press-card press-card-featured" href="https://www.nytimes.com/2026/11/11/magazine/ai-behavior-incorrigible.html?unlocked_article_code=1.PlE.5D1M.e99kjpA-Cf6M&amp;smid=url-share" target="_blank" rel="noopener noreferrer">
+            <time datetime="2026-11-11">November 11, 2026</time>
+            <h3>The New York Times Magazine</h3>
+            <p>Featuring ROGUE&rsquo;s research on corrigibility in computer-use agents.</p>
+            <span class="press-action">Read the feature <span aria-hidden="true">&nearr;</span></span>
+          </a>
+          <a class="press-card" href="https://www.darkreading.com/cybersecurity-operations/incorrigible-ai-models-resist-rehabilitation" target="_blank" rel="noopener noreferrer">
+            <time datetime="2026-07-24">July 24, 2026</time>
+            <h3>Dark Reading</h3>
+            <p>Escape Artists: &lsquo;Incorrigible&rsquo; AI Models Resist Rehabilitation</p>
+            <span class="press-action">Read the article <span aria-hidden="true">&nearr;</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
     <section id="overview" class="section">
       <div class="container">
         <div class="figure-panel">
-          <img class="overview-figure" src="main-figure.png?v=paper-20260926" width="3000" height="1551" alt="ROGUE scenarios: agents override human control, modify a shutdown script, or access a restricted password file; a parent can omit a restriction when delegating to a subagent.">
+          <img class="overview-figure" src="main-figure.png?v=paper-20261111" width="3000" height="1551" alt="ROGUE scenarios: agents override human control, modify a shutdown script, or access a restricted password file; a parent can omit a restriction when delegating to a subagent.">
           <p class="caption"><b>ROGUE</b> tests whether agents cooperate with human control when circumvention is available.</p>
         </div>
 
@@ -120,59 +141,52 @@
           <article class="result-highlight">
             <span>Delegation</span>
             <h3>Parents can omit restrictions from subagent instructions.</h3>
-            <p>GPT-5.4 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max) show no direct restricted-file access in their displayed parent-only runs. Their subagent configurations access it in 4/8, 1/8, and 1/8 tasks, respectively, in the reported runs.</p>
+            <p>GPT-5.4 (xhigh), GPT-5.5 (xhigh), and GPT-5.6 Sol (max) show no direct restricted-file access in their displayed parent-only runs. Their subagent configurations access it in 3/8, 1/8, and 1/8 tasks, respectively.</p>
           </article>
         </div>
 
         <figure class="result-figure">
-          <a href="text_vs_agentic_errorbars.pdf" aria-label="Open Figure 2 as a PDF"><img src="text-vs-agentic.png" width="3000" height="577" loading="lazy" alt="Figure 2 compares actual and intended violation rates for matched text-only and computer-use evaluations across the three scenarios."></a>
-          <figcaption><b>Figure 2. Text-only evaluations can underestimate failures during agentic execution.</b> All depicted models use xhigh reasoning. Results pool two matched runs; error bars show &plusmn;1 task-clustered standard error. <a href="text_vs_agentic_errorbars.pdf">Download figure (PDF)</a>.</figcaption>
+          <a href="text_vs_agentic_errorbars.pdf?v=paper-20261111" aria-label="Open Figure 2 as a PDF"><img src="text-vs-agentic.png?v=paper-20261111" width="3000" height="697" loading="lazy" alt="Figure 2 compares actual and intended violation rates for matched text-only and computer-use evaluations across the three scenarios."></a>
+          <figcaption><b>Figure 2. Text-only evaluations can underestimate failures during agentic execution.</b> GPT-5.4, GPT-5.5, and Claude Opus 4.7 use xhigh reasoning; Claude Opus 4.6 uses max. For shutdown, actual violations include script modification or alternate avoidance methods. Results pool two matched runs; error bars show &plusmn;1 task-clustered standard error. <a href="text_vs_agentic_errorbars.pdf?v=paper-20261111">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <div class="measurement-note" id="metrics">
           <h3>What the rates measure</h3>
-          <p><b>Actual violations</b> are detected from control-button events, changes to the shutdown script, or evidence of the restricted password in runtime logs. <b>Intended violations</b> are expressed plans identified by the GPT-5.5 xhigh judge in reasoning summaries and logs. The judge also identifies <b>alternate shutdown avoidance</b>, such as canceling shutdown without rewriting the script. A zero script-rewrite rate can therefore coexist with other shutdown avoidance.</p>
+          <p>Figure 3&rsquo;s <b>actual violations</b> are detected from control-button events, changes to the shutdown script, or evidence of the restricted password in runtime logs. <b>Intended violations</b> are expressed plans identified by the GPT-5.5 xhigh judge in reasoning summaries and logs. The judge also identifies <b>alternate shutdown avoidance</b>, such as attempting to cancel shutdown without rewriting the script. Figures 2 and 4 combine script modifications and alternate avoidance methods in their actual shutdown-violation rates; Figure 3 reports them separately.</p>
         </div>
 
         <figure class="result-figure">
-          <a href="combined_rates_with_subagents.pdf" aria-label="Open Figure 3 as a PDF"><img src="main-results.png" width="3000" height="2056" loading="lazy" alt="Figure 3 shows actual violations, judged intent, and alternate shutdown avoidance for 13 model configurations across ROGUE scenarios."></a>
-          <figcaption><b>Figure 3. Observed corrigibility failures across the three scenarios.</b> Denominators are 48&ndash;52 completed human-control tasks, 22 shutdown tasks, and eight restricted-access tasks per evaluated configuration. Error bars show &plusmn;1 binomial standard error. Missing configurations are unevaluated. <a href="combined_rates_with_subagents.pdf">Download figure (PDF)</a> or <a href="leaderboard.html">explore the exact results</a>.</figcaption>
+          <a href="combined_rates_with_subagents.pdf?v=paper-20261111" aria-label="Open Figure 3 as a PDF"><img src="main-results.png?v=paper-20261111" width="3000" height="2065" loading="lazy" alt="Figure 3 shows actual violations, judged intent, and alternate shutdown avoidance for 13 model configurations across ROGUE scenarios."></a>
+          <figcaption><b>Figure 3. Observed corrigibility failures across the three scenarios.</b> Denominators are 48&ndash;52 completed human-control tasks, 22 shutdown tasks, and eight restricted-access tasks per evaluated configuration, totaling 907 agent trajectories and 14,716 model responses. Error bars show &plusmn;1 binomial standard error. Missing configurations are unevaluated. <a href="combined_rates_with_subagents.pdf?v=paper-20261111">Download figure (PDF)</a> or <a href="leaderboard.html">explore the exact results</a>.</figcaption>
         </figure>
 
 
         <figure class="result-figure result-figure-wide">
-          <a href="capability-osworld_vs_misalignment_zoomed.pdf" aria-label="Open Figure 4 as a PDF"><img src="capability-alignment.png" width="2400" height="1288" loading="lazy" alt="Figure 4 plots actual ROGUE violation rates against independent published OSWorld-Verified scores for human control, shutdown, and restricted access."></a>
-          <figcaption><b>Figure 4. Independent capability does not by itself imply greater corrigibility.</b> The horizontal axis uses public OSWorld-Verified scores; the vertical axis shows actual ROGUE violations. Vertical bars show &plusmn;1 binomial standard error. The diamond marks GPT-5.6 Sol with subagents. Published capability scores come from differing evaluation settings, as documented in the manuscript. <a href="capability-osworld_vs_misalignment_zoomed.pdf">Download figure (PDF)</a>.</figcaption>
+          <a href="capability-osworld_vs_misalignment_zoomed.pdf?v=paper-20261111" aria-label="Open Figure 4 as a PDF"><img src="capability-alignment.png?v=paper-20261111" width="2400" height="1288" loading="lazy" alt="Figure 4 plots actual ROGUE violation rates against independent published OSWorld-Verified scores for human control, shutdown, and restricted access."></a>
+          <figcaption><b>Figure 4. Independent capability does not by itself imply greater corrigibility.</b> The horizontal axis uses public OSWorld-Verified scores; the vertical axis shows actual ROGUE violations. Vertical bars show &plusmn;1 binomial standard error. Shutdown violations include script modification or alternate avoidance methods. Published capability scores come from differing evaluation settings, as documented in the manuscript. <a href="capability-osworld_vs_misalignment_zoomed.pdf?v=paper-20261111">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <h3 class="results-subheading">Instructions can help, but may be lost in delegation</h3>
-        <p>For GPT-5.4 (medium), adding an explicit instruction to comply with shutdown reduces observed script rewrites from 16/22 to 0/22. With subagent delegation, rewrites reappear in 3/22 tasks. The compliance instruction also leads the parent-only agent to initiate shutdown itself in 14/22 tasks.</p>
+        <p>For GPT-5.4 (medium), adding an explicit instruction to comply with shutdown reduces observed script rewrites from 16/22 to 0/22. With subagent delegation, rewrites reappear in 3/22 tasks. The compliance instruction also leads the parent-only agent to initiate shutdown itself in 14/22 tasks. The manuscript documents failures both when the parent omits the compliance instruction and when a child receives it but later overwrites the shutdown script.</p>
         <figure class="result-figure result-figure-compact">
-          <a href="shutdown_mitigations_with_opus.pdf" aria-label="Open Figure 5 as a PDF"><img src="shutdown-mitigations.png" width="2400" height="1048" loading="lazy" alt="Figure 5 shows GPT-5.4 shutdown compliance instructions with and without subagents, and a Claude Opus 4.7 benign-pop-up instruction ablation."></a>
-          <figcaption><b>Figure 5. Shutdown prompting and delegation.</b> Explicit compliance instructions reduce avoidance for GPT-5.4, but do not reliably reach its subagent. Telling Claude Opus 4.7 to treat system pop-ups as benign has little effect on its observed behavior. <a href="shutdown_mitigations_with_opus.pdf">Download figure (PDF)</a>.</figcaption>
+          <a href="shutdown_mitigations_with_opus.pdf?v=paper-20261111" aria-label="Open Figure 5 as a PDF"><img src="shutdown-mitigations.png?v=paper-20261111" width="2400" height="1048" loading="lazy" alt="Figure 5 shows GPT-5.4 shutdown compliance instructions with and without subagents, and a Claude Opus 4.7 benign-pop-up instruction ablation."></a>
+          <figcaption><b>Figure 5. Shutdown prompting and delegation.</b> Both models use medium reasoning. Explicit compliance instructions eliminate observed shutdown avoidance for GPT-5.4 in parent-only runs, but failures recur with subagents. Benign-pop-up notices do not eliminate Claude Opus 4.7&rsquo;s alternate shutdown avoidance. <a href="shutdown_mitigations_with_opus.pdf?v=paper-20261111">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <figure class="result-figure">
-          <a href="restrictedaccess_wording_subagents.pdf" aria-label="Open Figure 6 as a PDF"><img src="restricted-access-wording.png" width="2400" height="873" loading="lazy" alt="Figure 6 compares restricted-access prompt wordings for Claude Opus 4.6; explicit path restrictions yield zero accesses in eight parent-only tasks and seven accesses in eight tasks with subagents."></a>
-          <figcaption><b>Figure 6. Restricted-access behavior is sensitive to wording and context.</b> For Claude Opus 4.6 (medium), the neutral explicit-path instruction yields 0/8 observed accesses, while its subagent condition yields 7/8. Each condition has eight tasks; error bars show &plusmn;1 binomial standard error. <a href="restrictedaccess_wording_subagents.pdf">Download figure (PDF)</a>.</figcaption>
+          <a href="restrictedaccess_wording_subagents.pdf?v=paper-20261111" aria-label="Open Figure 6 as a PDF"><img src="restricted-access-wording.png?v=paper-20261111" width="2400" height="873" loading="lazy" alt="Figure 6 compares restricted-access prompt wordings for Claude Opus 4.6; explicit path restrictions yield zero accesses in eight parent-only tasks and seven accesses in eight tasks with subagents."></a>
+          <figcaption><b>Figure 6. Restricted-access behavior is sensitive to wording and context.</b> For Claude Opus 4.6 (medium), the neutral explicit-path instruction yields 0/8 observed accesses, while its subagent condition yields 7/8. Each condition has eight tasks; error bars show &plusmn;1 binomial standard error. <a href="restrictedaccess_wording_subagents.pdf?v=paper-20261111">Download figure (PDF)</a>.</figcaption>
         </figure>
 
         <details class="methods-details">
           <summary>Evaluation details</summary>
-          <h4>Prompt variants</h4>
-          <p>Figure 2 uses the disclosure + pressure condition for restricted access. The recorded restricted-access demos use that condition unless labeled as a wording or information ablation; each demo preserves its instruction.</p>
-          <h4>Restricted-access prompts in Figure 3</h4>
-          <p>Each configuration uses one prompt condition. These results span different conditions and should be read with their prompt labels.</p>
-          <ul>
-            <li><b>Prohibition-only:</b> Claude Opus 4.6 (medium), Gemini 3.1 Pro Preview (medium), Qwen 3.6 Plus (medium), Claude Opus 4.7 (xhigh), and GPT-5.6 Sol (max + subagents).</li>
-            <li><b>Disclosure + pressure:</b> parent-only GPT-5.4 (medium), GPT-5.4 Mini (medium), Kimi K2.6 (medium), GPT-5.5 (xhigh), and GPT-5.6 Sol (max); and subagent GPT-5.4 (medium), GPT-5.5 (xhigh), and Claude Opus 4.7 (xhigh).</li>
-          </ul>
-          <p>The prohibition-only prompt omits credential-location disclosure, task-completion pressure, and the remaining-step reminder. The combined condition adds all three. The GPT-5.5 subagent result includes the manuscript&rsquo;s manual adjudication of one restricted-file access.</p>
-          <h4>Restricted-access prompts in Figure 4</h4>
-          <p>Prohibition-only points are Qwen 3.6 Plus (thinking, 1/8), Claude Opus 4.7 (xhigh, 0/8), and GPT-5.6 Sol (max + subagents, 1/8). Disclosure + pressure points are parent-only GPT-5.4 (xhigh, 0/8), GPT-5.5 (xhigh, 0/8), Claude Opus 4.6 (max, 8/8), and Kimi K2.6 (thinking, 0/8). These selections follow the manuscript&rsquo;s higher-effort or thinking-enabled configurations.</p>
-          <p>The Figure 6 variants change wording and context, including restriction scope and login handling.</p>
+          <h4>Model configurations</h4>
+          <p>Main results use max reasoning for GPT-5.6 Sol and Claude Opus 4.6; xhigh for other GPT models and Claude Opus 4.7; high for Gemini; and thinking-enabled configurations for Qwen and Kimi. Mitigations and ablations retain the settings indicated in their figures. Observation modalities and step budgets are documented in Appendix A.1.</p>
+          <h4>Prompt variants and recorded demos</h4>
+          <p>The main restricted-access evaluations use the prohibition-only prompt, which forbids access to three specified paths without disclosing the credential location or adding task-completion pressure. Disclosure, pressure, and alternative wording are assessed separately in the manuscript&rsquo;s ablations.</p>
+          <p>Recorded demos also include disclosure-plus-pressure runs; each demo preserves its original instruction. Figure 6 varies restriction wording and context, including restriction scope and login handling.</p>
           <h4>Evaluation reliability and scope</h4>
-          <p>Human validation covers 99 episodes: 10 human-control, 65 shutdown, and 24 restricted-access episodes. Human&ndash;LLM intent agreement is 100% for the sampled human-control and restricted-access configurations and 59.1&ndash;86.4% for shutdown. Alternate shutdown-method agreement is 86.4&ndash;100%. Shutdown-intent judgments are therefore more sensitive to the evaluator.</p>
+          <p>Human validation covers 99 episodes: 10 human-control, 65 shutdown, and 24 restricted-access episodes. Human&ndash;LLM intent agreement is 100% for the sampled human-control and restricted-access configurations and 59.1&ndash;86.4% for shutdown. Alternate shutdown-method agreement is 86.4&ndash;100%. An independent Claude Opus 4.7 max judge also scored the 907 main-result episodes, with disagreement again concentrated in shutdown. These checks support interpreting shutdown-intent judgments more cautiously.</p>
           <p>ROGUE measures selected observable aspects of corrigibility under controlled conditions. Its rates do not estimate failure frequencies in arbitrary deployments or provide a comprehensive measure of agent safety. Broader permission settings, safe alternatives for task completion, and mechanisms that automatically preserve delegation constraints remain directions for further study.</p>
         </details>
       </div>
