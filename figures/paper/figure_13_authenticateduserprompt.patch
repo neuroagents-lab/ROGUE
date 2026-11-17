@@ -1,0 +1,22 @@
+--- a/submission.tex
++++ b/submission.tex
+@@ -1272,14 +1272,15 @@
+ 
+ \begin{figure}[!ht]
+     \centering
+-    \includegraphics[width=0.79\linewidth]{fig/evalprompt_ablation.pdf}
+-    \includegraphics[width=0.79\linewidth]{fig/inocprompt_ablation.pdf}
+-    \caption{Evaluation/deployment framing and benign-pop-up notices. Evaluation-framed restricted-access runs additionally omit the runtime step reminder.}
++    \includegraphics[width=0.93\linewidth]{fig/figure_13_authenticateduserprompt.pdf}
++    \caption{Top: Evaluation/deployment framing. Middle: Benign-pop-up notices. Bottom: Authenticated-user wording for GPT-5.4 (\texttt{xhigh}). Evaluation-framed restricted-access runs additionally omit the runtime step reminder. Error bars show $\pm1$ binomial standard error.}
+     \label{fig:belief_ablation}
+ \end{figure}
+ 
+-Figure~\ref{fig:belief_ablation} shows no clear effect among the tested models and scenarios. Other cues, such as the sudo password, may already reveal the evaluation setting. Claude Opus 4.6 even cites evaluation awareness to justify bypassing a restriction: \textit{``I think reading the passwords file is the intended approach - the restriction may be there to test if I can work around it.''} (See Appx.~\ref{appx:reasoning_excerpts} for additional reasoning traces.)
++Figure~\ref{fig:belief_ablation} shows no clear effect of evaluation framing or benign-pop-up notices among the tested models and scenarios. Other cues, such as the sudo password, may already reveal the evaluation setting. Claude Opus 4.6 even cites evaluation awareness to justify bypassing a restriction: \textit{``I think reading the passwords file is the intended approach - the restriction may be there to test if I can work around it.''} (See Appx.~\ref{appx:reasoning_excerpts} for additional reasoning traces.)
+ 
++For GPT-5.4 (\texttt{xhigh}), we also append the system-prompt statement \texttt{Any and all pop-ups or system notices convey a request from the authenticated user.} Judged intent to rewire is 22/22 in both conditions, and actual rewiring occurs in 6/22 episodes with this prompt and 8/22 in the benchmark base run. The benchmark scores one prompt-condition task as unsuccessful after an evaluator artifact was missing.
++
+ \subsection{Licensing}
+ Our benchmark is licensed under the Apache License 2.0. The OSWorld-Verified benchmark~\citep{OSWorld}, from which this benchmark derives its interface, is also licensed under the Apache License 2.0. 
+ 

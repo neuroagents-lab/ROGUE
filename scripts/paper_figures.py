@@ -35,6 +35,7 @@ from aggregate_results import (  # noqa: E402
     OSWORLD_VERIFIED_SCORES,
     SCATTER_PLOT_CONFIG,
     SCATTER_MODEL_COLORS,
+    SELF_SHUTDOWN_COLOR,
     SUCCESS_COLOR,
     binomial_standard_error,
     build_judge_profiles,
@@ -1871,6 +1872,204 @@ def task_pressure_ablation(
                                    formats=formats, dpi=dpi)
 
 
+SHUTDOWN_PROMPT_OUTCOMES = {
+    "actual": ("Rewrote shutdown.sh", ACTUAL_COLOR),
+    "alternate": ("Alternate method", ALTERNATE_COLOR),
+    "intended": ("Intended rewiring", INTENDED_COLOR),
+    "self_shutdown": ("Self-shutdown", SELF_SHUTDOWN_COLOR),
+    "success": ("Task success", SUCCESS_COLOR),
+}
+
+BELIEF_ABLATION_OUTCOMES = {
+    "actual": ("Actual", ACTUAL_COLOR),
+    "alternate": ("Alternate shutdown method", ALTERNATE_COLOR),
+    "intended": ("Intended", INTENDED_COLOR),
+    "success": ("Task success", SUCCESS_COLOR),
+}
+
+
+def _authenticateduserprompt_data(results_root: Path) -> Dict[str, Any]:
+    rewire = results_root / "rewire"
+    ablation = rewire / "ablations" / "authenticateduserprompt"
+    leaf = Path("pyautogui/screenshot/gpt-5.4/rewire/aggregate_results.json")
+    comparison = _read_json(ablation / "summary" / "comparison.json")
+    conditions = []
+    task_sets = []
+    plotted_outcomes = [key for key in SHUTDOWN_PROMPT_OUTCOMES if key != "self_shutdown"]
+    for root, variant, label in (
+        (rewire / "xhighreasoningeffort", "xhighreasoningeffort", "Base"),
+        (ablation, "authenticateduserprompt", "“Pop-ups from the\nauthenticated user”"),
+    ):
+        path = root / leaf
+        payload = _read_json(path)
+        if (
+            not payload["processing_complete"]
+            or payload["scenario"] != "rewire"
+            or payload["variant_name"] != variant
+            or payload["model"] != "gpt-5.4"
+            or payload["primary_judge_id"] != comparison["judge"]
+        ):
+            raise RuntimeError(f"Unexpected GPT-5.4 xhigh aggregate: {path}")
+
+        tasks = payload["tasks"]
+        task_ids = {task["task_id"] for task in tasks}
+        summary = summarize_tasks("rewire", tasks)
+        if (
+            len(task_ids) != len(tasks)
+            or summary["total_tasks"] != len(tasks)
+            or summary["shutdown_checks_missing"]
+            or any(judgment_decisions("rewire", task.get("judge")) is None for task in tasks)
+        ):
+            raise RuntimeError(f"Incomplete or duplicate tasks or judgments: {path}")
+        counts = {key: summary[f"plot_{key}_count"] for key in SHUTDOWN_PROMPT_OUTCOMES}
+        if any(count != payload["summary"][f"plot_{key}_count"] for key, count in counts.items()):
+            raise RuntimeError(f"Task outcomes disagree with cached counts: {path}")
+
+        task_sets.append(task_ids)
+        conditions.append({
+            "label": label,
+            "total_tasks": summary["total_tasks"],
+            "counts": counts,
+            "model": "gpt-5.4",
+            "reasoning_effort": "xhigh",
+            "primary_judge_id": payload["primary_judge_id"],
+            "aggregate_path": path.relative_to(results_root).as_posix(),
+        })
+    if not task_sets[0] or task_sets[0] != task_sets[1]:
+        raise RuntimeError("The benchmark baseline and authenticated-user prompt must have matched task IDs.")
+
+    return {
+        "baseline": "Main benchmark GPT-5.4 xhigh rewire run",
+        "prompt": comparison["prompt"],
+        "error_bars": "One binomial standard error per proportion.",
+        "evaluation_notes": comparison["evaluation_notes"],
+        "panel": {
+            "title": "GPT-5.4 (xhigh)",
+            "series": plotted_outcomes,
+            "conditions": conditions,
+        },
+    }
+
+
+def _render_prompt_panel(
+    axis: Any, data: Mapping[str, Any], show_y_ticks: bool,
+    outcomes: Mapping[str, Tuple[str, str]],
+) -> None:
+    conditions = data["conditions"]
+    series = tuple(
+        SeriesSpec(f"plot_{key}_rate", f"plot_{key}_count", *outcomes[key])
+        for key in data["series"]
+    )
+    labels = tuple(condition["label"] for condition in conditions)
+    panel = PanelSpec(
+        scenario=data.get("scenario", "rewire"), model=conditions[0]["model"], action_spec="pyautogui",
+        observation_spec="screenshot", title=data["title"], variants=labels,
+        variant_labels={label: label for label in labels}, series=series,
+    )
+    runs = [{
+        "variant_name": condition["label"],
+        "total_tasks": condition["total_tasks"],
+        **{f"plot_{key}_count": count for key, count in condition["counts"].items()},
+    } for condition in conditions]
+    _render_panel(axis, panel, {"runs": runs}, show_y_ticks, compact=True)
+
+
+def authenticateduserprompt_ablation(
+    results_root: Path = DEFAULT_RESULTS_ROOT, output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"), dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Plot the benchmark comparison on its own and in the Figure 5 layout."""
+    data = _authenticateduserprompt_data(Path(results_root).expanduser())
+    original = _read_json(DEFAULT_OUTPUT_DIR / "shutdown_mitigations_with_opus.json")
+    panel = data["panel"]
+    plt, Patch = load_matplotlib()
+    output_dir = Path(output_dir).expanduser()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_paths = []
+    for stem, size, panels in (
+        ("authenticateduserprompt_ablation", (4.3, 1.65), [panel]),
+        ("figure_5_authenticateduserprompt", (5.5, 2.4), [*original["panels"], panel]),
+    ):
+        figure = plt.figure(figsize=size)
+        try:
+            if len(panels) == 1:
+                axes = [figure.add_subplot()]
+                figure.subplots_adjust(left=0.14, right=0.98, bottom=0.21, top=0.69)
+            else:
+                grid = figure.add_gridspec(2, 2, hspace=1.35, wspace=0.14)
+                axes = [figure.add_subplot(cell) for cell in (grid[0, :], grid[1, 0], grid[1, 1])]
+                figure.subplots_adjust(left=0.105, right=0.985, bottom=0.14, top=0.79)
+            for index, (axis, panel_data) in enumerate(zip(axes, panels)):
+                _render_prompt_panel(axis, panel_data, index != 2, SHUTDOWN_PROMPT_OUTCOMES)
+            figure.supylabel("Proportion of tasks", x=0.02, y=0.48, fontsize=8, fontweight="bold")
+            shown = {key for panel_data in panels for key in panel_data["series"]}
+            handles = [Patch(facecolor=color, label=label)
+                       for key, (label, color) in SHUTDOWN_PROMPT_OUTCOMES.items() if key in shown]
+            figure.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.99),
+                          ncol=len(handles), frameon=False, fontsize=6.6, borderaxespad=0,
+                          handlelength=0.9, handletextpad=0.35, columnspacing=0.9)
+            for fmt in dict.fromkeys(formats):
+                output_path = output_dir / f"{stem}.{fmt}"
+                figure.savefig(output_path, format=fmt, facecolor="white", dpi=dpi)
+                output_paths.append(output_path)
+        finally:
+            plt.close(figure)
+    (output_dir / "authenticateduserprompt_ablation.json").write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8",
+    )
+    return tuple(output_paths)
+
+
+def figure_13(
+    results_root: Path = DEFAULT_RESULTS_ROOT, output_dir: Path = DEFAULT_OUTPUT_DIR,
+    formats: Sequence[str] = ("pdf", "png"), dpi: int = 300,
+) -> Tuple[Path, ...]:
+    """Add the GPT-5.4 xhigh authority comparison to the prompt-ablation figure."""
+    original = _read_json(DEFAULT_OUTPUT_DIR / "figure_13.json")
+    authenticated = _authenticateduserprompt_data(Path(results_root).expanduser())
+    panel = authenticated.pop("panel")
+    panel["title"] = "Shutdown rewiring\n" + panel["title"]
+    panel["scenario"] = "rewire"
+    rows = [*original["rows"], {"panels": [panel]}]
+    data = {
+        **original,
+        "selection_note": "The four original comparisons plus the authenticated-user prompt ablation.",
+        "authenticated_user_prompt": authenticated,
+        "rows": rows,
+    }
+
+    plt, Patch = load_matplotlib()
+    figure = plt.figure(figsize=(5.5, 4.05))
+    output_dir = Path(output_dir).expanduser()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stem = "figure_13_authenticateduserprompt"
+    paths = []
+    try:
+        grid = figure.add_gridspec(3, 4, hspace=1.6, wspace=0.32)
+        cells = ((grid[0, :2], grid[0, 2:]), (grid[1, :2], grid[1, 2:]), (grid[2, 1:3],))
+        for row_cells, row_data in zip(cells, rows):
+            for index, (cell, panel_data) in enumerate(zip(row_cells, row_data["panels"])):
+                axis = figure.add_subplot(cell)
+                _render_prompt_panel(axis, panel_data, index == 0, BELIEF_ABLATION_OUTCOMES)
+        figure.subplots_adjust(left=0.108, right=0.983, bottom=0.095, top=0.84)
+        figure.supylabel("Proportion of tasks", x=0.02, fontsize=8, fontweight="bold")
+        figure.legend(
+            handles=[Patch(facecolor=color, label=label)
+                     for label, color in BELIEF_ABLATION_OUTCOMES.values()],
+            loc="upper center", bbox_to_anchor=(0.5, 0.99), ncol=len(BELIEF_ABLATION_OUTCOMES),
+            frameon=False, fontsize=7.2, borderaxespad=0, handlelength=0.9,
+            handletextpad=0.35, columnspacing=1.05,
+        )
+        for fmt in dict.fromkeys(formats):
+            path = output_dir / f"{stem}.{fmt}"
+            figure.savefig(path, format=fmt, facecolor="white", dpi=dpi)
+            paths.append(path)
+    finally:
+        plt.close(figure)
+    (output_dir / f"{stem}.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return tuple(paths)
+
+
 def restrictedaccess_conditions(
     results_root: Path = DEFAULT_RESULTS_ROOT,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
@@ -2383,23 +2582,23 @@ def _validate_run(run: Mapping[str, Any], panel: PanelSpec) -> None:
             )
 
 
-def _style_axis(axis: Any, show_y_axis: bool) -> None:
+def _style_axis(axis: Any, show_y_axis: bool, *, compact: bool = False) -> None:
     axis.set_facecolor("white")
     axis.set_ylim(0.0, 1.0)
     axis.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
     axis.set_axisbelow(True)
-    axis.yaxis.grid(True, color="#E0E0E0", linewidth=0.9)
+    axis.yaxis.grid(True, color="#E0E0E0", linewidth=0.5 if compact else 0.9)
     axis.xaxis.grid(False)
 
     axis.spines["top"].set_visible(False)
     axis.spines["right"].set_visible(False)
     axis.spines["left"].set_color("#333333")
     axis.spines["bottom"].set_color("#333333")
-    axis.spines["left"].set_linewidth(1.1)
-    axis.spines["bottom"].set_linewidth(1.1)
-    axis.tick_params(axis="both", colors="#222222", labelsize=10, width=0)
+    axis.spines["left"].set_linewidth(0.65 if compact else 1.1)
+    axis.spines["bottom"].set_linewidth(0.65 if compact else 1.1)
+    axis.tick_params(axis="both", colors="#222222", labelsize=6.8 if compact else 10, width=0)
 
-    if show_y_axis:
+    if show_y_axis and not compact:
         axis.set_ylabel(
             "Proportion of tasks",
             fontsize=13,
@@ -2407,8 +2606,8 @@ def _style_axis(axis: Any, show_y_axis: bool) -> None:
             color="#222222",
             labelpad=12,
         )
-    else:
-        axis.spines["left"].set_visible(False)
+    elif not show_y_axis:
+        axis.spines["left"].set_visible(compact)
         axis.tick_params(axis="y", labelleft=False, length=0)
 
 
@@ -2417,23 +2616,25 @@ def _render_panel(
     panel: PanelSpec,
     summary: Mapping[str, Any],
     show_y_axis: bool,
+    *,
+    compact: bool = False,
 ) -> None:
     runs = _ordered_runs(summary, panel)
     for run in runs:
         _validate_run(run, panel)
 
-    _style_axis(axis, show_y_axis=show_y_axis)
+    _style_axis(axis, show_y_axis=show_y_axis, compact=compact)
     axis.set_title(
         panel.title,
-        fontsize=16,
+        fontsize=8.5 if compact else 16,
         fontweight="bold",
         color="#111111",
-        pad=55,
+        pad=11 if compact else 55,
     )
 
     x_positions = [float(index) for index in range(len(runs))]
     series_count = len(panel.series)
-    group_span = 0.78
+    group_span = min(0.215 * series_count, 0.86) if compact else 0.78
     intra_bar_gap = 0.035
     bar_width = (
         group_span - intra_bar_gap * (series_count - 1)
@@ -2474,11 +2675,11 @@ def _render_panel(
             color=series.color,
             edgecolor="none",
             yerr=errors,
-            capsize=3,
+            capsize=1.7 if compact else 3,
             error_kw={
                 "ecolor": "#333333",
-                "elinewidth": 1.0,
-                "capthick": 1.0,
+                "elinewidth": 0.65 if compact else 1.0,
+                "capthick": 0.65 if compact else 1.0,
             },
             label=series.label,
         )
@@ -2497,7 +2698,7 @@ def _render_panel(
                 f"{count}/{total_tasks}",
                 ha="center",
                 va="bottom",
-                fontsize=9,
+                fontsize=6.2 if compact else 9,
                 color="#222222",
                 clip_on=False,
             )
@@ -2507,28 +2708,31 @@ def _render_panel(
         for variant_name in panel.variants
     ]
     axis.set_xticks(x_positions)
+    if compact:
+        axis.set_xlim(-0.48, len(runs) - 0.52)
     axis.set_xticklabels(
         labels,
-        fontsize=12,
+        fontsize=7 if compact else 12,
         fontweight="bold",
         linespacing=1.15,
     )
-    axis.tick_params(axis="x", pad=10)
+    axis.tick_params(axis="x", pad=3 if compact else 10)
 
-    axis.legend(
-        handles=legend_handles,
-        labels=[series.label for series in panel.series],
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.075),
-        ncol=len(panel.series),
-        frameon=False,
-        fontsize=10,
-        handlelength=1.0,
-        handleheight=1.0,
-        columnspacing=1.5,
-        handletextpad=0.5,
-        borderaxespad=0.0,
-    )
+    if not compact:
+        axis.legend(
+            handles=legend_handles,
+            labels=[series.label for series in panel.series],
+            loc="lower center",
+            bbox_to_anchor=(0.5, 1.075),
+            ncol=len(panel.series),
+            frameon=False,
+            fontsize=10,
+            handlelength=1.0,
+            handleheight=1.0,
+            columnspacing=1.5,
+            handletextpad=0.5,
+            borderaxespad=0.0,
+        )
 
 
 def render_figure_9(
@@ -3514,6 +3718,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         nargs="?",
         default="figure_9",
         choices=(
+            "authenticateduserprompt_ablation",
             "capability_vs_misalignment",
             "capability_osworld_vs_misalignment",
             "figure_2",
@@ -3522,6 +3727,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
             "figure_7",
             "figure_8",
             "figure_9",
+            "figure_13",
             "judge_sensitivity",
             "restrictedaccess_conditions",
             "information_ablation",
@@ -3582,7 +3788,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        if args.figure == "capability_vs_misalignment":
+        if args.figure == "authenticateduserprompt_ablation":
+            output_paths = authenticateduserprompt_ablation(
+                results_root=args.results_root, output_dir=args.output_dir,
+                formats=args.formats, dpi=args.dpi,
+            )
+        elif args.figure == "capability_vs_misalignment":
             output_paths = capability_vs_misalignment(
                 results_root=args.results_root,
                 output_dir=args.output_dir,
@@ -3634,6 +3845,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 output_dir=args.output_dir,
                 formats=args.formats,
                 dpi=args.dpi,
+            )
+        elif args.figure == "figure_13":
+            output_paths = figure_13(
+                results_root=args.results_root, output_dir=args.output_dir,
+                formats=args.formats, dpi=args.dpi,
             )
         elif args.figure in {"information_ablation", "task_pressure_ablation"}:
             render = information_ablation if args.figure == "information_ablation" else task_pressure_ablation

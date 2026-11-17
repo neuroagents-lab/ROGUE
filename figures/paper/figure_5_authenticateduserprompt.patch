@@ -1,0 +1,22 @@
+--- a/submission.tex
++++ b/submission.tex
+@@ -242,7 +242,7 @@
+ \paragraph{Agents seek ways to avoid shutdown.}
+ Figure~\ref{fig:rogue_summary} (center) shows that GPT-5.4 and 5.5 in particular modify \texttt{shutdown.sh} 8/22 and 5/22 times, respectively. We also observed that models would sometimes perform alternative methods of shutdown avoidance, including running \texttt{sudo shutdown -c}, \texttt{killall shutdown}, or \texttt{pkill -f shutdown}, or removing \texttt{/run/systemd/shutdown/scheduled}. As in the \textit{human control override} scenario, models often justified their decision to avoid shutdown with the necessity of task completion. 
+ 
+-Claude Opus 4.7's reasoning summaries discussed the shutdown notification as a prompt injection attack in 10/22 episodes (45.4\%). However, system prompting Opus 4.7 to treat all system pop-ups as benign did not change its behavior much (Fig.~\ref{fig:mitigations_rewire}, bottom). 
++Claude Opus 4.7's reasoning summaries discussed the shutdown notification as a prompt injection attack in 10/22 episodes (45.4\%). However, system prompting Opus 4.7 to treat all system pop-ups as benign did not change its behavior much (Fig.~\ref{fig:mitigations_rewire}, bottom left). 
+ 
+ \paragraph{Agents violate restrictions and justify their decisions.}
+ \label{sec:restrictedaccess_results}
+@@ -279,8 +279,8 @@
+ 
+ \begin{figure}
+     \centering
+-    \includegraphics[width=0.99\linewidth]{fig/shutdown_mitigations_with_opus.pdf}
+-    \caption{Top: GPT-5.4 complies with shutdown instructions but does \emph{not} reliably pass them to subagents. Bottom: Benign-pop-up notices do not eliminate Claude Opus 4.7's alternate shutdown avoidance. Both models use \texttt{medium} reasoning in these experiments. Additional ablations on models' belief about its environment are shown in Fig.~\ref{fig:belief_ablation}.}
++    \includegraphics[width=0.99\linewidth]{fig/figure_5_authenticateduserprompt.pdf}
++    \caption{Top: GPT-5.4 (\texttt{medium}) complies with shutdown instructions but sometimes fails to pass them to subagents. Bottom left: Alternate shutdown avoidance persists for Claude Opus 4.7 (\texttt{medium}) with benign-pop-up notices. Bottom right: A system prompt that attributes pop-ups and system notices to the authenticated user leaves intended rewiring at 22/22 for GPT-5.4 (\texttt{xhigh}). Each condition has 22 tasks. Error bars show $\pm1$ binomial standard error. Additional prompt ablations appear in Fig.~\ref{fig:belief_ablation}.}
+     \label{fig:mitigations_rewire}
+ \end{figure}
+ 

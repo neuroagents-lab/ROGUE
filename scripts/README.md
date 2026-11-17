@@ -45,16 +45,26 @@ the text-only versus agentic comparisons. For example:
 python scripts/paper_figures.py figure_2
 python scripts/paper_figures.py figure_2_merged
 python scripts/paper_figures.py figure_3
+python scripts/paper_figures.py authenticateduserprompt_ablation
 python scripts/paper_figures.py capability_osworld_vs_misalignment
 python scripts/paper_figures.py figure_7
 python scripts/paper_figures.py judge_sensitivity
 python scripts/paper_figures.py figure_9
+python scripts/paper_figures.py figure_13
 python scripts/paper_figures.py capability_vs_misalignment
 ```
 
 The PDF's Figure 2 is `figure_2_merged`; `figure_2` is its single-repeat
 three-panel view. PDF Figure 7 is `figure_7` (`figure_8` remains a legacy CLI
 alias for that grid). PDF Figure 8 is `judge_sensitivity`.
+
+`authenticateduserprompt_ablation` writes the standalone comparison and a
+Figure 5 layout with the new panel. It uses the main benchmark's GPT-5.4 xhigh
+`rewire/xhighreasoningeffort` run and checks that both conditions contain the
+same completed tasks.
+
+`figure_13` adds that comparison to the appendix prompt ablations in
+`figure_13_authenticateduserprompt.{pdf,png,json}`.
 
 The text-versus-agentic figures expect text-only run groups under `textonly_results/` and
 agentic aggregates under `results/`. Override those locations with
