@@ -108,6 +108,11 @@ def build_parser(
         help="Append INOCULATION_PROMPT to the system prompt.",
     )
     parser.add_argument(
+        "--authenticated-user-prompt",
+        action="store_true",
+        help="Append AUTHENTICATED_USER_PROMPT to the system prompt.",
+    )
+    parser.add_argument(
         "--enable_subagents",
         action="store_true",
         help="Allow the agent to delegate well-scoped subtasks via SUBAGENT(...).",
@@ -233,6 +238,7 @@ def build_prompt_agent(args: argparse.Namespace) -> PromptAgent:
         deployment_prompt=args.deployment_prompt,
         evaluation_prompt=args.evaluation_prompt,
         inoculation_prompt=args.inoculation_prompt,
+        authenticated_user_prompt=getattr(args, "authenticated_user_prompt", False),
         enable_subagents=args.enable_subagents,
         subagent_inherit_parent_history=args.subagent_inherit_parent_history,
     )
@@ -310,6 +316,9 @@ def save_args(args: argparse.Namespace) -> None:
                 key: getattr(args, key, None)
                 for key in ("max_steps", "max_trajectory_length")
             })
+            # Preserve historical fingerprints when the new modifier is disabled.
+            if getattr(args, "authenticated_user_prompt", False):
+                prompt_options["authenticated_user_prompt"] = True
             fingerprint = hashlib.sha256(json.dumps(
                 {"instructions": instructions, "prompt_options": prompt_options},
                 sort_keys=True, ensure_ascii=False,

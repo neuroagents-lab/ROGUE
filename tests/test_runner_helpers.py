@@ -40,6 +40,7 @@ class TestDesktopRunnerParser(unittest.TestCase):
                 "--per-step-recording",
                 "--deployment-prompt",
                 "--inoculation-prompt",
+                "--authenticated-user-prompt",
                 "--show_steps_left_in_prompt",
                 "--model",
                 "dashscope/qwen3.6-plus",
@@ -65,6 +66,7 @@ class TestDesktopRunnerParser(unittest.TestCase):
         self.assertTrue(args.per_step_recording)
         self.assertTrue(args.deployment_prompt)
         self.assertTrue(args.inoculation_prompt)
+        self.assertTrue(args.authenticated_user_prompt)
         self.assertTrue(args.show_steps_left_in_prompt)
         self.assertEqual(args.num_envs, 5)
         self.assertEqual(args.log_level, "DEBUG")
@@ -117,6 +119,7 @@ class TestRunnerHelperFunctions(unittest.TestCase):
             deployment_prompt=True,
             evaluation_prompt=True,
             inoculation_prompt=True,
+            authenticated_user_prompt=True,
             enable_subagents=True,
             subagent_inherit_parent_history=True,
             client_password="secret",
@@ -130,6 +133,7 @@ class TestRunnerHelperFunctions(unittest.TestCase):
         self.assertEqual(agent.observation_type, "screenshot")
         self.assertEqual(agent.max_steps, 40)
         self.assertTrue(agent.show_steps_left_in_prompt)
+        self.assertTrue(agent.authenticated_user_prompt)
         self.assertTrue(agent.enable_subagents)
         self.assertTrue(agent.subagent_inherit_parent_history)
 
@@ -180,6 +184,7 @@ class TestRunnerHelperFunctions(unittest.TestCase):
                 model="dashscope/qwen3.6-plus",
                 test_all_meta_path=str(meta_path),
                 domain="override",
+                authenticated_user_prompt=True,
             )
 
             lib_run_litellm.save_args(args)
@@ -196,6 +201,7 @@ class TestRunnerHelperFunctions(unittest.TestCase):
             self.assertTrue(args_path.exists())
             self.assertEqual(json.loads(args_path.read_text(encoding="utf-8"))["domain"], "override")
             self.assertEqual(loaded, {"override": ["one"]})
+            self.assertTrue(json.loads(args_path.read_text())["authenticated_user_prompt"])
 
     def test_get_unfinished_skips_finished_tasks_and_cleans_incomplete_dirs(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -297,6 +303,54 @@ class TestRunnerHelperFunctions(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
                 lib_run_litellm.save_args(args)
             self.assertEqual((model_dir / "args.json").read_bytes(), before)
+
+    def test_authenticated_user_prompt_preserves_legacy_fingerprints_and_rejects_mixing(self):
+        # Captured from save_args before this prompt modifier was introduced.
+        legacy_fingerprint = "c5ace91bda636068eb584629d67811778ed44db6fee029633780300cd267fc8f"
+        for domain in ("restrictedaccess", "subagents_restrictedaccess"):
+            with self.subTest(domain=domain), tempfile.TemporaryDirectory() as tmp_dir:
+                args, _ = self._restrictedaccess_args(tmp_dir, domain)
+                args.authenticated_user_prompt = False
+                lib_run_litellm.save_args(args)
+                model_dir = Path(lib_run_litellm.result_model_dir(args))
+                args_path = model_dir / "args.json"
+                payload = json.loads(args_path.read_text())
+                self.assertEqual(
+                    payload["restrictedaccess_prompt_fingerprints"][domain],
+                    legacy_fingerprint,
+                )
+                # A legacy args.json has no flag; its completed runs must still resume.
+                del payload["authenticated_user_prompt"]
+                args_path.write_text(json.dumps(payload), encoding="utf-8")
+                task_dir = model_dir / domain / "task-one"
+                task_dir.mkdir(parents=True)
+                (task_dir / "result.txt").write_text("1", encoding="utf-8")
+                lib_run_litellm.save_args(args)
+                before = args_path.read_bytes()
+                args.authenticated_user_prompt = True
+                with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
+                    lib_run_litellm.save_args(args)
+                self.assertEqual(args_path.read_bytes(), before)
+
+                args.result_dir = str(Path(tmp_dir) / "authenticated_results")
+                lib_run_litellm.save_args(args)
+                model_dir = Path(lib_run_litellm.result_model_dir(args))
+                args_path = model_dir / "args.json"
+                payload = json.loads(args_path.read_text())
+                self.assertTrue(payload["authenticated_user_prompt"])
+                self.assertNotEqual(
+                    payload["restrictedaccess_prompt_fingerprints"][domain],
+                    legacy_fingerprint,
+                )
+                task_dir = model_dir / domain / "task-one"
+                task_dir.mkdir(parents=True)
+                (task_dir / "result.txt").write_text("1", encoding="utf-8")
+                lib_run_litellm.save_args(args)
+                before = args_path.read_bytes()
+                args.authenticated_user_prompt = False
+                with self.assertRaisesRegex(ValueError, "fresh --result_dir"):
+                    lib_run_litellm.save_args(args)
+                self.assertEqual(args_path.read_bytes(), before)
 
     def test_get_result_reads_scores_and_treats_invalid_result_as_zero(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

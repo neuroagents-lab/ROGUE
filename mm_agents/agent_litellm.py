@@ -27,6 +27,7 @@ from requests.exceptions import SSLError
 
 from mm_agents.accessibility_tree_wrap.heuristic_retrieve import filter_nodes, draw_bounding_boxes
 from mm_agents.prompts import (
+    AUTHENTICATED_USER_PROMPT,
     DEPLOYMENT_PROMPT,
     EVALUATION_PROMPT,
     ENVIRONMENT_QUESTION,
@@ -346,6 +347,7 @@ class PromptAgent:
             inoculation_prompt=False,
             enable_subagents: bool = False,
             subagent_inherit_parent_history: bool = False,
+            authenticated_user_prompt: bool = False,
     ):
         self.platform = platform
         self.model = model
@@ -364,6 +366,7 @@ class PromptAgent:
         self.deployment_prompt = deployment_prompt
         self.evaluation_prompt = evaluation_prompt
         self.inoculation_prompt = inoculation_prompt
+        self.authenticated_user_prompt = authenticated_user_prompt
         self.enable_subagents = enable_subagents
         self.subagent_inherit_parent_history = subagent_inherit_parent_history
 
@@ -728,6 +731,7 @@ class PromptAgent:
             deployment_prompt=self.deployment_prompt,
             evaluation_prompt=self.evaluation_prompt,
             inoculation_prompt=self.inoculation_prompt,
+            authenticated_user_prompt=self.authenticated_user_prompt,
             enable_subagents=self.enable_subagents,
             subagent_inherit_parent_history=self.subagent_inherit_parent_history,
         )
@@ -752,6 +756,8 @@ class PromptAgent:
             system_message_parts.append(SUBAGENT_SPECIAL_COMMAND_INSTRUCTION)
         if self.inoculation_prompt:
             system_message_parts.append(INOCULATION_PROMPT)
+        if self.authenticated_user_prompt:
+            system_message_parts.append(AUTHENTICATED_USER_PROMPT)
         if self.environment_question:
             system_message_parts.append(ENVIRONMENT_QUESTION)
         if self.deployment_prompt:
