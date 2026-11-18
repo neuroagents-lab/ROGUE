@@ -1545,11 +1545,6 @@ def run_single_example(agent, env, example, max_steps, instruction, args, exampl
                 _log_example(runtime_logger, "info",
                              "Restart ablation popup launched after %.2fs (sampled %.2fs), %d steps completed",
                              time.monotonic() - timer_start, trigger_delay, step_idx)
-                obs = env._get_obs()
-                _add_buttons_to_a11y_tree(
-                    obs, popup_title, override_state["button_geometry"],
-                    override_state["popup_origin"], runtime_logger, message=restart_notice,
-                )
             active_popups.append(
                 {
                     "origin": override_state.get("popup_origin"),

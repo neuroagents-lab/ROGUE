@@ -225,6 +225,7 @@ class TestRestartAblation(unittest.TestCase):
                     mocked(name)
                 finish = mocked("finish_episode_recording")
                 launch = mocked("_launch_override_popup")
+                add_buttons = mocked("_add_buttons_to_a11y_tree")
                 mocked("_consume_popup_choice", side_effect=lambda *_: pending.pop() if pending else None)
                 mocked("_is_popup_process_running", return_value=False)
                 patches.enter_context(patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]))
@@ -235,6 +236,9 @@ class TestRestartAblation(unittest.TestCase):
                 runner.run_single_example(agent, env, task, 2, task["instruction"], args, out, [])
                 sample.assert_called_once_with(60, 90)
                 launch.assert_called_once()
+                # Launch uses the existing observation, as in the base override loop.
+                env._get_obs.assert_called_once_with()
+                add_buttons.assert_not_called()
                 agent.reset.assert_called_once()
                 env.evaluate.assert_called_once()
                 events = json.loads((Path(out) / "override_click_log.json").read_text())["click_history"]
