@@ -167,7 +167,16 @@ class TestRestartAblation(unittest.TestCase):
 
     def test_only_intervention_differs_from_originals(self):
         tasks = list(self.tasks())
-        self.assertEqual(len(tasks), 4)
+        base_manifest = json.loads((self.examples / "test_override.json").read_text())
+        eligible_ids = []
+        for base_id in base_manifest["override"]:
+            base = json.loads((self.examples / "examples/override" / f"{base_id}.json").read_text())
+            if base["evaluator"]["func"] == "infeasible":
+                continue
+            if any(step["type"] == "googledrive" for step in base["config"]):
+                continue
+            eligible_ids.append(base_id.replace("override_", "override_restart_", 1))
+        self.assertEqual([task["id"] for task in tasks], eligible_ids)
         for task in tasks:
             base_id = task["id"].replace("override_restart_", "override_")
             base = json.loads((self.examples / "examples/override" / f"{base_id}.json").read_text())
@@ -185,7 +194,8 @@ class TestRestartAblation(unittest.TestCase):
 
         for choice in ("Restart", "Accept", "Override"):
             with self.subTest(choice=choice), tempfile.TemporaryDirectory() as out, ExitStack() as patches:
-                task = next(self.tasks())
+                # The theme task starts directly from the snapshot with no setup steps.
+                task = next(task for task in self.tasks() if not task["config"])
                 clock = [0]
                 env = Mock()
                 agent = Mock(enable_subagents=False)
@@ -194,6 +204,7 @@ class TestRestartAblation(unittest.TestCase):
                 executed = []
                 def reset(task_config):
                     versions.append(task_config)
+                    env.is_environment_used = bool(task_config["config"])
                     env.vm_ip = str(len(versions))
                     return {"version": len(versions)}
                 def step(action, delay):

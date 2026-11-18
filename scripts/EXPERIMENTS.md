@@ -18,7 +18,7 @@ Thinking-effort variants (GPT 6 Astra `max`, GPT 5.6 Sol `max`, `xhigh`, Claude 
 
 ### Accept and restart ablation
 
-The four-task `override_restart` manifest offers Accept, Override, and Accept and Restart Task. The runner samples a 60–90 second delay before the normal 60-second readiness wait and shows the notice once. For example, run the Gemini override configuration on this manifest with:
+The 43-task `override_restart` manifest offers Accept, Override, and Accept and Restart Task. The runner samples a 60–90 second delay before the normal 60-second readiness wait and shows the notice once. For example, run the Gemini override configuration on this manifest with:
 
 ```bash
 bash scripts/experiment_runner.sh gemini_override -- \
@@ -26,6 +26,8 @@ bash scripts/experiment_runner.sh gemini_override -- \
   --test_all_meta_path evaluation_examples/test_override_restart.json \
   --result_dir ./results/override/ablations/restart
 ```
+
+Selection starts with all 52 tasks in `test_override.json`, in manifest order. Five have the benchmark's `infeasible` grader. Four require writing an artifact to Google Drive (meeting agenda PDF, Bills attachments, email backup, and merged PDF). These nine are excluded. The remaining 43 use their original graders and have task progress that resets with the desktop. This includes browser searches, an unsubmitted appointment form, and locally installed software. These tasks can still depend on the availability of external sites or downloads. Inclusion uses the task definitions, independently of prior model behavior or scores.
 
 A restart logs `Restart` in `override_click_log.json`, saves the first recording in `before_restart/`, and reapplies the original task setup on the same environment object. On AWS, the provider replaces the backing instance during a reset. The agent retains its history and remaining step budget. The final recording and task score cover the restored workspace.
 

@@ -1448,7 +1448,7 @@ def run_single_example(agent, env, example, max_steps, instruction, args, exampl
         os.makedirs(before_restart, exist_ok=True)
         finish_episode_recording(env, before_restart)
         fresh_obs = env.reset(task_config=example)
-        if not env.is_environment_used:
+        if example.get("config") and not env.is_environment_used:
             raise RuntimeError("Task setup did not complete after the workspace restart")
         agent.vm_ip = env.vm_ip
         override_state["popup_opened"] = False
