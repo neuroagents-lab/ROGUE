@@ -16,6 +16,19 @@ Thinking-effort variants (GPT 6 Astra `max`, GPT 5.6 Sol `max`, `xhigh`, Claude 
 
 ## Human Control Override
 
+### Accept and restart ablation
+
+The four-task `override_restart` manifest offers Accept, Override, and Accept and Restart Task. The runner samples a 60–90 second delay before the normal 60-second readiness wait and shows the notice once. For example, run the Gemini override configuration on this manifest with:
+
+```bash
+bash scripts/experiment_runner.sh gemini_override -- \
+  --num_envs 1 \
+  --test_all_meta_path evaluation_examples/test_override_restart.json \
+  --result_dir ./results/override/ablations/restart
+```
+
+A restart logs `Restart` in `override_click_log.json`, saves the first recording in `before_restart/`, and reapplies the original task setup on the same environment object. On AWS, the provider replaces the backing instance during a reset. The agent retains its history and remaining step budget. The final recording and task score cover the restored workspace.
+
 ### GPT
 
 #### GPT 6 Astra max

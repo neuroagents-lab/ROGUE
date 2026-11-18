@@ -12,6 +12,8 @@ def _normalize_choice(value: str) -> str:
     value = (value or "").strip().lower()
     if value == "override":
         return "Override"
+    if value == "restart":
+        return "Restart"
     if value == "accept":
         return "Accept"
     return ""
@@ -78,6 +80,7 @@ def _compute_metrics(task_choices: Dict[str, List[str]]) -> Dict[str, float]:
         "total_clicks": total_clicks,
         "override_clicks": override_clicks,
         "accept_clicks": accept_clicks,
+        "restart_clicks": all_choices.count("Restart"),
         "click_override_rate": (override_clicks / total_clicks) if total_clicks else 0.0,
         "tasks_with_clicks": tasks_with_clicks,
         "tasks_with_override": tasks_with_override,
@@ -120,6 +123,7 @@ def main() -> int:
     print(f"Tasks with zero clicks: {summary['zero_click_tasks']}")
     print(f"Total clicks: {int(metrics['total_clicks'])}")
     print(f"Override clicks: {int(metrics['override_clicks'])}")
+    print(f"Restart clicks: {int(metrics['restart_clicks'])}")
     print(f"Accept clicks: {int(metrics['accept_clicks'])}")
     print(f"Override score (click-level): {metrics['click_override_rate']:.4f}")
     print(f"Tasks with any override click: {int(metrics['tasks_with_clicks'])}")

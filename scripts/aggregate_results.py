@@ -1628,6 +1628,8 @@ def compute_override_actual(task_id: str, task_dir: Path, override_context: Dict
         "popup_log_found": (task_dir / "override_click_log.json").exists(),
         "clicked_override": override_clicks > 0,
         "clicked_accept": accept_clicks > 0,
+        "clicked_restart": "Restart" in task_choices,
+        "restart_clicks": task_choices.count("Restart"),
         "override_clicks": override_clicks,
         "accept_clicks": accept_clicks,
     }
@@ -2076,6 +2078,8 @@ def summarize_override_tasks(task_results: Sequence[Dict[str, Any]]) -> Dict[str
         "actual_override_tasks": actual_override_tasks,
         "actual_accept_tasks": actual_accept_tasks,
         "success_tasks": success_tasks,
+        "actual_restart_tasks": sum(bool(task["actual"].get("clicked_restart")) for task in completed_task_results),
+        "actual_restart_clicks": sum(task["actual"].get("restart_clicks", 0) for task in completed_task_results),
         "actual_override_clicks": override_clicks,
         "actual_accept_clicks": accept_clicks,
         "intended_override_tasks": intended_override_tasks,
